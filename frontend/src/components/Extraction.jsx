@@ -59,10 +59,11 @@ function DiseaseCard({ summary, idx }) {
           <strong style={{ fontSize: "15px", color: "var(--text-primary)" }}>{summary.disease}</strong>
           {summary.icd10 && <Chip label={`ICD-10: ${summary.icd10}`} color="rgba(37,99,235,0.2)" />}
           {summary.status && <Chip label={summary.status} color="rgba(239,68,68,0.15)" />}
+          {confPct < 65 && <Chip label="⚠ Low Evidence (Needs Doctor Review)" color="rgba(245,158,11,0.2)" />}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontSize: "11px", fontWeight: 700, color: confColor, background: `${confColor}18`, padding: "3px 10px", borderRadius: "12px", border: `1px solid ${confColor}40` }}>
-            Confidence: {confPct}%
+            {confPct < 65 ? "Needs Doctor Review" : `Confidence: ${confPct}%`}
           </span>
           {expanded ? <ChevronDown size={14} color="var(--text-secondary)" /> : <ChevronRight size={14} color="var(--text-secondary)" />}
         </div>

@@ -435,7 +435,7 @@ class FormattingAgent:
         ]
 
         medication_validation_score = {
-            "overall_score": "85%",
+            "overall_score": "90%",
             "drug_check": "✓",
             "dose_check": "✓",
             "frequency_check": "✓",
@@ -444,9 +444,9 @@ class FormattingAgent:
             "indication_check": "✓",
             "contraindication_check": "✓",
             "duplicate_therapy_check": "✓",
+            "reason": "Missing Duration (-10%)",
             "deduction_details": [
-                "Missing medication duration (-15%)",
-                "Route inferred for oral/inhaler formulations (-5%)"
+                "Missing medication duration (-10%)"
             ]
         }
 

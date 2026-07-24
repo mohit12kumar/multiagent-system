@@ -54,6 +54,10 @@ _REQUIRED_EVIDENCE = {
         "symptoms": ["dyspnea", "shortness of breath", "orthopnea"],
         "labs": ["chest xray", "bnp", "infiltrates"],
         "min_matches": 1
+    },
+    "depression": {
+        "symptoms": ["low mood", "loss of interest", "depressed", "anhedonia", "sadness", "sleep disturbance", "appetite change", "phq-9"],
+        "min_matches": 1
     }
 }
 
