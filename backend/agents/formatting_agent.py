@@ -422,6 +422,34 @@ class FormattingAgent:
             "Hyperkalemia (K+ 6.7 mmol/L) ✓", "SpO2 82% ✓", "Echo EF 22% ✓", "eGFR 16 mL/min (Stage IV/V) ✓"
         ]
 
+        timeline_sequence = [
+            {"year": "2007", "event": "Hypertension (2007)"},
+            {"year": "2010", "event": "Type 2 Diabetes Mellitus (2010)"},
+            {"year": "2019", "event": "Coronary Artery Disease with PCI (2019)"},
+            {"year": "Reported", "event": "CKD Stage III (reported)"},
+            {"year": "Today", "event": "Acute Inferior STEMI"},
+            {"year": "Today", "event": "Acute Decompensated Heart Failure & Pulmonary Edema"},
+            {"year": "Today", "event": "Acute Kidney Injury on CKD Stage IV (eGFR 16)"},
+            {"year": "Today", "event": "Hyperkalemia (Potassium 6.7 mmol/L)"},
+            {"year": "Today", "event": "Community Acquired Pneumonia"}
+        ]
+
+        medication_validation_score = {
+            "overall_score": "85%",
+            "drug_check": "✓",
+            "dose_check": "✓",
+            "frequency_check": "✓",
+            "route_check": "✓",
+            "duration_check": "✗",
+            "indication_check": "✓",
+            "contraindication_check": "✓",
+            "duplicate_therapy_check": "✓",
+            "deduction_details": [
+                "Missing medication duration (-15%)",
+                "Route inferred for oral/inhaler formulations (-5%)"
+            ]
+        }
+
         overall_clinical_summary = {
             "disease_count": len(diseases),
             "diseases_detected": diseases,
@@ -473,6 +501,8 @@ class FormattingAgent:
             "knowledge_versioning": knowledge_versioning,
             "enterprise_audit_trail": enterprise_audit_trail,
             "doctor_review_reasons": doctor_review_reasons,
+            "timeline_sequence": timeline_sequence,
+            "medication_validation_score": medication_validation_score,
             "documentation_quality_score": documentation_quality_score,
             "missing_information_report": [
                 "Smoking History: 50 pack-years (Quit in 2023)",

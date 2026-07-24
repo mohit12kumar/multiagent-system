@@ -384,18 +384,68 @@ export default function Extraction() {
               </div>
             )}
 
-            {/* Clinical Quality Score Panel */}
-            {result.clinical_quality_score && (
-              <div style={{ padding: "10px 14px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "8px", fontSize: "11px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-green)", display: "block", marginBottom: "4px" }}>
-                  CLINICAL EXTRACTION QUALITY SCORE ({result.clinical_quality_score.overall_clinical_quality})
+            {/* Timeline View Component */}
+            {result.timeline_sequence?.length > 0 && (
+              <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "11px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)", display: "block", marginBottom: "8px" }}>
+                  CHRONOLOGICAL CLINICAL TIMELINE
                 </span>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", color: "var(--text-secondary)" }}>
-                  <div>Evidence Quality: {result.clinical_quality_score.evidence_score}</div>
-                  <div>Med Validation: {result.clinical_quality_score.medication_score}</div>
-                  <div>Lab Interpretation: {result.clinical_quality_score.labs_score}</div>
-                  <div>Assessment: {result.clinical_quality_score.assessment_score}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {result.timeline_sequence.map((ts, tsi) => (
+                    <div key={tsi} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ background: "rgba(37,99,235,0.2)", color: "#93c5fd", padding: "2px 6px", borderRadius: "4px", fontWeight: 700, minWidth: "55px", textAlign: "center" }}>
+                        {ts.year}
+                      </span>
+                      <span style={{ color: "var(--text-primary)" }}>{ts.event}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {/* Itemized 8-Point Medication Validation Card */}
+            {result.medication_validation_score && (
+              <div style={{ padding: "12px 14px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "8px", fontSize: "11px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-green)" }}>
+                    MEDICATION PRESCRIPTION AUDIT CHECKLIST
+                  </span>
+                  <strong style={{ color: "var(--accent-green)", fontSize: "13px" }}>
+                    {result.medication_validation_score.overall_score}
+                  </strong>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", color: "var(--text-primary)", marginBottom: "6px" }}>
+                  <div>Drug Name: <strong>{result.medication_validation_score.drug_check}</strong></div>
+                  <div>Dose: <strong>{result.medication_validation_score.dose_check}</strong></div>
+                  <div>Frequency: <strong>{result.medication_validation_score.frequency_check}</strong></div>
+                  <div>Route: <strong>{result.medication_validation_score.route_check}</strong></div>
+                  <div>Duration: <strong style={{ color: "var(--accent-red)" }}>{result.medication_validation_score.duration_check}</strong></div>
+                  <div>Indication: <strong>{result.medication_validation_score.indication_check}</strong></div>
+                  <div>Contraindications: <strong>{result.medication_validation_score.contraindication_check}</strong></div>
+                  <div>Duplicate Therapy: <strong>{result.medication_validation_score.duplicate_therapy_check}</strong></div>
+                </div>
+                {result.medication_validation_score.deduction_details?.length > 0 && (
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "6px", color: "var(--accent-orange)" }}>
+                    <strong>Deduction Details:</strong>
+                    {result.medication_validation_score.deduction_details.map((dd, ddi) => (
+                      <div key={ddi}>• {dd}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Missing Information Panel */}
+            {result.missing_information_report?.length > 0 && (
+              <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "8px", fontSize: "11px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#fbbf24", display: "block", marginBottom: "4px" }}>
+                  MISSING CLINICALLY RELEVANT INFORMATION
+                </span>
+                {result.missing_information_report.map((mi, mii) => (
+                  <div key={mii} style={{ color: "var(--text-secondary)", marginBottom: "2px" }}>
+                    • {mi}
+                  </div>
+                ))}
               </div>
             )}
 
