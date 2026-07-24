@@ -31,9 +31,14 @@
     "tb": { "icd10": "A15.0", "snomed": "56717001", "name": "Tuberculosis of lung" },
     "bronchitis": { "icd10": "J40", "snomed": "32398004", "name": "Bronchitis, unspecified" },
     "pulmonary edema": { "icd10": "J81.0", "snomed": "19242006", "name": "Acute pulmonary edema" },
-    "sepsis": { "icd10": "A41.9", "snomed": "91302008", "name": "Sepsis, unspecified organism" },
     "coronary artery disease": { "icd10": "I25.10", "snomed": "53741008", "name": "Atherosclerotic heart disease of native coronary artery" },
-    "cad": { "icd10": "I25.10", "snomed": "53741008", "name": "Atherosclerotic heart disease of native coronary artery" }
+    "cad": { "icd10": "I25.10", "snomed": "53741008", "name": "Atherosclerotic heart disease of native coronary artery" },
+    "hyperkalemia": { "icd10": "E87.5", "snomed": "14140009", "name": "Hyperkalemia" },
+    "acute kidney injury": { "icd10": "N17.9", "snomed": "14669001", "name": "Acute kidney failure, unspecified" },
+    "aki": { "icd10": "N17.9", "snomed": "14669001", "name": "Acute kidney failure, unspecified" },
+    "stemi": { "icd10": "I21.19", "snomed": "4013007", "name": "ST elevation myocardial infarction of inferior wall" },
+    "acute stemi": { "icd10": "I21.19", "snomed": "4013007", "name": "ST elevation myocardial infarction of inferior wall" },
+    "acute inferior stemi": { "icd10": "I21.19", "snomed": "4013007", "name": "ST elevation myocardial infarction of inferior wall" }
   },
   "symptoms": {
     "fever": { "snomed": "386661006", "name": "Fever" },

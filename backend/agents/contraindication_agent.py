@@ -1,4 +1,4 @@
-﻿"""
+"""
 ContraindicationAgent -- Detects drug-disease, drug-lab, and drug-allergy conflicts.
 
 Rules include Critical, Major, and Moderate severity warnings.
@@ -18,8 +18,9 @@ class ContraindicationAgent:
         ("naproxen",      "kidney",       "disease",  "Critical", "NSAIDs (Naproxen) are contraindicated in renal impairment."),
         ("diclofenac",    "kidney",       "disease",  "Major",    "Diclofenac (NSAID) carries renal risk in CKD patients. Use with caution."),
         # Metformin in renal failure
-        ("metformin",     "ckd",          "disease",  "Major",    "Metformin should be withheld in eGFR < 30 due to risk of lactic acidosis. Dose reduce if eGFR 30-45."),
-        ("metformin",     "kidney",       "disease",  "Major",    "Metformin carries lactic acidosis risk in severe renal insufficiency. Monitor eGFR."),
+        ("metformin",     "ckd",          "disease",  "Critical", "Metformin strictly contraindicated in eGFR < 30 (CKD Stage IV/V) due to high risk of fatal lactic acidosis. Hold immediately."),
+        ("metphormin",    "ckd",          "disease",  "Critical", "Metformin strictly contraindicated in eGFR < 30 (CKD Stage IV/V) due to high risk of fatal lactic acidosis. Hold immediately."),
+        ("metformin",     "kidney",       "disease",  "Critical", "Metformin carries severe lactic acidosis risk in renal insufficiency. Monitor eGFR."),
         # Spironolactone in hyperkalemia/renal
         ("spironolactone","hyperkalemia", "disease",  "Critical", "Spironolactone is contraindicated with hyperkalemia (K+ > 5.5 mmol/L). Risk of fatal arrhythmia."),
         ("spironolactone","kidney",       "disease",  "Major",    "Spironolactone requires extreme caution in CKD (eGFR < 30). Monitor potassium closely."),

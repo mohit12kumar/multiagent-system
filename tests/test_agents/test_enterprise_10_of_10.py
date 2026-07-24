@@ -34,9 +34,9 @@ def test_multi_organ_risk_stratification():
         labs=["Creatinine: 2.2 mg/dL", "eGFR: 28 mL/min"],
         vitals=["BP: 150/95 mmHg"]
     )
-    assert risks["stroke_risk"] in ("High", "Moderate")
-    assert risks["renal_failure_risk"] in ("Very High", "High")
-    assert risks["respiratory_failure_risk"] in ("Very High", "High", "Moderate")
+    assert risks["stroke_risk"].upper() in ("HIGH", "MODERATE")
+    assert risks["renal_failure_risk"].upper() in ("VERY HIGH", "HIGH")
+    assert risks["respiratory_failure_risk"].upper() in ("VERY HIGH", "HIGH", "MODERATE")
 
 def test_chronological_sequence_timeline():
     seq = TimelineExtractor.extract_chronological_sequence("Patient experienced fever on Day 1, cough on Day 3")

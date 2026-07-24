@@ -82,13 +82,20 @@ class MedicationSafetyAgent:
                 seen_drugs[base_name] = []
             seen_drugs[base_name].append(m)
 
-        # 1. Duplicate Therapy Check
+        # 1. Duplicate Therapy & Class Interaction Check
         for base_name, med_list in seen_drugs.items():
             if len(med_list) > 1:
                 names_str = ", ".join([f"{m.get('name')} ({m.get('dosage')})" for m in med_list])
                 duplicate_alerts.append(
                     f"Duplicate Therapy Detected: Multiple formulations/doses of {base_name.title()} prescribed ({names_str}). Doctor Review Required."
                 )
+
+        med_names_low = [m.get("name", "").lower() for m in medications if m.get("name")]
+        if any("atorvastatin" in n for n in med_names_low) and any("rosuvastatin" in n for n in med_names_low):
+            duplicate_alerts.append("Duplicate Statin Therapy Detected: Atorvastatin + Rosuvastatin prescribed concurrently. Discontinue duplicate HMG-CoA reductase inhibitor.")
+
+        if any("aspirin" in n for n in med_names_low) and any("clopidogrel" in n for n in med_names_low):
+            duplicate_alerts.append("Dual Antiplatelet Therapy (DAPT) Identified: Aspirin + Clopidogrel co-prescribed for STEMI/CAD. Monitor for bleeding risk.")
 
         # 2. Dosage Safety Range Check
         enriched_meds = []

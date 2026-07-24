@@ -77,14 +77,24 @@ class ClinicalKnowledgeGraph:
                     if s not in rel_symptoms:
                         rel_symptoms.append(s)
 
-            # Multi-condition medication linking rules (e.g. Furosemide -> CHF + CKD)
+            # Multi-condition medication linking rules (e.g. Furosemide -> CHF + CKD + Pulmonary Edema)
             _MULTI_CONDITION_DRUGS = {
-                "furosemide": ["congestive heart failure", "chronic kidney disease", "heart failure", "kidney disease", "chf", "ckd"],
-                "azithromycin": ["pneumonia", "copd", "chronic obstructive pulmonary disease", "respiratory infection"],
-                "paracetamol": ["pneumonia", "fever", "infection", "copd"],
-                "acetaminophen": ["pneumonia", "fever", "infection", "copd"],
-                "atorvastatin": ["hyperlipidemia", "cardiovascular risk", "hypertension"],
-                "rosuvastatin": ["hyperlipidemia", "cardiovascular risk"],
+                "furosemide": ["congestive heart failure", "chronic kidney disease", "heart failure", "pulmonary edema", "kidney disease", "chf", "ckd"],
+                "azithromycin": ["pneumonia", "community acquired pneumonia", "copd", "chronic obstructive pulmonary disease", "respiratory infection"],
+                "paracetamol": ["pneumonia", "community acquired pneumonia", "fever", "infection", "copd"],
+                "acetaminophen": ["pneumonia", "community acquired pneumonia", "fever", "infection", "copd"],
+                "ceftriaxone": ["pneumonia", "community acquired pneumonia", "infection"],
+                "atorvastatin": ["hyperlipidemia", "dyslipidemia", "cardiovascular risk"],
+                "rosuvastatin": ["hyperlipidemia", "dyslipidemia", "cardiovascular risk"],
+                "omeprazole": ["gastroesophageal reflux disease", "gerd"],
+                "pantoprazole": ["gastroesophageal reflux disease", "gerd"],
+                "salbutamol": ["copd", "chronic obstructive pulmonary disease", "asthma"],
+                "albuterol": ["copd", "chronic obstructive pulmonary disease", "asthma"],
+                "losartan": ["hypertension", "essential hypertension", "ckd"],
+                "amlodipine": ["hypertension", "essential hypertension"],
+                "metformin": ["diabetes", "diabetes mellitus", "type 2 diabetes"],
+                "aspirin": ["coronary artery disease", "cad", "stemi", "myocardial infarction"],
+                "clopidogrel": ["coronary artery disease", "cad", "stemi", "myocardial infarction"],
             }
 
             # Filter medications specific or multi-mapped to disease d

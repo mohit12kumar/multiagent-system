@@ -7,11 +7,11 @@
 ![Groq](https://img.shields.io/badge/Groq-Llama%203.3--70B-FF6F00?style=for-the-badge)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20RAG-FF4500?style=for-the-badge)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![Tests Pass](https://img.shields.io/badge/Pytest-16%2F16%20Passed-2EA44F?style=for-the-badge&logo=pytest&logoColor=white)
+![Tests Pass](https://img.shields.io/badge/Pytest-44%2F44%20Passed-2EA44F?style=for-the-badge&logo=pytest&logoColor=white)
 
-> **Production-Ready Multi-Agent Clinical Decision Support & NER System** — Powered by Groq (Llama 3.3-70B), SciSpaCy, BioBERT, EasyOCR, ChromaDB, MySQL, and React + FastAPI.
+> **Production-Ready Multi-Agent Clinical Decision Support & NER System (v2.4.1)** — Powered by Groq (Llama 3.3-70B), SciSpaCy, BioBERT, EasyOCR, ChromaDB, MySQL, and React + FastAPI.
 
-An end-to-end clinical intelligence platform designed to ingest raw doctor notes, discharge summaries, laboratory reports, and scanned prescription images. It routes inputs through a **19-agent AI pipeline** performing HIPAA PHI redaction, medical spelling correction, abbreviation expansion, multi-model entity extraction, clinical relation mapping, RAG grounding via ChromaDB, drug interaction checking, and a human-in-the-loop physician review workflow.
+An end-to-end enterprise clinical intelligence platform designed to ingest raw doctor notes, discharge summaries, laboratory reports, and scanned prescription images. It routes inputs through a **20-agent AI pipeline** performing HIPAA PHI redaction, medical spelling correction, abbreviation expansion, multi-model entity extraction, clinical relation mapping, RAG grounding via ChromaDB, drug interaction checking, eGFR stage calculation, multi-organ risk stratification, and a human-in-the-loop physician review workflow.
 
 ---
 
@@ -19,17 +19,19 @@ An end-to-end clinical intelligence platform designed to ingest raw doctor notes
 
 | Feature | Description |
 |---|---|
-| 🤖 **19-Agent Architecture** | Autonomous, modular micro-agents covering pre-processing, multi-model NER, validation, RAG, and clinical formatting |
+| 🤖 **20-Agent Architecture** | Autonomous, modular micro-agents covering pre-processing, multi-model NER, clinical consistency, RAG, and formatting |
 | 🎴 **Grouped Disease Cards** | Intelligently clusters clinical findings into single condition cards with mapped medications, symptoms, and rationale |
 | 🎯 **Indication-Based Drug Mapping** | Connects prescribed drugs to specific target diseases based on medical indication rather than simple text proximity |
 | 💊 **Preserved Prescription Instructions** | Preserves raw clinical frequencies (`SOS`, `PRN`, `STAT`, `OD`, `BD`, `TDS`, `QID`, `HS`) without loss of context |
 | 🛡️ **HIPAA PHI Redaction** | Strips SSNs, dates of birth, patient names, phone numbers, and MRNs prior to external LLM calls |
-| 🧪 **Lab Marker Protection** | Strictly categorizes lab values (HbA1c, Creatinine, eGFR, K+, Na+) under `LAB_VALUE` to prevent misclassification |
-| 🚨 **Drug Interaction & Safety Engine** | Automatically identifies co-prescription risks with severity ratings (Critical / Major / Moderate) |
-| 📚 **ChromaDB RAG Grounding** | Verifies clinical recommendations against indexed medical evidence to suppress model hallucinations |
+| 🧪 **Lab Marker Protection & Staging** | Categorizes lab values (`HbA1c`, `Creatinine`, `eGFR`, `Troponin`, `BNP`, `K+`) and auto-calculates CKD stages |
+| 🚨 **Drug Safety & Contraindications** | Detects Metformin + eGFR <30 (Lactic Acidosis) and Losartan + K+ >5.5 (Arrhythmia risk) |
+| 🔍 **Clinical Consistency Validator** | Cross-validates multi-source evidence before accepting any diagnosis (`Acute MI`, `CHF`, `Hyperkalemia`, `Pulmonary Edema`) |
+| 📊 **Multi-Organ Risk Engine** | Calculates Cardiac Risk (Very High), Renal Risk (Very High), Stroke Risk (High), Respiratory Risk (Moderate), and Overall Risk (Critical) |
+| 📚 **ChromaDB RAG Grounding** | Verifies clinical recommendations against indexed medical evidence (KDIGO, ACC/AHA, ATS/IDSA citations) |
+| ⭐ **Star Rating XAI Panel** | Visual star ratings (★★★★★) and progress heatmaps per evidence dimension (Symptoms, Assessment, Labs, Vitals, Meds) |
 | 👨‍⚕️ **Physician Review Queue** | Human-in-the-loop workflow allowing doctors to audit, edit, approve, or reject extracted clinical entities |
-| 📊 **Doctor Analytics Dashboard** | Real-time disease prevalence charts, processing metrics, and review queue throughput tracking |
-| 📄 **Automated PDF Discharge Reports** | Generates exportable, formatted clinical discharge reports for patient records |
+| 📄 **Medico-Legal PDF Reports** | Generates exportable clinical PDF reports with cryptographic SHA-256 report hash, QR code verification, and digital signature block |
 | 🔑 **Role-Based Access Control** | Dedicated JWT-authenticated portals for Doctors (review, analytics, export) and Patients (submit notes, view history) |
 
 ---
@@ -40,7 +42,7 @@ An end-to-end clinical intelligence platform designed to ingest raw doctor notes
 multiagent_system/
 │
 ├── backend/                             # FastAPI Backend Service
-│   ├── agents/                          # 19 Specialized Autonomous Agents
+│   ├── agents/                          # 20 Specialized Autonomous Agents
 │   │   ├── phi_redaction_agent.py       # HIPAA PHI Sanitization
 │   │   ├── section_detector_agent.py    # Clinical section segmentation
 │   │   ├── spell_correction_agent.py    # RapidFuzz clinical spell checker
@@ -52,14 +54,27 @@ multiagent_system/
 │   │   ├── llm_clinical_agent.py        # Groq Llama-3.3-70b contextual extraction
 │   │   ├── aggregation_agent.py         # Overlap resolution & weighted consensus
 │   │   ├── validation_agent.py          # Taxonomy rules & ALLERGY classification
+│   │   ├── clinical_consistency_agent.py# Multi-source evidence cross-validator
 │   │   ├── relation_extraction_agent.py # Disease-Medication-Symptom indication mapping
-│   │   ├── medication_validation_agent.py # RxNorm & Wikidata drug verification
+│   │   ├── medication_safety_agent.py   # Duplicate drug therapy & max dosage safety checker
 │   │   ├── disambiguation_agent.py      # ChromaDB vector normalization
 │   │   ├── contraindication_agent.py    # Renal/hepatic/cardiac disease-drug checks
-│   │   ├── lab_interpretation_agent.py  # Reference range evaluation & alert tagging
-│   │   ├── rag_agent.py                 # Vector database RAG grounding & citations
-│   │   ├── formatting_agent.py          # Grouped disease card JSON shaping
+│   │   ├── lab_interpretation_agent.py  # Reference range evaluation & eGFR stage validator
+│   │   ├── rag_agent.py                 # Vector database RAG grounding & guideline citations
+│   │   ├── formatting_agent.py          # Grouped disease card JSON shaping & quality scoring
 │   │   └── human_review_agent.py        # Doctor review queue CRUD operations
+│   │
+│   ├── clinical/                        # Domain Engines
+│   │   ├── clinical_knowledge_graph.py  # Graph representation & multi-condition drug mapper
+│   │   ├── differential_diagnosis_engine.py # Differential diagnoses & alias deduplication
+│   │   ├── evidence_confidence_engine.py# Weighted evidence scoring algorithm
+│   │   ├── final_clinical_validator.py  # Pre-render sanity checker
+│   │   ├── medical_coder.py             # ICD-10-CM & SNOMED CT terminology mapper
+│   │   ├── medication_coverage_checker.py# Prescription completeness auditor
+│   │   ├── prescription_checker.py      # Prescription audit rules
+│   │   ├── quality_audit_report.py      # Pipeline error & quality report generator
+│   │   ├── severity_risk_engine.py      # Multi-organ risk stratification & severity classifier
+│   │   └── timeline_extractor.py        # Chronological clinical timeline engine
 │   │
 │   ├── api/                             # REST API Routers
 │   │   ├── routes.py                    # Root router, auth endpoints & FastAPI startup
@@ -73,7 +88,7 @@ multiagent_system/
 │   │   └── mysql_store.py               # High-level database queries & persistence
 │   │
 │   ├── orchestrator/                    # Execution Engine
-│   │   ├── coordinator.py               # Pipeline orchestrator managing all 19 agents
+│   │   ├── coordinator.py               # Pipeline orchestrator managing all 20 agents
 │   │   └── router.py                    # Agent execution routing
 │   │
 │   ├── services/                        # External Knowledge Services
@@ -82,12 +97,12 @@ multiagent_system/
 │   │   └── wikidata_service.py          # SPARQL medical ontology client
 │   │
 │   └── utils/                           # Helper Utilities
-│       ├── pdf_generator.py             # ReportLab clinical PDF summary generator
+│       ├── pdf_generator.py             # ReportLab medico-legal clinical PDF generator
 │       └── text_cleaning.py             # String pre-processing & sanitization
 │
 ├── frontend/                            # React 18 + Vite Web Application
 │   ├── src/
-│   │   ├── components/                  # UI Components (Navbar, Toast, Modals)
+│   │   ├── components/                  # UI Components (Navbar, Toast, Modals, Extraction, ReviewQueue)
 │   │   ├── context/                     # AuthContext & Session state management
 │   │   ├── pages/                       # Login, PatientDashboard, DoctorDashboard, ReviewQueue
 │   │   ├── services/                    # Axios API client with interceptors
@@ -103,7 +118,7 @@ multiagent_system/
 │   └── clinical_vocab.json              # Medical abbreviation lookup database
 │
 ├── sql/                                 # MySQL database DDL schemas & seed data
-├── tests/                               # Pytest test suite (16 tests, 0 failures)
+├── tests/                               # Pytest test suite (44 tests, 0 failures)
 ├── .env.example                         # Environment variable template
 ├── requirements.txt                     # Python dependencies
 └── run_all.ps1                          # Unified launcher script (PowerShell)
@@ -129,8 +144,8 @@ multiagent_system/
 
 #### 1. Clone the Repository
 ```bash
-git clone <repository-url>
-cd multiagent_system
+git clone https://github.com/mohit12kumar/multiagent-system.git
+cd multiagent-system
 ```
 
 #### 2. Configure Environment Variables
@@ -284,27 +299,16 @@ curl -X POST "http://localhost:8000/api/v1/auth/login" \
 ### 2. Clinical Note Extraction
 
 #### `POST /api/v1/extract`
-Processes raw clinical text through the 19-agent pipeline.
+Processes raw clinical text through the 20-agent pipeline.
 
 **Headers:** `Authorization: Bearer <access_token>`
 
 **Request Body:**
 ```json
 {
-  "text": "Patient: 68-year-old male with HTN, T2DM, and CKD. Prescribed Metformin 1000mg BD and Lisinopril 20mg OD. Complains of mild shortness of breath. Labs: HbA1c 10.2%, Creatinine 3.6 mg/dL.",
+  "text": "Patient: 68-year-old male presenting with chest pain, dyspnea, and leg edema. History of CAD, HTN, and T2DM. Labs: Troponin 4.5 ng/mL, BNP 1650 pg/mL, Serum Creatinine 3.2 mg/dL, eGFR 21 mL/min, Serum Potassium 6.1 mmol/L. BP: 170/102 mmHg. Chest X-ray shows pulmonary edema. Taking Metformin 1000mg BD, Losartan 50mg OD, and Atorvastatin 20mg HS.",
   "role": "patient"
 }
-```
-
-**Curl Example:**
-```bash
-curl -X POST "http://localhost:8000/api/v1/extract" \
-     -H "Authorization: Bearer <YOUR_JWT_TOKEN>" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "text": "Patient with HTN and T2DM. Taking Metformin 500mg BD. HbA1c 9.5%.",
-       "role": "patient"
-     }'
 ```
 
 **Response Overview:**
@@ -312,143 +316,34 @@ curl -X POST "http://localhost:8000/api/v1/extract" \
 {
   "session_id": "c7f4e912-34ab-4cd8-b112-9876543210fe",
   "status": "COMPLETED",
-  "entities": [
-    { "text": "HTN", "type": "DISEASE", "confidence": 0.96 },
-    { "text": "Metformin 500mg BD", "type": "DRUG", "confidence": 0.98 },
-    { "text": "HbA1c 9.5%", "type": "LAB_VALUE", "confidence": 0.99 }
-  ],
-  "patient_summary": {
-    "structured_summary": [
-      {
-        "disease": "Type 2 Diabetes Mellitus",
-        "status": "Poorly Controlled",
-        "medications": [
-          {
-            "name": "Metformin",
-            "dosage": "500mg",
-            "frequency": "BD",
-            "validation_status": "Correct"
-          }
-        ]
-      }
-    ]
+  "overall_clinical_summary": {
+    "disease_count": 6,
+    "diseases_detected": [
+      "Acute Myocardial Infarction",
+      "Congestive Heart Failure",
+      "Hyperkalemia",
+      "Pulmonary Edema",
+      "Chronic Kidney Disease",
+      "Hypertension"
+    ],
+    "overall_risk": "Critical",
+    "review_status": "Pending Doctor Review"
   },
-  "laboratory_values": [
-    {
-      "lab": "HbA1c",
-      "value": "9.5%",
-      "reference": "< 7.0%",
-      "interpretation": "Elevated"
-    }
-  ]
+  "organ_risk_stratification": {
+    "cardiac_risk": "Very High",
+    "renal_failure_risk": "Very High",
+    "stroke_risk": "High",
+    "respiratory_failure_risk": "Moderate",
+    "overall_risk_level": "Critical"
+  },
+  "clinical_quality_score": {
+    "overall_clinical_quality": "96.5%",
+    "evidence_score": "95%",
+    "medication_score": "100%",
+    "labs_score": "92%",
+    "assessment_score": "98%"
+  }
 }
-```
-
----
-
-### 3. Doctor Review Queue
-
-#### `GET /api/v1/review/queue`
-Retrieves pending extracted entity mentions for physician verification.
-
-#### `POST /api/v1/review/feedback`
-Submits approval, rejection, or modification for a specific entity.
-
-**Request Body:**
-```json
-{
-  "entity_mention_id": "e91a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
-  "reviewer": "dr_jenkins",
-  "action": "APPROVED"
-}
-```
-
----
-
-### 4. Patient History & Exports
-
-#### `GET /api/v1/patient/history`
-Returns structured history of all extraction sessions for the logged-in patient.
-
-#### `GET /api/v1/patient/download-pdf/{session_id}`
-Generates and downloads a formatted PDF report for a completed session.
-
----
-
-## 🧬 Entity Taxonomy & Parsing Rules
-
-The platform categorizes extracted text into 8 standardized entity types:
-
-| Entity Type | Description | Sample Tokens | Special Rules |
-|---|---|---|---|
-| `DISEASE` | Medical conditions & diagnoses | Hypertension, T2DM, CKD Stage III | Standardized via BioBERT / SciSpaCy |
-| `SYMPTOM` | Patient complaints & signs | Dyspnea, Leg edema, Chest pain | Mapped to related diseases |
-| `DRUG` | Active pharmaceutical ingredients | Metformin, Lisinopril, Furosemide | Preserves drug strength & form |
-| `DOSAGE` | Measured medication quantity | 500 mg, 10 ml, 1 tablet | Regex normalized |
-| `FREQUENCY` | Administration schedule | OD, BD, TDS, QID, HS, SOS, PRN | Preserved verbatim |
-| `ANATOMY` | Anatomical sites & body parts | Right kidney, Left ventricle | SpaCy / SciSpaCy tagged |
-| `LAB_VALUE` | Quantitative lab tests & values | HbA1c 10.2%, Creatinine 3.6 mg/dL | Protected from drug classification |
-| `ALLERGY` | Hypersensitivities & adverse reactions | Penicillin allergy, Sulfa allergy | Blocked from generic DRUG tag |
-
----
-
-## 🤖 Multi-Agent Architecture (19 Agents)
-
-```
-                       [ Unstructured Clinical Note ]
-                                     │
-                                     ▼
-                        [ 1. PHI Redaction Agent ] (HIPAA Sanitization)
-                                     │
-                                     ▼
-                      [ 2. Section Detector Agent ]
-                                     │
-                                     ▼
-                     [ 3. Spell Correction Agent ]
-                                     │
-                                     ▼
-                    [ 4. Abbreviation Expansion Agent ]
-                                     │
-                                     ▼
- ┌───────────────────────────────────────────────────────────────────────┐
- │                      PARALLEL EXTRACTION LAYER                        │
- │  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────┐  │
- │  │ 5. SpaCy Agent  │  │ 6. SciSpaCy Agent│  │  7. BioBERT Agent   │  │
- │  └─────────────────┘  └──────────────────┘  └─────────────────────┘  │
- │  ┌─────────────────┐  ┌──────────────────┐                           │
- │  │ 8. Regex Agent  │  │ 9. LLM Clinical  │                           │
- │  └─────────────────┘  └──────────────────┘                           │
- └───────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-                       [ 10. Aggregation Agent ] (Consensus Voting)
-                                     │
-                                     ▼
-                        [ 11. Validation Agent ] (Taxonomy Rules)
-                                     │
-                                     ▼
-                  [ 12. Relation Extraction Agent ] (Indication Mapping)
-                                     │
-                                     ▼
-                 [ 13. Medication Validation Agent ] (RxNorm/Wikidata)
-                                     │
-                                     ▼
-                    [ 14. Disambiguation Agent ] (Vector Grounding)
-                                     │
-                                     ▼
-                   [ 15. Contraindication Agent ] (Safety Checks)
-                                     │
-                                     ▼
-                  [ 16. Lab Interpretation Agent ] (Reference Ranges)
-                                     │
-                                     ▼
-                        [ 17. RAG Grounding Agent ] (ChromaDB)
-                                     │
-                                     ▼
-                     [ 18. Formatting Agent ] (Disease Cards)
-                                     │
-                                     ▼
-                   [ 19. Human Review Queue Agent ] (Doctor Audit)
 ```
 
 ---
@@ -457,28 +352,17 @@ The platform categorizes extracted text into 8 standardized entity types:
 
 ### Running Unit & Integration Tests
 
-The project includes a full pytest suite covering agent aggregation, disambiguation, regex parsing, PHI redaction, and end-to-end pipeline execution.
+The project includes a complete pytest suite covering all 20 micro-agents, RAG attributions, eGFR stage calculations, multi-organ risk scoring, and end-to-end pipeline execution.
 
 ```powershell
 # Activate virtual environment
 .\venv\Scripts\activate
 
-# Run all 16 tests
+# Run all 44 tests
 pytest -v
 
 # Run tests with coverage summary
 pytest --cov=backend --cov-report=term-missing
-```
-
-### Code Formatting & Linting
-
-```powershell
-# Python Flake8 linting
-flake8 backend --select=F401,F841,E302 --max-line-length=120
-
-# Frontend ESLint check
-cd frontend
-npx eslint src
 ```
 
 ---
@@ -489,6 +373,6 @@ This software is developed for research, educational, and clinical decision supp
 
 ---
 
-<p center>
+<p align="center">
   Built with ❤️ using FastAPI · React · Groq · SciSpaCy · BioBERT · ChromaDB · MySQL
 </p>

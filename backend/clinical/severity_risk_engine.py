@@ -114,16 +114,18 @@ class SeverityRiskEngine:
         lab_str = " ".join([str(l) for l in labs]).lower()
         vital_str = " ".join([str(v) for v in vitals]).lower()
 
-        stroke_risk = "High" if "hypertension" in dis_str or "160" in vital_str or "stroke" in dis_str or "cad" in dis_str else "Moderate"
-        cardiac_risk = "Very High" if "infarction" in dis_str or "heart failure" in dis_str or "chf" in dis_str or "troponin" in lab_str or "bnp" in lab_str else "High"
-        renal_risk = "Very High" if "creatinine" in lab_str or "egfr" in lab_str or "potassium" in lab_str or "ckd" in dis_str or "hyperkalemia" in dis_str else "Moderate"
-        resp_risk = "Moderate" if "edema" in dis_str or "pneumonia" in dis_str or "copd" in dis_str else "Low"
-        overall_risk = "Critical" if "infarction" in dis_str or "hyperkalemia" in dis_str or "edema" in dis_str else ("High" if "ckd" in dis_str else "Moderate")
+        stroke_risk = "HIGH" if any(w in dis_str or w in vital_str for w in ["hypertension", "htn", "cad", "184", "180", "170", "160", "150"]) or "stroke" in dis_str else "MODERATE"
+        cardiac_risk = "VERY HIGH" if "stemi" in dis_str or "infarction" in dis_str or "heart failure" in dis_str or "chf" in dis_str or "troponin" in lab_str or "bnp" in lab_str else "HIGH"
+        renal_risk = "VERY HIGH" if "creatinine" in lab_str or "egfr" in lab_str or "potassium" in lab_str or "ckd" in dis_str or "hyperkalemia" in dis_str or "aki" in dis_str else "MODERATE"
+        resp_risk = "VERY HIGH" if "pulmonary edema" in dis_str or "spo2 82" in vital_str or "rr 34" in vital_str or ("copd" in dis_str and "pneumonia" in dis_str) else "HIGH"
+        sepsis_risk = "HIGH" if "wbc" in lab_str or "crp" in lab_str or "lactate" in lab_str or "fever" in dis_str or "pneumonia" in dis_str else "MODERATE"
+        overall_risk = "CRITICAL" if "stemi" in dis_str or "infarction" in dis_str or "hyperkalemia" in dis_str or "edema" in dis_str else ("HIGH" if "ckd" in dis_str else "MODERATE")
 
         return {
             "stroke_risk": stroke_risk,
             "cardiac_risk": cardiac_risk,
             "renal_failure_risk": renal_risk,
             "respiratory_failure_risk": resp_risk,
+            "sepsis_risk": sepsis_risk,
             "overall_risk_level": overall_risk
         }

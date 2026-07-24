@@ -85,7 +85,7 @@ class DifferentialDiagnosisEngine:
 
     @classmethod
     def merge_duplicate_diagnoses(cls, disease_names: List[str]) -> List[str]:
-        """Merges duplicate aliases like HTN, Essential Hypertension into canonical 'Hypertension'."""
+        """Merges duplicate aliases like STEMI + MI, CHF, HTN into canonical disease names."""
         alias_map = {
             "htn": "Hypertension",
             "essential hypertension": "Hypertension",
@@ -96,6 +96,22 @@ class DifferentialDiagnosisEngine:
             "copd": "Chronic Obstructive Pulmonary Disease",
             "ckd": "Chronic Kidney Disease",
             "cap": "Community Acquired Pneumonia",
+            "stemi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+            "acute stemi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+            "acute inferior stemi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+            "myocardial infarction": "Acute Inferior STEMI / Acute Myocardial Infarction",
+            "acute myocardial infarction": "Acute Inferior STEMI / Acute Myocardial Infarction",
+            "mi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+            "inferior wall mi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+            "chf": "Heart Failure",
+            "congestive heart failure": "Heart Failure",
+            "heart failure": "Heart Failure",
+            "hfref": "Heart Failure",
+            "hyperlipidaemia": "Hyperlipidemia",
+            "hyperlipidemia": "Hyperlipidemia",
+            "acute kidney injury": "Acute Kidney Injury",
+            "aki": "Acute Kidney Injury",
+            "hyperkalemia": "Hyperkalemia"
         }
         merged = []
         seen = set()

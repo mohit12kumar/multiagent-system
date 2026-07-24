@@ -5,7 +5,7 @@ from backend.clinical.differential_diagnosis_engine import DifferentialDiagnosis
 
 def test_clinical_consistency_agent_validation():
     # Valid pneumonia with symptoms
-    is_ok, reason, score = ClinicalConsistencyAgent.validate_consistency(
+    is_ok, reason, score, sup, conf, band = ClinicalConsistencyAgent.validate_consistency(
         "Community Acquired Pneumonia",
         ["cough", "fever"],
         [{"name": "Azithromycin"}],
@@ -16,7 +16,7 @@ def test_clinical_consistency_agent_validation():
     assert score >= 0.70
 
     # Invalid pneumonia without symptoms/labs/meds
-    is_invalid, inv_reason, inv_score = ClinicalConsistencyAgent.validate_consistency(
+    is_invalid, inv_reason, inv_score, inv_sup, inv_conf, inv_band = ClinicalConsistencyAgent.validate_consistency(
         "Community Acquired Pneumonia",
         [],
         [],

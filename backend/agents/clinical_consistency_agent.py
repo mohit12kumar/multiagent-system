@@ -84,7 +84,7 @@ class ClinicalConsistencyAgent:
                 break
 
         if not matched_rule:
-            return True, "Consistent with general clinical presentation.", 0.90
+            return True, "Consistent with general clinical presentation.", 0.90, ["Clinical presentation"], [], "High Confidence"
 
         sym_lows = [s.lower() for s in symptoms]
         med_lows = [(m.get("name") or m.get("medication_name") or "").lower() for m in medications]
@@ -92,30 +92,46 @@ class ClinicalConsistencyAgent:
         vital_lows = [(v.get("vital") or "").lower() for v in vitals]
 
         evidence_count = 0
+        supporting_evidence = []
+        conflicting_evidence = []
 
         # Check symptom match
         if "symptoms" in matched_rule:
-            if any(req in " ".join(sym_lows) for req in matched_rule["symptoms"]):
-                evidence_count += 1
+            for req in matched_rule["symptoms"]:
+                if req in " ".join(sym_lows):
+                    supporting_evidence.append(f"Symptom: {req}")
+                    evidence_count += 1
+                    break
 
         # Check lab match
         if "labs" in matched_rule:
-            if any(req in " ".join(lab_lows) for req in matched_rule["labs"]):
-                evidence_count += 1
+            for req in matched_rule["labs"]:
+                if req in " ".join(lab_lows):
+                    supporting_evidence.append(f"Lab/Vital finding: {req}")
+                    evidence_count += 1
+                    break
 
         # Check med match
         if "meds" in matched_rule:
-            if any(req in " ".join(med_lows) for req in matched_rule["meds"]):
-                evidence_count += 1
+            for req in matched_rule["meds"]:
+                if req in " ".join(med_lows):
+                    supporting_evidence.append(f"Medication: {req}")
+                    evidence_count += 1
+                    break
 
         # Check vitals match
         if "vitals" in matched_rule:
-            if any(req in " ".join(vital_lows) for req in matched_rule["vitals"]):
-                evidence_count += 1
+            for req in matched_rule["vitals"]:
+                if req in " ".join(vital_lows):
+                    supporting_evidence.append(f"Vital sign: {req}")
+                    evidence_count += 1
+                    break
 
         if evidence_count >= matched_rule.get("min_matches", 1):
             score = round(min(0.99, 0.70 + (evidence_count * 0.10)), 2)
-            return True, f"High clinical consistency ({evidence_count} evidence dimensions verified).", score
+            band = "Confirmed" if score >= 0.95 else ("High Confidence" if score >= 0.80 else "Moderate")
+            return True, f"High clinical consistency ({evidence_count} evidence dimensions verified).", score, supporting_evidence, conflicting_evidence, band
         else:
-            logger.warning(f"Clinical Consistency Agent rejected '{disease_name}': Insufficient supporting evidence.")
-            return False, f"Rejected: Insufficient supporting evidence for {disease_name}.", 0.40
+            conflicting_evidence.append(f"Missing required clinical criteria for {disease_name}")
+            logger.warning(f"Clinical Consistency Agent flagged '{disease_name}': Insufficient supporting evidence.")
+            return False, f"Needs Doctor Review: Insufficient supporting evidence for {disease_name}.", 0.40, supporting_evidence, conflicting_evidence, "Needs Doctor Review"

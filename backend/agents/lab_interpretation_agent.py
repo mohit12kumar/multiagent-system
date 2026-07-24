@@ -32,11 +32,14 @@ class LabInterpretationAgent:
         ("bun",        7.0,   20.0, "mg/dL",      "Normal",             "Renal Impairment / Uremia",      "Normal", "Elevated",            None,                          "Chronic Kidney Disease"),
         ("hemoglobin", 12.0,  17.0, "g/dL",       "Anaemia",            "Polycythaemia",                  "Low",    "Elevated",            "Anemia",                      None),
         ("haemoglobin",12.0,  17.0, "g/dL",       "Anaemia",            "Polycythaemia",                  "Low",    "Elevated",            "Anemia",                      None),
-        ("troponin",   0.0,   0.04, "ng/mL",      "Normal",             "Myocardial Injury / ACS",        "Normal", "Critically Elevated", None,                          "Acute Myocardial Infarction"),
+        ("troponin",   0.0,   0.04, "ng/mL",      "Normal",             "Myocardial Injury / ACS",        "Normal", "Critically Elevated", None,                          "Acute Inferior STEMI / Acute Myocardial Infarction"),
+        ("troponin-i", 0.0,   0.04, "ng/mL",      "Normal",             "Myocardial Injury / ACS",        "Normal", "Critically Elevated", None,                          "Acute Inferior STEMI / Acute Myocardial Infarction"),
         ("platelets",  150.0, 400.0,"x10^3/uL",   "Thrombocytopenia",   "Thrombocytosis",                 "Low",    "Elevated",            "Thrombocytopenia",            None),
         ("alt",        7.0,   56.0, "U/L",         "Normal",             "Hepatic Injury",                 "Normal", "Elevated",            None,                          "Hepatic Disease"),
         ("ast",        10.0,  40.0, "U/L",         "Normal",             "Hepatic / Cardiac Injury",       "Normal", "Elevated",            None,                          "Hepatic Disease"),
-        ("bnp",        0.0,   100.0,"pg/mL",       "Normal",             "Elevated Natriuretic Peptide",   "Normal", "Critically Elevated", None,                          "Congestive Heart Failure"),
+        ("bnp",        0.0,   100.0,"pg/mL",       "Normal",             "Elevated Natriuretic Peptide",   "Normal", "Critically Elevated", None,                          "Heart Failure"),
+        ("lactate",    0.0,   2.0,  "mmol/L",      "Normal",             "Hyperlactatemia / Sepsis Risk",  "Normal", "Critically Elevated", None,                          "Sepsis / Hypoperfusion"),
+        ("d-dimer",    0.0,   500.0,"ng/mL",       "Normal",             "Elevated D-Dimer",              "Normal", "Elevated",            None,                          "Thromboembolism"),
     ]
 
     # Vital sign rules: (keyword_pattern, unit, severity_thresholds)
@@ -175,7 +178,7 @@ class LabInterpretationAgent:
             calc_stage = "Stage II"
 
         import re
-        m = re.search(r'ckd\s*(?:stage)?\s*([i|v|1-5]+)', text.lower())
+        m = re.search(r'(?:ckd|chronic\s+kidney\s+disease)\s*(?:stage)?\s*([i|v|1-5]+)', text.lower())
         if m:
             reported_raw = m.group(1).upper()
             if "III" in reported_raw or "3" in reported_raw:
