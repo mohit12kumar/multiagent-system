@@ -36,6 +36,9 @@
     "hyperkalemia": { "icd10": "E87.5", "snomed": "14140009", "name": "Hyperkalemia" },
     "acute kidney injury": { "icd10": "N17.9", "snomed": "14669001", "name": "Acute kidney failure, unspecified" },
     "aki": { "icd10": "N17.9", "snomed": "14669001", "name": "Acute kidney failure, unspecified" },
+    "hyperlipidemia": { "icd10": "E78.5", "snomed": "55822004", "name": "Hyperlipidemia, unspecified" },
+    "dyslipidemia": { "icd10": "E78.5", "snomed": "55822004", "name": "Hyperlipidemia, unspecified" },
+    "depression": { "icd10": "F32.9", "snomed": "35489007", "name": "Major depressive disorder, single episode, unspecified" },
     "stemi": { "icd10": "I21.19", "snomed": "4013007", "name": "ST elevation myocardial infarction of inferior wall" },
     "acute stemi": { "icd10": "I21.19", "snomed": "4013007", "name": "ST elevation myocardial infarction of inferior wall" },
     "acute inferior stemi": { "icd10": "I21.19", "snomed": "4013007", "name": "ST elevation myocardial infarction of inferior wall" }

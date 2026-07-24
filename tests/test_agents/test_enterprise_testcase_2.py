@@ -34,6 +34,11 @@ def test_disease_deduplication_canonical_normalization():
     assert len(merged_chf) == 1
     assert merged_chf[0] == "Heart Failure"
 
+    lipid_diseases = ["Hyperlipidemia", "Dyslipidemia", "Hyperlipidaemia"]
+    merged_lipid = DifferentialDiagnosisEngine.merge_duplicate_diagnoses(lipid_diseases)
+    assert len(merged_lipid) == 1
+    assert merged_lipid[0] == "Hyperlipidemia"
+
 def test_icd10_and_snomed_codes():
     codes_hyperkalemia = MedicalCoder.get_disease_codes("Hyperkalemia")
     assert codes_hyperkalemia["icd10"] == "E87.5"
@@ -47,10 +52,13 @@ def test_icd10_and_snomed_codes():
     codes_stemi = MedicalCoder.get_disease_codes("Acute STEMI")
     assert codes_stemi["icd10"] == "I21.19"
 
-def test_egfr_16_stage_mismatch_calculator():
-    mismatch = LabInterpretationAgent.check_ckd_stage_mismatch(TEST_CASE_2_TEXT, egfr_val=16.0)
+    codes_depression = MedicalCoder.get_disease_codes("Depression")
+    assert codes_depression["icd10"] == "F32.9"
+
+def test_egfr_14_stage_v_mismatch_calculator():
+    mismatch = LabInterpretationAgent.check_ckd_stage_mismatch(TEST_CASE_2_TEXT, egfr_val=14.0)
     assert mismatch is not None
-    assert "Stage IV" in mismatch["warning"]
+    assert "Stage V" in mismatch["warning"]
     assert "Reported: Stage III" in mismatch["warning"]
 
 def test_metformin_and_losartan_contraindications():

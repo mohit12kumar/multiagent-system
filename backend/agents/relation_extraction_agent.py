@@ -51,25 +51,36 @@ _DISEASE_CANONICAL: Dict[str, str] = {
     "chronic kidney disease": "Chronic Kidney Disease",
     "cad": "Coronary Artery Disease",
     "coronary artery disease": "Coronary Artery Disease",
-    "chf": "Congestive Heart Failure",
-    "heart failure": "Congestive Heart Failure",
+    "chf": "Heart Failure",
+    "congestive heart failure": "Heart Failure",
+    "heart failure": "Heart Failure",
     "copd": "COPD",
     "chronic obstructive pulmonary disease": "COPD",
     "hyperlipidemia": "Hyperlipidemia",
     "hyperlipidaemia": "Hyperlipidemia",
+    "dyslipidemia": "Hyperlipidemia",
+    "stemi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+    "acute stemi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+    "acute inferior stemi": "Acute Inferior STEMI / Acute Myocardial Infarction",
+    "myocardial infarction": "Acute Inferior STEMI / Acute Myocardial Infarction",
+    "acute myocardial infarction": "Acute Inferior STEMI / Acute Myocardial Infarction",
+    "mi": "Acute Inferior STEMI / Acute Myocardial Infarction",
     "cap": "Community Acquired Pneumonia",
     "pneumonia": "Community Acquired Pneumonia",
     "atrial fibrillation": "Atrial Fibrillation",
     "gerd": "GERD",
     "peptic ulcer": "GERD",
     "anemia": "Anemia",
+    "acute kidney injury": "Acute Kidney Injury",
+    "aki": "Acute Kidney Injury",
+    "hyperkalemia": "Hyperkalemia"
 }
 
 # Diseases that are typically chronic and require long-term duration fallback
 _CHRONIC_DISEASES: Set[str] = {
     "Hypertension", "Type 2 Diabetes Mellitus", "Hyperlipidemia",
     "GERD", "Chronic Kidney Disease", "Coronary Artery Disease",
-    "Congestive Heart Failure", "COPD", "Atrial Fibrillation", "Anemia"
+    "Heart Failure", "COPD", "Atrial Fibrillation", "Anemia"
 }
 
 _INDICATION_PATTERNS = [
@@ -101,19 +112,22 @@ _DRUG_DISEASE_KNOWLEDGE: Dict[str, str] = {
 }
 
 _SYMPTOM_DISEASE_KNOWLEDGE: Dict[str, List[str]] = {
-    "swelling": ["kidney", "heart failure", "ckd"],
+    "swelling": ["kidney", "heart failure", "ckd", "pulmonary edema"],
     "leg swelling": ["kidney", "heart failure", "ckd"],
-    "edema": ["kidney", "heart failure", "ckd"],
-    "urine output": ["kidney", "ckd"],
+    "edema": ["kidney", "heart failure", "ckd", "pulmonary edema"],
+    "urine output": ["kidney", "ckd", "aki"],
+    "decreased urine output": ["kidney", "ckd", "aki"],
     "frequent urination": ["diabetes"],
     "polyuria": ["diabetes"],
     "fatigue": ["diabetes", "anemia", "kidney"],
     "dizziness": ["hypertension", "diabetes"],
     "headache": ["hypertension"],
-    "chest pain": ["coronary", "heart failure"],
+    "chest pain": ["coronary", "heart failure", "stemi", "myocardial infarction"],
+    "orthopnea": ["heart failure", "pulmonary edema"],
+    "weakness": ["hyperkalemia", "kidney"],
     "chest tightness": ["hypertension", "heart failure", "copd"],
-    "shortness of breath": ["copd", "heart failure", "pneumonia"],
-    "dyspnea": ["copd", "heart failure", "pneumonia"],
+    "shortness of breath": ["copd", "heart failure", "pneumonia", "pulmonary edema"],
+    "dyspnea": ["copd", "heart failure", "pneumonia", "pulmonary edema"],
     "wheezing": ["copd"],
     "productive cough": ["copd", "pneumonia"],
     "cough": ["copd", "pneumonia"],
@@ -490,10 +504,15 @@ class RelationExtractionAgent:
             dist = c.start_char - drug.end_char
             if 0 <= dist < best_dist:
                 between = full_text[drug.end_char:c.start_char]
-                if "." not in between and "\n" not in between:
-                    best_dist = dist
-                    best = c
-        return best.text if best else default
+                # If a period, semicolon, or another drug name appears between, do not map
+                if '.' in between or ';' in between:
+                    continue
+                # Also skip if candidate is "g" for inhaler drugs
+                if any(inh in drug.text.lower() for inh in ["salbutamol", "salbutmol", "albuterol", "fluticasone", "budesonide", "tiotropium"]):
+                    if c.text.strip().lower().endswith("g") and not c.text.strip().lower().endswith("mcg"):
+                        continue
+                best, best_dist = c.text, dist
+        return best if best else default
 
     def _nearest_disease(self, entity, diseases, window):
         best, best_dist = None, window + 1

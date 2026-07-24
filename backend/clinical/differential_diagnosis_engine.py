@@ -109,6 +109,7 @@ class DifferentialDiagnosisEngine:
             "hfref": "Heart Failure",
             "hyperlipidaemia": "Hyperlipidemia",
             "hyperlipidemia": "Hyperlipidemia",
+            "dyslipidemia": "Hyperlipidemia",
             "acute kidney injury": "Acute Kidney Injury",
             "aki": "Acute Kidney Injury",
             "hyperkalemia": "Hyperkalemia"
