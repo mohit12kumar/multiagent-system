@@ -105,6 +105,20 @@ function DiseaseCard({ summary, idx }) {
                 <div style={{ width: `${evScores.assessment}%`, background: "#10b981" }} />
               </div>
             </div>
+
+            {/* Supporting Labs & Imaging Panel */}
+            {summary.supporting_labs?.length > 0 && (
+              <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-orange)", display: "block", marginBottom: "4px" }}>
+                  LABORATORY & IMAGING EVIDENCE
+                </span>
+                {summary.supporting_labs.map((sl, sli) => (
+                  <div key={sli} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                    <span style={{ color: "var(--accent-orange)" }}>•</span> {sl}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Supporting Symptoms */}
@@ -329,6 +343,22 @@ export default function Extraction() {
               <div><span style={{ color: "var(--text-secondary)" }}>REVIEWER:</span> <strong style={{ color: "var(--text-primary)" }}>{docMetadata.assigned_reviewer || "Unassigned"}</strong></div>
               <div><span style={{ color: "var(--text-secondary)" }}>OVERALL CONFIDENCE:</span> <strong style={{ color: "var(--accent-green)" }}>{Math.round(confScore * 100)}%</strong></div>
             </div>
+
+            {/* Doctor Review Priority Reasons Banner */}
+            {result.doctor_review_reasons?.length > 0 && (
+              <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", fontSize: "11px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-red)", display: "block", marginBottom: "4px" }}>
+                  CRITICAL DOCTOR REVIEW REASONS
+                </span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {result.doctor_review_reasons.map((drr, drri) => (
+                    <span key={drri} style={{ background: "rgba(239,68,68,0.2)", color: "#fca5a5", padding: "2px 8px", borderRadius: "10px", fontWeight: 600 }}>
+                      {drr}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Multi-Organ Risk Stratification */}
             {result.organ_risk_stratification && (

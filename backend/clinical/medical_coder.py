@@ -35,6 +35,19 @@ class MedicalCoder:
                 "official_name": codes[key].get("name", disease_name.title())
             }
 
+        # Stage-specific CKD check
+        if "ckd" in key or "chronic kidney disease" in key:
+            if "3a" in key or "iiia" in key:
+                return {"icd10": "N18.31", "snomed": "709044004", "official_name": "Chronic kidney disease, stage 3a"}
+            elif "3b" in key or "iiib" in key:
+                return {"icd10": "N18.32", "snomed": "709044004", "official_name": "Chronic kidney disease, stage 3b"}
+            elif "stage iii" in key or "stage 3" in key:
+                return {"icd10": "N18.30", "snomed": "709044004", "official_name": "Chronic kidney disease, stage 3, unspecified"}
+            elif "stage iv" in key or "stage 4" in key:
+                return {"icd10": "N18.4", "snomed": "709044004", "official_name": "Chronic kidney disease, stage 4"}
+            elif "stage v" in key or "stage 5" in key:
+                return {"icd10": "N18.5", "snomed": "709044004", "official_name": "Chronic kidney disease, stage 5"}
+
         # Word-boundary fuzzy match to prevent accidental substring collisions (e.g. 'mi' matching 'hyperlipidemia')
         import re
         for k, v in codes.items():

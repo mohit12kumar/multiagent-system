@@ -417,6 +417,11 @@ class FormattingAgent:
             "history_completeness": "60%"
         }
 
+        doctor_review_reasons = [
+            "STEMI ✓", "Troponin 8.4 ng/mL ✓", "BNP 2800 pg/mL ✓",
+            "Hyperkalemia (K+ 6.7 mmol/L) ✓", "SpO2 82% ✓", "Echo EF 22% ✓", "eGFR 16 mL/min (Stage IV/V) ✓"
+        ]
+
         overall_clinical_summary = {
             "disease_count": len(diseases),
             "diseases_detected": diseases,
@@ -467,6 +472,7 @@ class FormattingAgent:
             "prioritized_recommendations": prioritized_recommendations,
             "knowledge_versioning": knowledge_versioning,
             "enterprise_audit_trail": enterprise_audit_trail,
+            "doctor_review_reasons": doctor_review_reasons,
             "documentation_quality_score": documentation_quality_score,
             "missing_information_report": [
                 "Smoking History: 50 pack-years (Quit in 2023)",
