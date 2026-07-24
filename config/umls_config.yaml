@@ -1,0 +1,19 @@
+# UMLS Integration Configuration
+
+api_url: "https://uts-ws.nlm.nih.gov/rest"
+api_key: "" # Leave empty to force local gazetteer fallback mode
+
+vocabularies:
+  disease:
+    - "SNOMEDCT_US"
+    - "MSH"
+  drug:
+    - "RXNORM"
+    - "ATC"
+  anatomy:
+    - "FMA"
+    - "UWDA"
+
+cui_matching:
+  min_similarity: 0.80
+  exact_match_bonus: 0.10

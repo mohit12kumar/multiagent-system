@@ -1,0 +1,17 @@
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-groq>=0.1.0
+langchain-chroma>=0.1.0
+langchain-huggingface>=0.0.1
+sentence-transformers>=2.2.2
+chromadb>=0.4.22
+biopython>=1.81
+datasets>=2.16.1
+rich>=13.7.0
+python-dotenv>=1.0.0
+langgraph>=0.0.26
+fastapi>=0.109.0
+uvicorn>=0.27.0
+python-multipart>=0.0.9
+pyjwt>=2.8.0
+gTTS>=2.5.1

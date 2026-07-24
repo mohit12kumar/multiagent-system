@@ -1,0 +1,164 @@
+# ============================================================
+# Enterprise Clinical Intelligence Platform — .gitignore
+# ============================================================
+
+# ── Secrets & Environment ────────────────────────────────────
+.env
+.env.example
+.env.local
+.env.*.local
+*.env
+secrets.yaml
+secrets.json
+
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+.env/
+venv.bak/
+
+# Distribution / build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+.eggs/
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+nosetests.xml
+test-results/
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+# ── Node / Frontend ──────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+frontend/coverage/
+frontend/build/
+node_modules/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Databases ────────────────────────────────────────────────
+# SQLite dev database
+*.db
+*.sqlite
+*.sqlite3
+development.db
+
+# ChromaDB local vector store
+chroma_db/
+
+# MySQL dump files
+*.sql.bak
+*.dump
+
+# ── Machine Learning / AI Models ────────────────────────────
+# Large model weight files
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+*.h5
+*.keras
+
+# HuggingFace cached models (can be huge)
+.cache/huggingface/
+models/
+
+# ── Clinical Data / PHI ─────────────────────────────────────
+# Never commit real patient data or PHI
+data/real/
+data/production/
+data/patients/
+*.hl7
+*.dcm
+*.fhir
+
+# ── Generated Outputs ────────────────────────────────────────
+# PDF reports generated at runtime
+reports/
+*.pdf
+
+# ── IDE & Editor ─────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# JetBrains
+*.iml
+.idea/
+
+# ── OS Files ─────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Monitoring & Telemetry ───────────────────────────────────
+monitoring/grafana/data/
+monitoring/prometheus/data/
+*.metrics
+
+# ── Misc & Sub-projects ──────────────────────────────────────
+medical-research-agent/venv/
+medical-research-agent/.env
+medical-research-agent/__pycache__/
+medical-research-agent/.cache/
+.gemini/
+*.tmp
+*.bak
+*.orig
+*.csv
+.cache/
+tmp/
+temp/
+

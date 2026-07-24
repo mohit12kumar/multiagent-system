@@ -1,0 +1,14 @@
+# MySQL Connection and Pool Settings
+
+host: "localhost"
+port: 3306
+user: "root"
+password: "mysql"
+database: "multiagent_ner"
+
+pool:
+  size: 10
+  max_overflow: 20
+  timeout: 30
+  recycle: 3600
+  echo: false

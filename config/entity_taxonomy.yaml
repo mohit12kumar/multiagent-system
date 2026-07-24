@@ -1,0 +1,50 @@
+# Unified Clinical Taxonomy Mapping Configuration
+
+taxonomy:
+  DISEASE:
+    description: "Diseases, clinical conditions, and diagnoses."
+    mappings:
+      - DISEASE
+      - CONDITION
+      - DIAGNOSIS
+    validation:
+      min_words: 1
+
+  SYMPTOM:
+    description: "Patient reported symptoms and clinical signs."
+    mappings:
+      - SYMPTOM
+      - SIGN
+    validation:
+      min_words: 1
+
+  DRUG:
+    description: "Prescribed medicines, active chemical compounds, and drugs."
+    mappings:
+      - DRUG
+      - CHEMICAL
+      - MEDICINE
+    validation:
+      min_words: 1
+
+  DOSAGE:
+    description: "Strength or volume of a medication dose (e.g. 500mg, 10ml)."
+    mappings:
+      - DOSAGE
+    validation:
+      min_words: 1
+
+  FREQUENCY:
+    description: "How often a medication should be taken (e.g. once daily, twice a day, q.h.s)."
+    mappings:
+      - FREQUENCY
+    validation:
+      min_words: 1
+
+  ANATOMY:
+    description: "Anatomical structures, organs, and body parts."
+    mappings:
+      - ANATOMY
+      - BODY_PART
+    validation:
+      min_words: 1

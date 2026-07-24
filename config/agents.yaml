@@ -1,0 +1,73 @@
+# Medical Agent-Specific Configuration Settings
+
+phi_redaction_agent:
+  enabled: true
+  confidence_threshold: 0.95
+
+scispacy_agent:
+  model_name: "en_core_sci_sm"
+  confidence_threshold: 0.70
+  supported_entities:
+    - DISEASE
+    - SYMPTOM
+    - DRUG
+    - ANATOMY
+
+biobert_agent:
+  model_name: "Almannaa/BioBERT-NER-Diseases" # BioBERT model for disease
+  confidence_threshold: 0.75
+  device: -1 # Force CPU execution
+  onnx_model_path: "models/onnx/biomedical-ner-all/" # Optional ONNX runtime speedup path
+  supported_entities:
+    - DISEASE
+    - SYMPTOM
+    - DRUG
+
+dosage_frequency_agent:
+  confidence_threshold: 0.90
+  supported_entities:
+    - DOSAGE
+    - FREQUENCY
+
+aggregation_agent:
+  consensus_threshold: 0.60
+  weights:
+    scispacy: 1.2
+    biobert: 1.5
+    groq: 1.0
+    dosage_frequency: 2.0
+
+validation_agent:
+  fail_on_invalid_taxonomy: true
+  min_length: 2
+
+disambiguation_agent:
+  similarity_threshold: 0.80
+  max_candidates: 3
+  embedding_model: "all-MiniLM-L6-v2" # Default CPU embedding model
+  fallback_embedding_model: "emilyalsentzer/Bio_ClinicalBERT" # Deep fallback embedding model
+  escalation:
+    review_on_cui_mismatch: true
+    review_on_low_similarity: true
+
+formatting_agent:
+  include_confidence_scores: true
+  include_source_agents: true
+
+groq_agent:
+  model_name: "llama-3.3-70b-specdec"
+  confidence_threshold: 0.75
+  max_llm_calls_per_document: 5
+  supported_entities:
+    - DISEASE
+    - SYMPTOM
+    - DRUG
+    - DOSAGE
+    - FREQUENCY
+    - ANATOMY
+  system_prompt: |
+    You are an expert Clinical Medical NLP assistant.
+    Your task is to identify and extract medical entities of type DISEASE, SYMPTOM, DRUG, DOSAGE, FREQUENCY, and ANATOMY from the provided clinical text.
+    Be extremely thorough when extracting DRUG entities. Include ALL medications, whether they are prescription drugs, over-the-counter medications, supplements, or generic/brand names. Do not miss any medication names.
+    Return the entities in a valid JSON list where each object has "text", "type", and "confidence" fields.
+    Do not explain your output. Only return valid JSON.

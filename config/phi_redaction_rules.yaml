@@ -1,0 +1,33 @@
+# HIPAA Safe Harbor PHI Redaction Patterns
+
+redaction_placeholders:
+  NAME: "[REDACTED_NAME]"
+  DATE: "[REDACTED_DATE]"
+  PHONE: "[REDACTED_PHONE]"
+  EMAIL: "[REDACTED_EMAIL]"
+  SSN: "[REDACTED_SSN]"
+  MRN: "[REDACTED_MRN]"
+  ZIP: "[REDACTED_ZIP]"
+
+patterns:
+  ssn: '\b\d{3}-\d{2}-\d{4}\b'
+  phone: '\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b'
+  email: '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+  mrn: '\bMRN[-:\s]*\d{6,10}\b' # Medical Record Number matches
+  zip_code: '\b\d{5}(?:-\d{4})?\b'
+
+# Context indicators that suggest the following words are names
+name_context_indicators:
+  - "Dr."
+  - "Dr"
+  - "Doctor"
+  - "Mr."
+  - "Mr"
+  - "Mrs."
+  - "Mrs"
+  - "Ms."
+  - "Ms"
+  - "Patient"
+  - "patient"
+  - "Resident"
+  - "physician"

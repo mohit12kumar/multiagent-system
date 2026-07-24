@@ -1,0 +1,25 @@
+# Clinical Pipeline Orchestration settings
+
+pipeline:
+  timeout_seconds: 120 # Increased timeout for CPU LLM calls
+  parallel_extraction: true
+  active_extractors:
+    - scispacy
+    - biobert
+    - groq
+    - dosage_frequency
+
+fallback_routes:
+  scispacy:
+    on_failure: "biobert"
+  biobert:
+    on_failure: "scispacy"
+  groq:
+    on_failure: "log_and_continue"
+  dosage_frequency:
+    on_failure: "log_and_continue"
+
+review_queue:
+  auto_queue_low_confidence: true
+  low_confidence_threshold: 0.75
+  review_on_umls_mismatch: true

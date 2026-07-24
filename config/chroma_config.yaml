@@ -1,0 +1,11 @@
+# ChromaDB Clinical Config
+
+host: "localhost"
+port: 8000
+collection_name: "medical_canonical_entities"
+distance_metric: "cosine"
+
+embedding:
+  default_model: "all-MiniLM-L6-v2"
+  fallback_model: "emilyalsentzer/Bio_ClinicalBERT"
+  device: "cpu"
