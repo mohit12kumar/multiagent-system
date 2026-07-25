@@ -1,0 +1,19 @@
+{
+  "pathways": {
+    "Acute Inferior STEMI": [
+      {"timeframe": "0 min", "step": "12-Lead ECG", "action": "ST elevation evaluation in leads II, III, aVF"},
+      {"timeframe": "15 min", "step": "Cardiac Biomarkers", "action": "STAT Troponin-I & CK-MB draw"},
+      {"timeframe": "30 min", "step": "Dual Antiplatelet Therapy", "action": "Aspirin 300mg + Clopidogrel 300mg loading dose"},
+      {"timeframe": "60 min", "step": "Reperfusion Therapy", "action": "Activate Cath Lab STAT for Primary PCI"},
+      {"timeframe": "24 hours", "step": "Transthoracic Echo", "action": "Evaluate LVEF & Regional Wall Motion Abnormality"},
+      {"timeframe": "Discharge", "step": "Secondary Prevention", "action": "High-intensity Statin + ACEi/ARB + Cardiac Rehab referral"}
+    ],
+    "Heart Failure": [
+      {"timeframe": "0 min", "step": "Oxygen & Position", "action": "Sit upright, Supplemental O2 for SpO2 <92%"},
+      {"timeframe": "15 min", "step": "IV Diuretic", "action": "Furosemide 40mg IV STAT"},
+      {"timeframe": "60 min", "step": "Diagnostic Workup", "action": "NT-proBNP/BNP, Chest X-ray, STAT Electrolytes"},
+      {"timeframe": "24 hours", "step": "Echocardiogram", "action": "Evaluate LVEF & Diastolic Function"},
+      {"timeframe": "Discharge", "step": "GDMT Optimization", "action": "Quadruple therapy: ARNI + Beta-blocker + MRA + SGLT2i"}
+    ]
+  }
+}

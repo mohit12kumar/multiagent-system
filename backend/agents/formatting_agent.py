@@ -626,7 +626,7 @@ class FormattingAgent:
             "medication_effectiveness": medication_effectiveness_list,
             "ckd_stage_mismatch": ckd_mismatch,
             "differential_diagnoses": differentials,
-            "rejected_diseases": differentials["hallucination_report"],
+            "rejected_diseases": [d["disease"] for d in differentials if isinstance(d, dict) and d.get("probability", 1.0) < 0.10],
             "triage_info": triage_info,
             "doctor_review_metadata": doctor_review_metadata,
             "doctor_review_analytics": review_analytics,
