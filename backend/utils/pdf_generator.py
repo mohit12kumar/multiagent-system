@@ -287,19 +287,30 @@ def _generate_reportlab_pdf(data: Dict[str, Any]) -> bytes:
         for c in contras:
             story.append(Paragraph(f"• <b>{c.get('drug','Medication')}:</b> {c.get('warning','Monitor clinical status.')}", S["major"]))
     else:
-        # Default safety checks
-        story.append(Paragraph("• <b>Metformin:</b> Monitor renal function (eGFR) and serum creatinine.", S["body"]))
-        story.append(Paragraph("• <b>Losartan:</b> Monitor serum potassium levels for hyperkalemia.", S["body"]))
-        story.append(Paragraph("• <b>Allergy Protocol:</b> No penicillin or target allergen prescribed (Allergy status respected).", S["body"]))
+        story.append(Paragraph("• <b>Safety Protocol:</b> No active medication contraindications detected for prescribed regimen.", S["body"]))
 
     # Overall Clinical Impression Section
     story += sec_hdr("OVERALL CLINICAL IMPRESSION")
-    impression_text = (
-        "The patient presents with acute community-acquired pneumonia and COPD exacerbation on a background of "
-        "chronic kidney disease, congestive heart failure, hypertension, diabetes, hyperlipidemia, and GERD. "
-        "Laboratory abnormalities indicate renal impairment, systemic inflammation, hyperkalemia, and poor glycemic control. "
-        "Clinical review and continued multidisciplinary management are recommended."
-    )
+    impression_text = data.get("overall_clinical_impression") or data.get("clinical_notes_overview")
+    if not impression_text:
+        diseases_detected = [c.get("disease") for c in structured if c.get("disease")]
+        if not diseases_detected:
+            diseases_detected = [n.get("name") for n in knowledge_graph.get("nodes", []) if n.get("type") == "Disease"]
+        
+        if diseases_detected:
+            disease_str = ", ".join(diseases_detected)
+            abnormal_labs_str = ", ".join([f"{l.get('lab') or l.get('name')} ({l.get('interpretation', 'abnormal')})" for l in lab_values[:4]]) if lab_values else ""
+            vital_str = ", ".join([f"{v.get('vital') or v.get('name')} ({v.get('interpretation', 'abnormal')})" for v in vitals_interp[:3]]) if vitals_interp else ""
+            
+            impression_text = f"The patient presents with clinical evidence supporting {disease_str}."
+            if abnormal_labs_str:
+                impression_text += f" Laboratory findings indicate {abnormal_labs_str}."
+            if vital_str:
+                impression_text += f" Vital signs reveal {vital_str}."
+            impression_text += " Clinical review, physician verification, and guideline-directed multidisciplinary management are recommended."
+        else:
+            impression_text = "Clinical note processed. Dynamic evidence extraction completed awaiting physician review."
+
     story.append(Paragraph(impression_text, S["body"]))
 
     # Recommendations & Reasoning
