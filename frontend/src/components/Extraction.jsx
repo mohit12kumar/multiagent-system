@@ -54,10 +54,12 @@ function DiseaseCard({ summary, idx }) {
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", cursor: "pointer", borderBottom: expanded ? "1px solid rgba(255,255,255,0.07)" : "none" }}
         onClick={() => setExpanded(!expanded)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           <Heart size={16} color="var(--accent-blue)" />
           <strong style={{ fontSize: "15px", color: "var(--text-primary)" }}>{summary.disease}</strong>
           {summary.icd10 && <Chip label={`ICD-10: ${summary.icd10}`} color="rgba(37,99,235,0.2)" />}
+          {summary.snomed && <Chip label={`SNOMED: ${summary.snomed}`} color="rgba(16,185,129,0.15)" />}
+          {summary.severity && <Chip label={`Severity: ${summary.severity}`} color={summary.severity.includes("Critical") ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)"} />}
           {summary.status && <Chip label={summary.status} color="rgba(239,68,68,0.15)" />}
           {confPct < 65 && <Chip label="⚠ Low Evidence (Needs Doctor Review)" color="rgba(245,158,11,0.2)" />}
         </div>
@@ -107,13 +109,28 @@ function DiseaseCard({ summary, idx }) {
               </div>
             </div>
 
-            {/* Supporting Labs & Imaging Panel */}
-            {summary.supporting_labs?.length > 0 && (
+            {/* Objective Clinical Findings (Labs, Vitals, Imaging) */}
+            {(summary.supporting_evidence?.labs?.length > 0 || summary.supporting_evidence?.vitals?.length > 0 || summary.supporting_evidence?.imaging?.length > 0 || summary.supporting_labs?.length > 0) && (
               <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                 <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-orange)", display: "block", marginBottom: "4px" }}>
-                  LABORATORY & IMAGING EVIDENCE
+                  OBJECTIVE CLINICAL FINDINGS (LABS, VITALS, IMAGING)
                 </span>
-                {summary.supporting_labs.map((sl, sli) => (
+                {summary.supporting_evidence?.labs?.map((l, li) => (
+                  <div key={`lab_${li}`} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                    <span style={{ color: "var(--accent-orange)" }}>• Lab:</span> <strong>{l.name}</strong>: {l.value} ({l.status})
+                  </div>
+                ))}
+                {summary.supporting_evidence?.vitals?.map((v, vi) => (
+                  <div key={`vital_${vi}`} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                    <span style={{ color: "var(--accent-orange)" }}>• Vital:</span> <strong>{v.name}</strong>: {v.value} ({v.status})
+                  </div>
+                ))}
+                {summary.supporting_evidence?.imaging?.map((img, imgi) => (
+                  <div key={`img_${imgi}`} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                    <span style={{ color: "var(--accent-orange)" }}>• Imaging/ECG:</span> <strong>{img.name}</strong>: {img.value}
+                  </div>
+                ))}
+                {!summary.supporting_evidence?.labs?.length && summary.supporting_labs?.map((sl, sli) => (
                   <div key={sli} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
                     <span style={{ color: "var(--accent-orange)" }}>•</span> {sl}
                   </div>
@@ -126,7 +143,7 @@ function DiseaseCard({ summary, idx }) {
           {summary.symptoms?.length > 0 && (
             <div>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>
-                SUPPORTING SYMPTOMS
+                SUPPORTING SYMPTOMS (PATIENT REPORTED)
               </span>
               <div style={{ display: "flex", flexWrap: "wrap" }}>
                 {summary.symptoms.map((sym, si) => (
@@ -361,71 +378,97 @@ export default function Extraction() {
               </div>
             )}
 
-            {/* Multi-Organ Risk Stratification */}
-            {result.organ_risk_stratification && (
-              <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "11px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)", display: "block", marginBottom: "6px" }}>
-                  ORGAN RISK STRATIFICATION
-                </span>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-                  <div>Stroke Risk: <strong style={{ color: result.organ_risk_stratification.stroke_risk === 'High' ? 'var(--accent-red)' : 'var(--accent-green)' }}>{result.organ_risk_stratification.stroke_risk}</strong></div>
-                  <div>Cardiac Risk: <strong style={{ color: result.organ_risk_stratification.cardiac_risk === 'High' ? 'var(--accent-red)' : 'var(--accent-green)' }}>{result.organ_risk_stratification.cardiac_risk}</strong></div>
-                  <div>Renal Failure Risk: <strong style={{ color: result.organ_risk_stratification.renal_failure_risk === 'High' ? 'var(--accent-red)' : 'var(--accent-green)' }}>{result.organ_risk_stratification.renal_failure_risk}</strong></div>
-                  <div>Respiratory Failure: <strong style={{ color: result.organ_risk_stratification.respiratory_failure_risk === 'High' ? 'var(--accent-red)' : 'var(--accent-green)' }}>{result.organ_risk_stratification.respiratory_failure_risk}</strong></div>
-                </div>
+            {/* Section 1: Patient Summary Overview */}
+            {result.patient_summary?.clinical_notes_overview && (
+              <div className="glass-card" style={{ padding: "var(--spacing-md)", background: "rgba(59, 130, 246, 0.05)" }}>
+                <h4 style={{ color: "var(--accent-blue)", marginBottom: "8px", fontSize: "13px" }}>Patient Summary Overview</h4>
+                <p style={{ fontSize: "13px", margin: 0, color: "var(--text-secondary)" }}>{result.patient_summary.clinical_notes_overview}</p>
               </div>
             )}
 
-            {/* eGFR CKD Stage Mismatch Alert */}
-            {result.ckd_stage_mismatch && (
-              <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "#fbbf24", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <AlertTriangle size={14} /> {result.ckd_stage_mismatch.warning}
-                </span>
+            {/* Section 2: Diagnosed Condition Disease Cards */}
+            {structured.length > 0 && (
+              <div>
+                <h4 style={{ marginBottom: "8px", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Heart size={14} color="var(--accent-blue)" /> Diagnosed Conditions & Evidence Cards ({structured.length})
+                </h4>
+                {structured.map((s, i) => <DiseaseCard key={i} summary={s} idx={i} />)}
               </div>
             )}
 
-            {/* Timeline View Component */}
-            {result.timeline_sequence?.length > 0 && (
-              <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "11px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)", display: "block", marginBottom: "8px" }}>
-                  CHRONOLOGICAL CLINICAL TIMELINE
+            {/* Section 3: Organ Risk Panel */}
+            {(result.organ_risk || result.organ_risk_stratification) && (
+              <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", fontSize: "11px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-red)", display: "block", marginBottom: "8px" }}>
+                  ORGAN RISK ASSESSMENT PANEL SUMMARY
                 </span>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {result.timeline_sequence.map((ts, tsi) => (
-                    <div key={tsi} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ background: "rgba(37,99,235,0.2)", color: "#93c5fd", padding: "2px 6px", borderRadius: "4px", fontWeight: 700, minWidth: "55px", textAlign: "center" }}>
-                        {ts.year}
-                      </span>
-                      <span style={{ color: "var(--text-primary)" }}>{ts.event}</span>
+                {(() => {
+                  const r = result.organ_risk || result.organ_risk_stratification;
+                  return (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" }}>
+                      <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                        <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>CARDIAC RISK</span>
+                        <strong style={{ color: (r.cardiac || r.cardiac_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                          {r.cardiac || r.cardiac_risk}
+                        </strong>
+                      </div>
+                      <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                        <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>RENAL RISK</span>
+                        <strong style={{ color: (r.renal || r.renal_failure_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                          {r.renal || r.renal_failure_risk}
+                        </strong>
+                      </div>
+                      <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                        <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>RESPIRATORY RISK</span>
+                        <strong style={{ color: (r.respiratory || r.respiratory_failure_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                          {r.respiratory || r.respiratory_failure_risk}
+                        </strong>
+                      </div>
+                      <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                        <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>STROKE RISK</span>
+                        <strong style={{ color: (r.stroke || r.stroke_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                          {r.stroke || r.stroke_risk}
+                        </strong>
+                      </div>
+                      <div style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", padding: "8px", borderRadius: "6px" }}>
+                        <span style={{ color: "#fca5a5", display: "block", fontSize: "10px", fontWeight: 700 }}>OVERALL RISK</span>
+                        <strong style={{ color: "#ef4444", fontSize: "12px" }}>
+                          {r.overall || r.overall_risk_level}
+                        </strong>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
             )}
 
-            {/* Itemized 8-Point Medication Validation Card */}
-            {result.medication_validation_score && (
+            {/* Section 4: Medication Validation Checklist & Score */}
+            {(result.medication_validation || result.medication_validation_score) && (
               <div style={{ padding: "12px 14px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "8px", fontSize: "11px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-green)" }}>
-                    MEDICATION PRESCRIPTION AUDIT CHECKLIST
+                    MEDICATION VALIDATION CHECKLIST
                   </span>
                   <strong style={{ color: "var(--accent-green)", fontSize: "13px" }}>
-                    {result.medication_validation_score.overall_score}
+                    Score: {result.medication_validation?.score || 90}%
                   </strong>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", color: "var(--text-primary)", marginBottom: "6px" }}>
-                  <div>Drug Name: <strong>{result.medication_validation_score.drug_check}</strong></div>
-                  <div>Dose: <strong>{result.medication_validation_score.dose_check}</strong></div>
-                  <div>Frequency: <strong>{result.medication_validation_score.frequency_check}</strong></div>
-                  <div>Route: <strong>{result.medication_validation_score.route_check}</strong></div>
-                  <div>Duration: <strong style={{ color: "var(--accent-red)" }}>{result.medication_validation_score.duration_check}</strong></div>
-                  <div>Indication: <strong>{result.medication_validation_score.indication_check}</strong></div>
-                  <div>Contraindications: <strong>{result.medication_validation_score.contraindication_check}</strong></div>
-                  <div>Duplicate Therapy: <strong>{result.medication_validation_score.duplicate_therapy_check}</strong></div>
-                </div>
-                {result.medication_validation_score.deduction_details?.length > 0 && (
+                {(() => {
+                  const mv = result.medication_validation || result.medication_validation_score;
+                  return (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", color: "var(--text-primary)", marginBottom: "6px" }}>
+                      <div>Drug Name: <strong style={{ color: mv.drug_name !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.drug_name !== false ? "✓" : "✗"}</strong></div>
+                      <div>Dose: <strong style={{ color: mv.dose !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.dose !== false ? "✓" : "✗"}</strong></div>
+                      <div>Frequency: <strong style={{ color: mv.frequency !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.frequency !== false ? "✓" : "✗"}</strong></div>
+                      <div>Route: <strong style={{ color: mv.route !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.route !== false ? "✓" : "✗"}</strong></div>
+                      <div>Duration: <strong style={{ color: mv.duration ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.duration ? "✓" : "✗"}</strong></div>
+                      <div>Indication: <strong style={{ color: mv.indication !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.indication !== false ? "✓" : "✗"}</strong></div>
+                      <div>Contraindication: <strong style={{ color: mv.contraindication !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.contraindication !== false ? "✓" : "✗"}</strong></div>
+                      <div>Duplicate Therapy: <strong style={{ color: mv.duplicate !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.duplicate !== false ? "✓" : "✗"}</strong></div>
+                    </div>
+                  );
+                })()}
+                {result.medication_validation_score?.deduction_details?.length > 0 && (
                   <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "6px", color: "var(--accent-orange)" }}>
                     <strong>Deduction Details:</strong>
                     {result.medication_validation_score.deduction_details.map((dd, ddi) => (
@@ -436,54 +479,48 @@ export default function Extraction() {
               </div>
             )}
 
-            {/* Missing Information Panel */}
-            {result.missing_information_report?.length > 0 && (
-              <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "8px", fontSize: "11px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "#fbbf24", display: "block", marginBottom: "4px" }}>
-                  MISSING CLINICALLY RELEVANT INFORMATION
+            {/* Section 5: Timeline Component */}
+            {(result.timeline?.length > 0 || result.timeline_sequence?.length > 0) && (
+              <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "11px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)", display: "block", marginBottom: "8px" }}>
+                  CHRONOLOGICAL CLINICAL TIMELINE
                 </span>
-                {result.missing_information_report.map((mi, mii) => (
-                  <div key={mii} style={{ color: "var(--text-secondary)", marginBottom: "2px" }}>
-                    • {mi}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Dedicated Clinical Warnings Section */}
-            {result.clinical_warnings?.length > 0 && (
-              <div style={{ padding: "12px 16px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent-red)", display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <AlertTriangle size={14} /> CLINICAL WARNINGS & HIGH-RISK FINDINGS ({result.clinical_warnings.length})
-                </span>
-                {result.clinical_warnings.map((cw, cwi) => (
-                  <div key={cwi} style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ color: "var(--accent-red)", fontWeight: "bold" }}>•</span>
-                    <span>{cw}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Allergies */}
-            {allergies.length > 0 && !allergies[0]?.toLowerCase().includes("no known") && (
-              <div style={{ padding: "10px 14px", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "#a78bfa", display: "block", marginBottom: "4px" }}>⚠ DOCUMENTED DRUG ALLERGIES</span>
-                <div style={{ display: "flex", flexWrap: "wrap" }}>
-                  {allergies.map((a, i) => (
-                    <span key={i} style={{ background: "rgba(139,92,246,0.15)", color: "#c4b5fd", padding: "3px 9px", borderRadius: "10px", fontSize: "12px", marginRight: "6px", fontWeight: 600 }}>{a}</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {(result.timeline || result.timeline_sequence).map((ts, tsi) => (
+                    <div key={tsi} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ background: "rgba(37,99,235,0.2)", color: "#93c5fd", padding: "2px 6px", borderRadius: "4px", fontWeight: 700, minWidth: "55px", textAlign: "center" }}>
+                        {ts.date || ts.year}
+                      </span>
+                      <span style={{ color: "var(--text-primary)" }}>{ts.condition || ts.event}</span>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Disease Cards */}
-            {structured.length > 0 && (
-              <div>
-                <h4 style={{ marginBottom: "8px", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Heart size={14} color="var(--accent-blue)" /> Diagnosed Conditions & Evidence ({structured.length})
-                </h4>
-                {structured.map((s, i) => <DiseaseCard key={i} summary={s} idx={i} />)}
+            {/* Section 6: Missing Information Panel */}
+            {(result.missing_information || result.missing_information_report) && (
+              <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "8px", fontSize: "11px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#fbbf24", display: "block", marginBottom: "6px" }}>
+                  MISSING CLINICALLY RELEVANT INFORMATION PANEL
+                </span>
+                {result.missing_information && typeof result.missing_information === "object" && !Array.isArray(result.missing_information) ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {result.missing_information.history?.length > 0 && (
+                      <div><strong style={{ color: "#fef08a" }}>History:</strong> {result.missing_information.history.join("; ")}</div>
+                    )}
+                    {result.missing_information.labs?.length > 0 && (
+                      <div><strong style={{ color: "#fef08a" }}>Labs:</strong> {result.missing_information.labs.join("; ")}</div>
+                    )}
+                    {result.missing_information.vitals?.length > 0 && (
+                      <div><strong style={{ color: "#fef08a" }}>Vitals:</strong> {result.missing_information.vitals.join("; ")}</div>
+                    )}
+                  </div>
+                ) : (
+                  result.missing_information_report.map((mi, mii) => (
+                    <div key={mii} style={{ color: "var(--text-secondary)", marginBottom: "2px" }}>• {mi}</div>
+                  ))
+                )}
               </div>
             )}
 

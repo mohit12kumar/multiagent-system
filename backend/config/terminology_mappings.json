@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "loinc_codes": {
+    "troponin": { "code": "10839-9", "name": "Troponin I.cardiac [Mass/volume] in Serum or Plasma" },
+    "bnp": { "code": "30934-4", "name": "N-terminal proBNP in Serum or Plasma" },
+    "creatinine": { "code": "2160-0", "name": "Creatinine [Mass/volume] in Serum or Plasma" },
+    "potassium": { "code": "2823-3", "name": "Potassium [Moles/volume] in Serum or Plasma" },
+    "egfr": { "code": "33914-3", "name": "Glomerular filtration rate/1.73 sq M.predicted" },
+    "wbc": { "code": "6690-2", "name": "Leukocytes [#/volume] in Blood" },
+    "crp": { "code": "1988-5", "name": "C reactive protein [Mass/volume] in Serum or Plasma" },
+    "hba1c": { "code": "4548-4", "name": "Hemoglobin A1c/Hemoglobin.total in Blood" },
+    "ldl": { "code": "2089-1", "name": "Cholesterol in LDL [Mass/volume] in Serum or Plasma" },
+    "spo2": { "code": "59408-5", "name": "Oxygen saturation in Arterial blood by Pulse oximetry" }
+  },
+  "rxnorm_codes": {
+    "aspirin": { "cui": "1191", "name": "Aspirin" },
+    "clopidogrel": { "cui": "32968", "name": "Clopidogrel" },
+    "metformin": { "cui": "860975", "name": "Metformin" },
+    "losartan": { "cui": "5224", "name": "Losartan" },
+    "furosemide": { "cui": "4603", "name": "Furosemide" },
+    "atorvastatin": { "cui": "83367", "name": "Atorvastatin" },
+    "amlodipine": { "cui": "17767", "name": "Amlodipine" },
+    "omeprazole": { "cui": "7646", "name": "Omeprazole" },
+    "ceftriaxone": { "cui": "2193", "name": "Ceftriaxone" },
+    "azithromycin": { "cui": "18631", "name": "Azithromycin" }
+  },
+  "umls_cuis": {
+    "acute inferior stemi": { "cui": "C0155626", "semantic_type": "Disease or Syndrome" },
+    "heart failure": { "cui": "C0018801", "semantic_type": "Disease or Syndrome" },
+    "chronic kidney disease": { "cui": "C1561643", "semantic_type": "Disease or Syndrome" },
+    "hyperkalemia": { "cui": "C0020461", "semantic_type": "Pathologic Function" },
+    "copd": { "cui": "C0024117", "semantic_type": "Disease or Syndrome" },
+    "community acquired pneumonia": { "cui": "C0740645", "semantic_type": "Disease or Syndrome" },
+    "hypertension": { "cui": "C0020538", "semantic_type": "Disease or Syndrome" },
+    "diabetes mellitus": { "cui": "C0011849", "semantic_type": "Disease or Syndrome" }
+  }
+}

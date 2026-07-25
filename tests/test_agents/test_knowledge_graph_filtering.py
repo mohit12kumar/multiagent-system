@@ -4,7 +4,10 @@ from backend.clinical.medical_coder import MedicalCoder
 
 def test_disease_specific_filtering():
     diseases = ["Hypertension", "Type 2 Diabetes Mellitus"]
-    symptoms = ["dizziness", "frequent urination"]
+    symptoms = [
+        {"name": "dizziness", "disease_name": "Hypertension"},
+        {"name": "frequent urination", "disease_name": "Type 2 Diabetes Mellitus"}
+    ]
     medications = [
         {"name": "Amlodipine", "disease_name": "Hypertension", "dosage": "5mg"},
         {"name": "Metformin", "disease_name": "Type 2 Diabetes Mellitus", "dosage": "500mg"}

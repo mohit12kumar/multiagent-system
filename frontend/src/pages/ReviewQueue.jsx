@@ -2,7 +2,154 @@ import React, { useState, useEffect } from 'react';
 import { doctorAPI } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
-import { CheckSquare, Check, X, Edit2, Sparkles, ClipboardList, Pill, Stethoscope, User, Clock, AlertTriangle, FileText, Zap, ShieldAlert } from 'lucide-react';
+import { CheckSquare, Check, X, Edit2, Sparkles, Stethoscope, Clock, Zap, Heart, Pill, ChevronDown, ChevronRight } from 'lucide-react';
+
+function Chip({ label, color }) {
+  return (
+    <span style={{
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: "12px",
+      fontSize: "11px",
+      fontWeight: 600,
+      background: color || "rgba(255,255,255,0.08)",
+      color: "var(--text-primary)",
+      border: "1px solid rgba(255,255,255,0.12)",
+      marginRight: "4px",
+      marginBottom: "4px",
+    }}>{label}</span>
+  );
+}
+
+function RichDiseaseCard({ summary, idx }) {
+  const [expanded, setExpanded] = useState(idx === 0);
+  const conf = summary.confidence || 0.95;
+  const confPct = Math.round(conf * 100);
+  const confColor = confPct >= 85 ? "var(--accent-green)" : confPct >= 65 ? "var(--accent-orange)" : "var(--accent-red)";
+  const sev = summary.severity || "Moderate";
+
+  return (
+    <div style={{
+      border: "1px solid rgba(255,255,255,0.1)",
+      borderRadius: "10px",
+      marginBottom: "10px",
+      overflow: "hidden",
+      background: "#0f172a",
+    }}>
+      {/* Card Header */}
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", cursor: "pointer", borderBottom: expanded ? "1px solid rgba(255,255,255,0.07)" : "none" }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          <Heart size={16} color="var(--accent-blue)" />
+          <strong style={{ fontSize: "15px", color: "#38bdf8" }}>{summary.disease}</strong>
+          {summary.icd10 && <Chip label={`ICD-10: ${summary.icd10}`} color="rgba(37,99,235,0.2)" />}
+          {summary.snomed && <Chip label={`SNOMED: ${summary.snomed}`} color="rgba(16,185,129,0.15)" />}
+          {sev && <Chip label={`Severity: ${sev}`} color={sev.includes("Critical") ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)"} />}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "11px", fontWeight: 700, color: confColor, background: `${confColor}18`, padding: "3px 10px", borderRadius: "12px", border: `1px solid ${confColor}40` }}>
+            Confidence: {confPct}%
+          </span>
+          {expanded ? <ChevronDown size={14} color="#94a3b8" /> : <ChevronRight size={14} color="#94a3b8" />}
+        </div>
+      </div>
+
+      {/* Expanded Details */}
+      {expanded && (
+        <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px" }}>
+          {/* Detected Because / Clinical Evidence Checklist */}
+          {summary.detected_because?.length > 0 && (
+            <div style={{ background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)", display: "block", marginBottom: "6px" }}>
+                DETECTED BECAUSE (CLINICAL EVIDENCE CHECKLIST)
+              </span>
+              {summary.detected_because.map((b, bi) => (
+                <div key={bi} style={{ display: "flex", gap: "6px", alignItems: "center", fontSize: "12px", marginBottom: "3px", color: "#f8fafc" }}>
+                  <span style={{ color: "#10b981", fontWeight: "bold" }}>✓</span>
+                  <span>{b}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Objective Clinical Findings (Labs, Vitals, Imaging) */}
+          {(summary.supporting_evidence?.labs?.length > 0 || summary.supporting_evidence?.vitals?.length > 0 || summary.supporting_labs?.length > 0) && (
+            <div style={{ background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-orange)", display: "block", marginBottom: "4px" }}>
+                OBJECTIVE CLINICAL EVIDENCE (LABS, VITALS, IMAGING)
+              </span>
+              {summary.supporting_evidence?.labs?.map((l, li) => (
+                <div key={`lab_${li}`} style={{ fontSize: "12px", color: "#f8fafc", marginBottom: "2px" }}>
+                  <span style={{ color: "var(--accent-orange)" }}>• Lab:</span> <strong>{l.name}</strong>: {l.value} ({l.status})
+                </div>
+              ))}
+              {summary.supporting_evidence?.vitals?.map((v, vi) => (
+                <div key={`vital_${vi}`} style={{ fontSize: "12px", color: "#f8fafc", marginBottom: "2px" }}>
+                  <span style={{ color: "var(--accent-orange)" }}>• Vital:</span> <strong>{v.name}</strong>: {v.value} ({v.status})
+                </div>
+              ))}
+              {!summary.supporting_evidence?.labs?.length && summary.supporting_labs?.map((sl, sli) => (
+                <div key={sli} style={{ fontSize: "12px", color: "#f8fafc", marginBottom: "2px" }}>
+                  <span style={{ color: "var(--accent-orange)" }}>•</span> {sl}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Disease-Specific Supporting Symptoms */}
+          {summary.symptoms?.length > 0 && (
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", display: "block", marginBottom: "6px" }}>
+                DISEASE-SPECIFIC SUPPORTING SYMPTOMS
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {summary.symptoms.map((sym, si) => (
+                  <span key={si} style={{
+                    background: "rgba(245,158,11,0.12)", color: "#fbbf24",
+                    padding: "3px 9px", borderRadius: "10px", fontSize: "11px", fontWeight: 500
+                  }}>{sym}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Prescribed Medications & Quality Audit */}
+          {summary.medications?.length > 0 && (
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", display: "block", marginBottom: "6px" }}>
+                <Pill size={11} style={{ marginRight: "4px" }} />PRESCRIBED MEDICATIONS & QUALITY AUDIT
+              </span>
+              {summary.medications.map((med, mi) => (
+                <div key={mi} style={{
+                  background: "rgba(37,99,235,0.06)",
+                  border: "1px solid rgba(37,99,235,0.15)",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  marginBottom: "6px",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+                    <strong style={{ color: "#60a5fa", fontSize: "13px" }}>{med.name || med}</strong>
+                    <span style={{ fontSize: "11px", color: "#34d399", fontWeight: 600 }}>
+                      Score: {med.audit?.completeness_score || "100%"} ({med.audit?.quality_rating || "High Quality"})
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "4px", fontSize: "12px", color: "#94a3b8" }}>
+                    {med.dosage && <span><strong style={{ color: "#f8fafc" }}>Dose:</strong> {med.dosage}</span>}
+                    {med.frequency && <span><strong style={{ color: "#f8fafc" }}>Freq:</strong> {med.frequency}</span>}
+                    {med.route && <span><strong style={{ color: "#f8fafc" }}>Route:</strong> {med.route}</span>}
+                    {med.duration && <span><strong style={{ color: "#f8fafc" }}>Duration:</strong> {med.duration}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const ReviewQueue = () => {
   const { user } = useAuth();
@@ -12,7 +159,6 @@ const ReviewQueue = () => {
   const [loading, setLoading] = useState(true);
   const [modifyingId, setModifyingId] = useState(null);
   const [newValue, setNewValue] = useState('');
-  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     fetchQueue();
@@ -37,7 +183,6 @@ const ReviewQueue = () => {
       fetchQueue();
       setModifyingId(null);
       setNewValue('');
-      setExpandedId(null);
     } catch (err) {
       addToast(err.userMessage || `Failed to ${action.toLowerCase()} item.`, 'error');
     }
@@ -74,7 +219,6 @@ const ReviewQueue = () => {
 
   return (
     <div className="container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -102,7 +246,6 @@ const ReviewQueue = () => {
           {queue.map((item) => {
             const isSessionLevel = item.details?.type === 'patient_submission';
             const patientSummary = isSessionLevel ? parseSummary(item.details.patient_summary) : [];
-            const isExpanded = expandedId === item.id;
 
             return (
               <div
@@ -126,14 +269,12 @@ const ReviewQueue = () => {
                       <span style={{ fontSize: '12px', color: '#94a3b8' }}>
                         Session: <code style={{ color: '#38bdf8' }}>{item.session_id.substring(0, 8)}...</code>
                       </span>
-
-                      {/* Smart Doctor Review Triage Tag */}
                       <span style={{
                         fontSize: '11px',
                         fontWeight: '700',
-                        backgroundColor: '#dc2626/20',
+                        backgroundColor: 'rgba(220, 38, 38, 0.2)',
                         color: '#ef4444',
-                        border: '1px solid #ef4444/40',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
                         padding: '2px 8px',
                         borderRadius: '12px',
                         display: 'inline-flex',
@@ -189,48 +330,23 @@ const ReviewQueue = () => {
                     <button
                       onClick={() => handleAction(item.id, 'MODIFIED', newValue)}
                       className="btn btn-primary"
-                      disabled={!newValue.strip?.() && !newValue.trim()}
+                      disabled={!newValue.trim()}
                     >
                       Save Correction
                     </button>
                   </div>
                 )}
 
-                {/* Patient Summary & Prescription Audit Cards */}
+                {/* Patient Summary & Enterprise Disease Cards */}
                 {isSessionLevel && patientSummary.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                     <div style={{ fontSize: '13px', fontWeight: '600', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Stethoscope size={16} color="#3b82f6" /> AI-Extracted Clinical Conditions & Prescription Quality Audit:
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {patientSummary.map((s, idx) => (
-                        <div key={idx} style={{ backgroundColor: '#0f172a', borderRadius: '8px', padding: '14px', border: '1px solid #1e293b' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '700', color: '#38bdf8', fontSize: '15px' }}>
-                              {s.disease}
-                            </span>
-                            <span style={{ fontSize: '11px', backgroundColor: '#1e293b', color: '#10b981', padding: '2px 8px', borderRadius: '4px', border: '1px solid #334155' }}>
-                              ICD-10: {s.icd10 || 'I10'}
-                            </span>
-                          </div>
-
-                          <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '6px' }}>
-                            <strong>Symptoms: </strong>
-                            {Array.isArray(s.symptoms) && s.symptoms.length > 0 ? s.symptoms.join(', ') : 'None documented'}
-                          </div>
-
-                          {s.medications && s.medications.length > 0 && (
-                            <div style={{ fontSize: '12px', color: '#34d399', marginTop: '6px' }}>
-                              <strong>Prescribed Rx & Quality Score: </strong>
-                              {s.medications.map((m, mIdx) => (
-                                <div key={mIdx} style={{ marginTop: '2px' }}>
-                                  • {m.name || m} {m.dosage ? `(${m.dosage})` : ''} - <span style={{ color: '#60a5fa' }}>Score: {m.audit?.completeness_score || '90%'} ({m.audit?.quality_rating || 'High Quality'})</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <RichDiseaseCard key={idx} summary={s} idx={idx} />
                       ))}
                     </div>
                   </div>

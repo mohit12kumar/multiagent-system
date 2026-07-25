@@ -17,10 +17,11 @@ class ContraindicationAgent:
         ("ibuprofen",     "kidney",       "disease",  "Critical", "NSAIDs (Ibuprofen) are contraindicated in renal impairment. Risk of acute-on-chronic kidney injury."),
         ("naproxen",      "kidney",       "disease",  "Critical", "NSAIDs (Naproxen) are contraindicated in renal impairment."),
         ("diclofenac",    "kidney",       "disease",  "Major",    "Diclofenac (NSAID) carries renal risk in CKD patients. Use with caution."),
-        # Metformin in renal failure
+        # Metformin in renal failure / eGFR < 30 / AKI
         ("metformin",     "ckd",          "disease",  "Critical", "Metformin strictly contraindicated in eGFR < 30 (CKD Stage IV/V) due to high risk of fatal lactic acidosis. Hold immediately."),
         ("metphormin",    "ckd",          "disease",  "Critical", "Metformin strictly contraindicated in eGFR < 30 (CKD Stage IV/V) due to high risk of fatal lactic acidosis. Hold immediately."),
-        ("metformin",     "kidney",       "disease",  "Critical", "Metformin carries severe lactic acidosis risk in renal insufficiency. Monitor eGFR."),
+        ("metformin",     "kidney",       "disease",  "Critical", "Metformin carries severe lactic acidosis risk in renal insufficiency (eGFR < 30 / AKI). Hold immediately."),
+        ("metformin",     "aki",          "disease",  "Critical", "Metformin strictly contraindicated in Acute Kidney Injury due to risk of lactic acidosis. Hold therapy."),
         # Spironolactone in hyperkalemia/renal
         ("spironolactone","hyperkalemia", "disease",  "Critical", "Spironolactone is contraindicated with hyperkalemia (K+ > 5.5 mmol/L). Risk of fatal arrhythmia."),
         ("spironolactone","kidney",       "disease",  "Major",    "Spironolactone requires extreme caution in CKD (eGFR < 30). Monitor potassium closely."),
@@ -37,8 +38,8 @@ class ContraindicationAgent:
         # Furosemide + Spironolactone (hyperkalemia when eGFR low)
         ("furosemide",    "kidney",       "disease",  "Moderate", "Furosemide in CKD: monitor electrolytes. Loop diuretics can cause volume depletion and worsening renal function."),
         # ACE/ARB in hyperkalemia
-        ("lisinopril",    "hyperkalemia", "disease",  "Major",    "ACE inhibitors (Lisinopril) are relatively contraindicated with severe hyperkalemia (K+ > 5.5 mmol/L)."),
-        ("losartan",      "hyperkalemia", "disease",  "Major",    "ARBs (Losartan) are relatively contraindicated with severe hyperkalemia. Monitor potassium closely."),
+        ("lisinopril",    "hyperkalemia", "disease",  "Major",    "ACE inhibitors (Lisinopril) are relatively contraindicated with severe hyperkalemia (K+ > 5.5 mmol/L). Hold and recheck potassium."),
+        ("losartan",      "hyperkalemia", "disease",  "Major",    "ARBs (Losartan) are relatively contraindicated with hyperkalemia (Potassium > 5.0 mmol/L). Monitor potassium STAT."),
         # Statins in hepatic disease
         ("atorvastatin",  "hepatic",      "disease",  "Major",    "Statins (Atorvastatin) are contraindicated in active hepatic disease or unexplained elevated transaminases."),
         # Warfarin
@@ -54,7 +55,7 @@ class ContraindicationAgent:
         diseases: List[str],
         allergies: List[str],
     ) -> List[Dict[str, str]]:
-        """Check for contraindications across drug-disease pairs and allergy conflicts."""
+        """Check for contraindications across drug-disease pairs, allergy conflicts, DAPT monitoring, and duplicate statins."""
         warnings: List[Dict[str, str]] = []
         meds_low    = [m.lower() for m in medications]
         dis_low     = [d.lower() for d in diseases]
@@ -73,14 +74,53 @@ class ContraindicationAgent:
             if triggered:
                 # Avoid duplicate warnings
                 if not any(w["drug"].lower() == drug_kw and w["condition"].lower() == condition_kw for w in warnings):
+                    d_name = drug_kw.capitalize()
+                    c_name = condition_kw.capitalize()
+                    risk = "Lactic Acidosis" if "metformin" in drug_kw else ("Hyperkalemia" if "hyperkalemia" in condition_kw or "spironolactone" in drug_kw else ("Nephrotoxicity" if "ckd" in condition_kw or "kidney" in condition_kw else "Adverse Event"))
+                    rec = f"Hold {d_name}" if "metformin" in drug_kw else (f"Monitor ECG STAT" if "losartan" in drug_kw else (f"Discontinue {d_name}" if "ibuprofen" in drug_kw or "naproxen" in drug_kw else f"Review {d_name} regimen"))
+
                     warnings.append({
-                        "drug": drug_kw.capitalize(),
-                        "condition": condition_kw.capitalize(),
+                        "drug": d_name,
+                        "condition": c_name,
                         "condition_type": cond_type,
                         "severity": severity,
+                        "reason": f"{c_name} documented with {d_name}",
+                        "risk": risk,
+                        "recommendation": rec,
                         "warning": msg,
                         # Keep backward compat field
-                        "disease_or_allergen": condition_kw.capitalize(),
+                        "disease_or_allergen": c_name,
                     })
+
+        # Dual Antiplatelet Therapy (DAPT) Monitoring check
+        has_aspirin = any("aspirin" in m for m in meds_low)
+        has_clopidogrel = any("clopidogrel" in m or "plavix" in m for m in meds_low)
+        if has_aspirin and has_clopidogrel:
+            warnings.append({
+                "drug": "Aspirin + Clopidogrel",
+                "condition": "STEMI / CAD",
+                "condition_type": "combination",
+                "severity": "Moderate (Monitoring Required)",
+                "reason": "Dual Antiplatelet Therapy (DAPT) active",
+                "risk": "Gastrointestinal & Systemic Bleeding",
+                "recommendation": "Monitor for Bleeding & Coagulation Status",
+                "warning": "Dual Antiplatelet Therapy (DAPT) active: Essential for post-PCI/STEMI, but requires close monitoring for gastrointestinal and systemic bleeding.",
+                "disease_or_allergen": "STEMI / CAD"
+            })
+
+        # Duplicate Statin Therapy check
+        statins = [m for m in meds_low if any(s in m for s in ["atorvastatin", "rosuvastatin", "simvastatin", "pravastatin"])]
+        if len(set(statins)) > 1:
+            warnings.append({
+                "drug": "Duplicate Statins",
+                "condition": "Hyperlipidemia",
+                "condition_type": "duplicate",
+                "severity": "Major",
+                "reason": f"Multiple statins prescribed ({', '.join(statins)})",
+                "risk": "Rhabdomyolysis & Hepatotoxicity",
+                "recommendation": "Discontinue Redundant Statin",
+                "warning": f"Duplicate statin therapy detected ({', '.join(statins)}). Risk of rhabdomyolysis and hepatotoxicity. Discontinue redundant statin.",
+                "disease_or_allergen": "Hyperlipidemia"
+            })
 
         return warnings

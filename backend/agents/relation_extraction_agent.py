@@ -172,7 +172,7 @@ def infer_route(drug_text: str, formulation: str, context_window: str) -> str:
 
     if "inhaler" in f_low or "puff" in f_low or "inhaler" in t_low or "inhalation" in t_low:
         return "Inhalation"
-    if "injection" in f_low or "inj" in f_low or "iv" in t_low or "injection" in t_low:
+    if "injection" in f_low or "inj" in f_low or bool(re.search(r'\biv\b|\bintravenous\b|\binjection\b', t_low)):
         return "IV (Intravenous)"
     if "cream" in f_low or "gel" in f_low or "ointment" in f_low or "topical" in t_low:
         return "Topical"

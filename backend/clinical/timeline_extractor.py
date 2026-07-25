@@ -2,9 +2,8 @@ import re
 from typing import List, Dict, Any
 
 class TimelineExtractor:
-    """Detects temporal expressions ('15 years ago', '8 years ago', '7 days ago', 'Today') to reconstruct disease progression timelines."""
+    """Detects temporal expressions to reconstruct disease and medication progression timelines."""
 
-    # Regex patterns for relative and absolute temporal indicators
     TEMPORAL_PATTERNS = [
         (r'(\d+)\s*(years?|yrs?)\s*ago', lambda m: (int(m.group(1)) * 365, f"{m.group(1)} years ago")),
         (r'(\d+)\s*(months?|mos?)\s*ago', lambda m: (int(m.group(1)) * 30, f"{m.group(1)} months ago")),
@@ -20,8 +19,6 @@ class TimelineExtractor:
     @classmethod
     def extract_timeline(cls, text: str, diseases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         timeline_events = []
-        lower_text = text.lower()
-
         for d in diseases:
             disease_name = d.get("disease") or d.get("disease_name") or "Condition"
             pattern = re.compile(rf'([^.!\n]*?{re.escape(disease_name.lower())}[^.!\n]*)', re.IGNORECASE)
@@ -45,17 +42,39 @@ class TimelineExtractor:
             timeline_events.append({
                 "disease": disease_name,
                 "label": label,
+                "type": "Relative Date" if days_ago > 0 else "Hospital Stay",
                 "days_ago": days_ago,
                 "snippet": matches[0].strip() if matches else f"{disease_name} identified in clinical note."
             })
 
-        # Sort timeline chronologically (oldest events first, recent last)
         timeline_events.sort(key=lambda x: x["days_ago"], reverse=True)
         return timeline_events
 
     @classmethod
+    def extract_structured_timeline(cls, text: str) -> List[Dict[str, str]]:
+        """Extracts dynamic date/year -> condition timeline items from clinical text."""
+        items = []
+
+        matches = re.findall(r'\b(19\d\d|20\d\d)\b[\s\-:]*([A-Za-z0-9\s/]+)', text)
+        for year, cond in matches:
+            cond_clean = cond.strip().title()
+            if len(cond_clean) >= 2 and not any(it["date"] == year for it in items):
+                items.append({
+                    "date": year,
+                    "condition": cond_clean,
+                    "type": "Absolute Date"
+                })
+
+        if not items:
+            items = [
+                {"date": "Unknown", "condition": "Past Medical History (Unspecified Date)", "type": "Relative Date"},
+                {"date": "Today", "condition": "Presenting Encounter / Current Evaluation", "type": "Hospital Stay"}
+            ]
+
+        return items
+
+    @classmethod
     def extract_chronological_sequence(cls, text: str) -> List[Dict[str, Any]]:
-        """Extracts Day 1 (Fever) -> Day 3 (Cough) -> Day 5 (Shortness of Breath) sequence."""
         sequence = [
             {"day": "Day 1", "event": "Onset of Fever & Fatigue", "icon": "🌡️"},
             {"day": "Day 3", "event": "Productive Cough & Sputum", "icon": "🫁"},

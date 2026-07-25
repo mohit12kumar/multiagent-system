@@ -231,21 +231,51 @@ class LabInterpretationAgent:
             else:
                 try:
                     val = float(m.group(1))
+                    unit_str = rule["unit"]
                     low  = rule["low"]
                     high = rule["high"]
-                    if val < low:
-                        interp, arrow, disease = rule["low_msg"],  "↓", rule["low_disease"]
-                        severity = "Low"
-                    elif val > high:
-                        interp, arrow, disease = rule["high_msg"], "↑", rule["high_disease"]
-                        severity = "Elevated"
+
+                    if name == "Temperature":
+                        is_celsius = bool(re.search(r'\b' + str(val) + r'\s*°?\s*c\b', text, re.IGNORECASE)) or val < 45.0
+                        if is_celsius:
+                            unit_str = "°C"
+                            low, high = 35.0, 37.5
+                            if val > 37.5:
+                                interp, arrow, disease = "Fever (Hyperthermia)", "↑", rule["high_disease"]
+                                severity = "Critically Elevated"
+                            elif val < 35.0:
+                                interp, arrow, disease = "Hypothermia", "↓", rule["low_disease"]
+                                severity = "Low"
+                            else:
+                                interp, arrow, disease = "Normal", "→", None
+                                severity = "Normal"
+                        else:
+                            unit_str = "°F"
+                            low, high = 95.0, 99.5
+                            if val > 99.5:
+                                interp, arrow, disease = "Fever (Hyperthermia)", "↑", rule["high_disease"]
+                                severity = "Critically Elevated"
+                            elif val < 95.0:
+                                interp, arrow, disease = "Hypothermia", "↓", rule["low_disease"]
+                                severity = "Low"
+                            else:
+                                interp, arrow, disease = "Normal", "→", None
+                                severity = "Normal"
                     else:
-                        interp, arrow, disease = "Normal", "→", None
-                        severity = "Normal"
+                        if val < low:
+                            interp, arrow, disease = rule["low_msg"],  "↓", rule["low_disease"]
+                            severity = "Low"
+                        elif val > high:
+                            interp, arrow, disease = rule["high_msg"], "↑", rule["high_disease"]
+                            severity = "Elevated"
+                        else:
+                            interp, arrow, disease = "Normal", "→", None
+                            severity = "Normal"
+
                     results.append({
                         "vital": name,
-                        "value": f"{val} {rule['unit']}",
-                        "reference": f"{low}–{high} {rule['unit']}",
+                        "value": f"{val} {unit_str}",
+                        "reference": f"{low}–{high} {unit_str}",
                         "interpretation": interp,
                         "arrow": arrow,
                         "severity": severity,
@@ -255,3 +285,85 @@ class LabInterpretationAgent:
                     continue
 
         return results
+
+    def interpret_imaging_diagnostics(self, text: str) -> List[Dict[str, Any]]:
+        """Parse and interpret imaging, ECG, echocardiogram, and diagnostic measurements dynamically from clinical text."""
+        findings = []
+        text_low = text.lower()
+
+        # Echocardiogram / Ejection Fraction
+        m_ef = re.search(r'(?:echo|lvef|ef|ejection\s*fraction)\s*[:\-]?\s*(\d{1,2})%', text_low)
+        if m_ef:
+            val = int(m_ef.group(1))
+            findings.append({
+                "category": "Echo",
+                "name": "Ejection Fraction (EF)",
+                "value": f"{val}%",
+                "status": "Low (<40%)" if val < 40 else "Normal",
+                "supporting_disease": "Heart Failure"
+            })
+
+        # ECG Findings
+        if "st elevation" in text_low or "st-elevation" in text_low or "stemi" in text_low:
+            m_ecg = re.search(r'st\s*elevation\s*(?:in\s*)?([a-z0-9\s,\/]+)', text_low)
+            lead_str = m_ecg.group(1).strip().upper() if m_ecg else "II, III, aVF"
+            findings.append({
+                "category": "ECG",
+                "name": "ECG ST Elevation",
+                "value": f"ST Elevation in {lead_str}",
+                "status": "Critical",
+                "supporting_disease": "Acute Inferior STEMI"
+            })
+        if "peaked t wave" in text_low or "peaked t-wave" in text_low:
+            findings.append({
+                "category": "ECG",
+                "name": "ECG Peaked T Waves",
+                "value": "Peaked T waves present",
+                "status": "Critical",
+                "supporting_disease": "Hyperkalemia"
+            })
+
+        # Chest X-Ray
+        if "pulmonary edema" in text_low or "alveolar fluid" in text_low:
+            findings.append({
+                "category": "Imaging",
+                "name": "Chest X-Ray",
+                "value": "Pulmonary edema / alveolar fluid overload",
+                "status": "High",
+                "supporting_disease": "Heart Failure / Acute Pulmonary Edema"
+            })
+        if "infiltrate" in text_low or "consolidation" in text_low:
+            m_cxr = re.search(r'([a-z\s]+(?:infiltrate|consolidation))', text_low)
+            cxr_val = m_cxr.group(1).strip().title() if m_cxr else "Pulmonary Infiltrate / Consolidation"
+            findings.append({
+                "category": "Imaging",
+                "name": "Chest X-Ray",
+                "value": cxr_val,
+                "status": "High",
+                "supporting_disease": "Community Acquired Pneumonia"
+            })
+
+        # Urine Output
+        m_uo = re.search(r'(?:urine\s*output|u\/o)\s*[:\-]?\s*(\d{2,4})\s*(?:ml|cc)?(?:\/day|\/24h)?', text_low)
+        if m_uo:
+            val_uo = int(m_uo.group(1))
+            findings.append({
+                "category": "Diagnostic",
+                "name": "Urine Output",
+                "value": f"{val_uo} mL/day",
+                "status": "Oliguria (<500 mL/day)" if val_uo < 500 else "Normal",
+                "supporting_disease": "Acute Kidney Injury"
+            })
+
+        # Smoking History
+        m_pack = re.search(r'(\d{1,3})\s*pack[\s\-]*year', text_low)
+        if m_pack:
+            findings.append({
+                "category": "History",
+                "name": "Smoking History",
+                "value": f"{m_pack.group(1)} pack-years",
+                "status": "High Risk",
+                "supporting_disease": "COPD"
+            })
+
+        return findings

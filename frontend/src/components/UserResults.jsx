@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle, Activity, FileText, Clock, AlertCircle, Heart, FlaskConical, Thermometer, AlertTriangle, Pill, ChevronDown, ChevronRight } from "lucide-react";
 
 function Chip({ label, color }) {
@@ -46,11 +46,13 @@ function DiseaseCard({ summary, idx }) {
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", cursor: "pointer", borderBottom: expanded ? "1px solid rgba(255,255,255,0.07)" : "none" }}
         onClick={() => setExpanded(!expanded)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           <Heart size={16} color="var(--accent-blue)" />
           <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>{summary.disease}</strong>
+          {summary.icd10 && <Chip label={`ICD-10: ${summary.icd10}`} color="rgba(37,99,235,0.2)" />}
+          {summary.snomed && <Chip label={`SNOMED: ${summary.snomed}`} color="rgba(16,185,129,0.15)" />}
+          {summary.severity && <Chip label={`Severity: ${summary.severity}`} color={summary.severity.includes("Critical") ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)"} />}
           {summary.status && <Chip label={summary.status} color="rgba(239,68,68,0.15)" />}
-          {summary.history && <Chip label={summary.history} color="rgba(255,255,255,0.07)" />}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "11px", fontWeight: 700, color: confColor }}>{confPct}%</span>
@@ -66,10 +68,52 @@ function DiseaseCard({ summary, idx }) {
             </p>
           )}
 
+          {/* Explainability & Detected Because Panel */}
+          {summary.detected_because?.length > 0 && (
+            <div style={{ background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)", display: "block", marginBottom: "6px" }}>
+                CLINICAL EVIDENCE & EXPLAINABILITY (DETECTED BECAUSE)
+              </span>
+              {summary.detected_because.map((b, bi) => (
+                <div key={bi} style={{ display: "flex", gap: "6px", alignItems: "center", fontSize: "12px", marginBottom: "3px", color: "var(--text-primary)" }}>
+                  <span style={{ color: "var(--accent-green)", fontWeight: "bold" }}>✓</span>
+                  <span>{b}</span>
+                </div>
+              ))}
+              {(summary.supporting_evidence?.labs?.length > 0 || summary.supporting_evidence?.vitals?.length > 0 || summary.supporting_evidence?.imaging?.length > 0 || summary.supporting_labs?.length > 0) && (
+                <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-orange)", display: "block", marginBottom: "4px" }}>
+                    OBJECTIVE CLINICAL FINDINGS (LABS, VITALS, IMAGING)
+                  </span>
+                  {summary.supporting_evidence?.labs?.map((l, li) => (
+                    <div key={`lab_${li}`} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                      <span style={{ color: "var(--accent-orange)" }}>• Lab:</span> <strong>{l.name}</strong>: {l.value} ({l.status})
+                    </div>
+                  ))}
+                  {summary.supporting_evidence?.vitals?.map((v, vi) => (
+                    <div key={`vital_${vi}`} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                      <span style={{ color: "var(--accent-orange)" }}>• Vital:</span> <strong>{v.name}</strong>: {v.value} ({v.status})
+                    </div>
+                  ))}
+                  {summary.supporting_evidence?.imaging?.map((img, imgi) => (
+                    <div key={`img_${imgi}`} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                      <span style={{ color: "var(--accent-orange)" }}>• Imaging/ECG:</span> <strong>{img.name}</strong>: {img.value}
+                    </div>
+                  ))}
+                  {!summary.supporting_evidence?.labs?.length && summary.supporting_labs?.map((sl, sli) => (
+                    <div key={sli} style={{ fontSize: "11px", color: "var(--text-primary)", marginBottom: "2px" }}>
+                      <span style={{ color: "var(--accent-orange)" }}>•</span> {sl}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {summary.symptoms?.length > 0 && (
             <div>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>
-                SUPPORTING SYMPTOMS
+                SUPPORTING SYMPTOMS (PATIENT REPORTED)
               </span>
               <div style={{ display: "flex", flexWrap: "wrap" }}>
                 {summary.symptoms.map((sym, si) => (
@@ -271,8 +315,7 @@ export default function UserResults() {
                     Clinical note analysis is in progress. Results will be displayed once completed.
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-md)" }}>
-                    {/* Patient Summary Overview */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing                    {/* Section 1: Patient Summary Overview */}
                     {session.patient_summary?.clinical_notes_overview && (
                       <div className="glass-card" style={{ padding: "var(--spacing-md)", background: "rgba(59, 130, 246, 0.05)" }}>
                         <h4 style={{ color: "var(--accent-blue)", marginBottom: "8px", fontSize: "13px" }}>Patient Summary Overview</h4>
@@ -280,29 +323,145 @@ export default function UserResults() {
                       </div>
                     )}
 
-                    {/* Allergies */}
-                    {allergies.length > 0 && !allergies[0]?.toLowerCase().includes("no known") && (
-                      <div style={{ padding: "10px 14px", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: "8px" }}>
-                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#a78bfa", display: "block", marginBottom: "4px" }}>⚠ DOCUMENTED DRUG ALLERGIES</span>
-                        <div style={{ display: "flex", flexWrap: "wrap" }}>
-                          {allergies.map((a, i) => (
-                            <span key={i} style={{ background: "rgba(139,92,246,0.15)", color: "#c4b5fd", padding: "2px 8px", borderRadius: "10px", fontSize: "12px", marginRight: "5px", marginBottom: "4px", fontWeight: 600 }}>{a}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Grouped Disease Cards */}
+                    {/* Section 2: Grouped Disease Cards */}
                     {structured.length > 0 && (
                       <div>
                         <h4 style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
-                          <Heart size={14} color="var(--accent-blue)" /> Diagnosed Conditions & Regimens ({structured.length})
+                          <Heart size={14} color="var(--accent-blue)" /> Diagnosed Conditions & Evidence ({structured.length})
                         </h4>
                         {structured.map((summary, idx) => (
                           <DiseaseCard key={idx} summary={summary} idx={idx} />
                         ))}
                       </div>
                     )}
+
+                    {/* Section 3: Multi-Organ Risk Assessment Summary Panel */}
+                    {(session.organ_risk || session.organ_risk_stratification) && (
+                      <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", fontSize: "11px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-red)", display: "block", marginBottom: "8px" }}>
+                          ORGAN RISK ASSESSMENT PANEL SUMMARY
+                        </span>
+                        {(() => {
+                          const r = session.organ_risk || session.organ_risk_stratification;
+                          return (
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" }}>
+                              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                                <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>CARDIAC RISK</span>
+                                <strong style={{ color: (r.cardiac || r.cardiac_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                                  {r.cardiac || r.cardiac_risk}
+                                </strong>
+                              </div>
+                              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                                <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>RENAL RISK</span>
+                                <strong style={{ color: (r.renal || r.renal_failure_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                                  {r.renal || r.renal_failure_risk}
+                                </strong>
+                              </div>
+                              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                                <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>RESPIRATORY RISK</span>
+                                <strong style={{ color: (r.respiratory || r.respiratory_failure_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                                  {r.respiratory || r.respiratory_failure_risk}
+                                </strong>
+                              </div>
+                              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "6px" }}>
+                                <span style={{ color: "var(--text-secondary)", display: "block", fontSize: "10px" }}>STROKE RISK</span>
+                                <strong style={{ color: (r.stroke || r.stroke_risk)?.includes("HIGH") ? "var(--accent-red)" : "var(--accent-orange)" }}>
+                                  {r.stroke || r.stroke_risk}
+                                </strong>
+                              </div>
+                              <div style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", padding: "8px", borderRadius: "6px" }}>
+                                <span style={{ color: "#fca5a5", display: "block", fontSize: "10px", fontWeight: 700 }}>OVERALL RISK</span>
+                                <strong style={{ color: "#ef4444", fontSize: "12px" }}>
+                                  {r.overall || r.overall_risk_level}
+                                </strong>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Section 4: Itemized Medication Validation Checklist */}
+                    {(session.medication_validation || session.medication_validation_score) && (
+                      <div style={{ padding: "12px 14px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "8px", fontSize: "11px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-green)" }}>
+                            MEDICATION VALIDATION CHECKLIST
+                          </span>
+                          <strong style={{ color: "var(--accent-green)", fontSize: "13px" }}>
+                            Score: {session.medication_validation?.score || 90}%
+                          </strong>
+                        </div>
+                        {(() => {
+                          const mv = session.medication_validation || session.medication_validation_score;
+                          return (
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", color: "var(--text-primary)", marginBottom: "6px" }}>
+                              <div>Drug Name: <strong style={{ color: mv.drug_name !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.drug_name !== false ? "✓" : "✗"}</strong></div>
+                              <div>Dose: <strong style={{ color: mv.dose !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.dose !== false ? "✓" : "✗"}</strong></div>
+                              <div>Frequency: <strong style={{ color: mv.frequency !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.frequency !== false ? "✓" : "✗"}</strong></div>
+                              <div>Route: <strong style={{ color: mv.route !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.route !== false ? "✓" : "✗"}</strong></div>
+                              <div>Duration: <strong style={{ color: mv.duration ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.duration ? "✓" : "✗"}</strong></div>
+                              <div>Indication: <strong style={{ color: mv.indication !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.indication !== false ? "✓" : "✗"}</strong></div>
+                              <div>Contraindication: <strong style={{ color: mv.contraindication !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.contraindication !== false ? "✓" : "✗"}</strong></div>
+                              <div>Duplicate Therapy: <strong style={{ color: mv.duplicate !== false ? "var(--accent-green)" : "var(--accent-red)" }}>{mv.duplicate !== false ? "✓" : "✗"}</strong></div>
+                            </div>
+                          );
+                        })()}
+                        {session.medication_validation_score?.deduction_details?.length > 0 && (
+                          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "6px", color: "var(--accent-orange)" }}>
+                            <strong>Deduction Details:</strong>
+                            {session.medication_validation_score.deduction_details.map((dd, ddi) => (
+                              <div key={ddi}>• {dd}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Section 5: Timeline View Component */}
+                    {(session.timeline?.length > 0 || session.timeline_sequence?.length > 0) && (
+                      <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "11px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-blue)", display: "block", marginBottom: "8px" }}>
+                          CHRONOLOGICAL CLINICAL TIMELINE
+                        </span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          {(session.timeline || session.timeline_sequence).map((ts, tsi) => (
+                            <div key={tsi} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <span style={{ background: "rgba(37,99,235,0.2)", color: "#93c5fd", padding: "2px 6px", borderRadius: "4px", fontWeight: 700, minWidth: "55px", textAlign: "center" }}>
+                                {ts.date || ts.year}
+                              </span>
+                              <span style={{ color: "var(--text-primary)" }}>{ts.condition || ts.event}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section 6: Missing Information Panel */}
+                    {(session.missing_information || session.missing_information_report) && (
+                      <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "8px", fontSize: "11px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#fbbf24", display: "block", marginBottom: "6px" }}>
+                          MISSING CLINICALLY RELEVANT INFORMATION PANEL
+                        </span>
+                        {session.missing_information && typeof session.missing_information === "object" && !Array.isArray(session.missing_information) ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {session.missing_information.history?.length > 0 && (
+                              <div><strong style={{ color: "#fef08a" }}>History:</strong> {session.missing_information.history.join("; ")}</div>
+                            )}
+                            {session.missing_information.labs?.length > 0 && (
+                              <div><strong style={{ color: "#fef08a" }}>Labs:</strong> {session.missing_information.labs.join("; ")}</div>
+                            )}
+                            {session.missing_information.vitals?.length > 0 && (
+                              <div><strong style={{ color: "#fef08a" }}>Vitals:</strong> {session.missing_information.vitals.join("; ")}</div>
+                            )}
+                          </div>
+                        ) : (
+                          session.missing_information_report.map((mi, mii) => (
+                            <div key={mii} style={{ color: "var(--text-secondary)", marginBottom: "2px" }}>• {mi}</div>
+                          ))
+                        )}
+                      </div>
+                    )}              )}
 
                     {/* Lab Findings Table */}
                     {labValues.length > 0 && (
