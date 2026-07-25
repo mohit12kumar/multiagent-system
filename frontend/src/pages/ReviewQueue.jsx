@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doctorAPI } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
-import { CheckSquare, Check, X, Edit2, Sparkles, Stethoscope, Clock, Zap, Heart, Pill, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckSquare, Check, X, Edit2, Sparkles, Stethoscope, Clock, Zap, Heart, Pill, ChevronDown, ChevronRight, FileText, AlertTriangle, Activity, ShieldCheck } from 'lucide-react';
 
 function Chip({ label, color }) {
   return (
@@ -23,10 +23,13 @@ function Chip({ label, color }) {
 
 function RichDiseaseCard({ summary, idx }) {
   const [expanded, setExpanded] = useState(idx === 0);
-  const conf = summary.confidence || 0.95;
-  const confPct = Math.round(conf * 100);
+  const diseaseName = summary.disease || summary.name || summary.canonical_name || "Extracted Diagnosis";
+  const conf = summary.confidence_score || summary.confidence || 0.95;
+  const confPct = Math.round(conf > 1 ? conf : conf * 100);
   const confColor = confPct >= 85 ? "var(--accent-green)" : confPct >= 65 ? "var(--accent-orange)" : "var(--accent-red)";
   const sev = summary.severity || "Moderate";
+  const icd10 = summary.icd10 || summary.icd10_code;
+  const snomed = summary.snomed || summary.snomed_code;
 
   return (
     <div style={{
@@ -43,9 +46,9 @@ function RichDiseaseCard({ summary, idx }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           <Heart size={16} color="var(--accent-blue)" />
-          <strong style={{ fontSize: "15px", color: "#38bdf8" }}>{summary.disease}</strong>
-          {summary.icd10 && <Chip label={`ICD-10: ${summary.icd10}`} color="rgba(37,99,235,0.2)" />}
-          {summary.snomed && <Chip label={`SNOMED: ${summary.snomed}`} color="rgba(16,185,129,0.15)" />}
+          <strong style={{ fontSize: "15px", color: "#38bdf8" }}>{diseaseName}</strong>
+          {icd10 && <Chip label={`ICD-10: ${icd10}`} color="rgba(37,99,235,0.2)" />}
+          {snomed && <Chip label={`SNOMED: ${snomed}`} color="rgba(16,185,129,0.15)" />}
           {sev && <Chip label={`Severity: ${sev}`} color={sev.includes("Critical") ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.2)"} />}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -75,7 +78,7 @@ function RichDiseaseCard({ summary, idx }) {
           )}
 
           {/* Objective Clinical Findings (Labs, Vitals, Imaging) */}
-          {(summary.supporting_evidence?.labs?.length > 0 || summary.supporting_evidence?.vitals?.length > 0 || summary.supporting_labs?.length > 0) && (
+          {(summary.supporting_evidence?.labs?.length > 0 || summary.supporting_evidence?.vitals?.length > 0 || summary.supporting_labs?.length > 0 || summary.supporting_imaging?.length > 0) && (
             <div style={{ background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-orange)", display: "block", marginBottom: "4px" }}>
                 OBJECTIVE CLINICAL EVIDENCE (LABS, VITALS, IMAGING)
@@ -90,22 +93,27 @@ function RichDiseaseCard({ summary, idx }) {
                   <span style={{ color: "var(--accent-orange)" }}>• Vital:</span> <strong>{v.name}</strong>: {v.value} ({v.status})
                 </div>
               ))}
+              {summary.supporting_evidence?.imaging?.map((img, imi) => (
+                <div key={`img_${imi}`} style={{ fontSize: "12px", color: "#f8fafc", marginBottom: "2px" }}>
+                  <span style={{ color: "var(--accent-orange)" }}>• Imaging/ECG:</span> <strong>{img.name}</strong>: {img.value}
+                </div>
+              ))}
               {!summary.supporting_evidence?.labs?.length && summary.supporting_labs?.map((sl, sli) => (
                 <div key={sli} style={{ fontSize: "12px", color: "#f8fafc", marginBottom: "2px" }}>
-                  <span style={{ color: "var(--accent-orange)" }}>•</span> {sl}
+                  <span style={{ color: "var(--accent-orange)" }}>• Lab:</span> {sl.name || sl} {sl.value ? `: ${sl.value}` : ''}
                 </div>
               ))}
             </div>
           )}
 
           {/* Disease-Specific Supporting Symptoms */}
-          {summary.symptoms?.length > 0 && (
+          {(summary.symptoms?.length > 0 || summary.supporting_symptoms?.length > 0) && (
             <div>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", display: "block", marginBottom: "6px" }}>
                 DISEASE-SPECIFIC SUPPORTING SYMPTOMS
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {summary.symptoms.map((sym, si) => (
+                {(summary.symptoms || summary.supporting_symptoms).map((sym, si) => (
                   <span key={si} style={{
                     background: "rgba(245,158,11,0.12)", color: "#fbbf24",
                     padding: "3px 9px", borderRadius: "10px", fontSize: "11px", fontWeight: 500
@@ -145,6 +153,27 @@ function RichDiseaseCard({ summary, idx }) {
               ))}
             </div>
           )}
+
+          {/* Prioritized Clinical Action Recommendations */}
+          {summary.prioritized_recommendations?.length > 0 && (
+            <div style={{ background: "rgba(16,185,129,0.05)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(16,185,129,0.15)" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#10b981", display: "block", marginBottom: "6px" }}>
+                PRIORITIZED CLINICAL ACTION RECOMMENDATIONS
+              </span>
+              {summary.prioritized_recommendations.map((rec, ri) => (
+                <div key={ri} style={{ fontSize: "12px", color: "#f8fafc", marginBottom: "4px", display: "flex", gap: "6px", alignItems: "flex-start" }}>
+                  <span style={{
+                    background: rec.timeframe?.includes("Immediate") ? "rgba(239,68,68,0.2)" : "rgba(37,99,235,0.2)",
+                    color: rec.timeframe?.includes("Immediate") ? "#ef4444" : "#60a5fa",
+                    padding: "1px 6px", borderRadius: "8px", fontSize: "10px", fontWeight: 700, whiteSpace: "nowrap"
+                  }}>
+                    {rec.timeframe}
+                  </span>
+                  <span>{rec.action}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -167,7 +196,7 @@ const ReviewQueue = () => {
   const fetchQueue = async () => {
     try {
       const res = await doctorAPI.getReviewQueue();
-      setQueue(res.data);
+      setQueue(res.data || []);
     } catch (err) {
       addToast(err.userMessage || 'Failed to load review queue.', 'error');
     } finally {
@@ -188,14 +217,19 @@ const ReviewQueue = () => {
     }
   };
 
-  const parseSummary = (sum) => {
-    if (!sum) return [];
-    let parsed = sum;
-    if (typeof sum === 'string') {
-      try { parsed = JSON.parse(sum); } catch (e) { return []; }
+  const parseSummary = (details) => {
+    if (!details) return [];
+    let target = details;
+    if (typeof details === 'string') {
+      try { target = JSON.parse(details); } catch (e) { return []; }
     }
-    if (Array.isArray(parsed)) return parsed;
-    if (parsed && Array.isArray(parsed.structured_summary)) return parsed.structured_summary;
+
+    if (Array.isArray(target.patient_summary)) return target.patient_summary;
+    if (Array.isArray(target.structured_summary)) return target.structured_summary;
+    if (Array.isArray(target.knowledge_graph?.nodes)) return target.knowledge_graph.nodes;
+    if (Array.isArray(target.nodes)) return target.nodes;
+    if (Array.isArray(target)) return target;
+
     return [];
   };
 
@@ -244,8 +278,9 @@ const ReviewQueue = () => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {queue.map((item) => {
-            const isSessionLevel = item.details?.type === 'patient_submission';
-            const patientSummary = isSessionLevel ? parseSummary(item.details.patient_summary) : [];
+            const details = item.details || {};
+            const patientSummary = parseSummary(details.patient_summary || details.structured_summary || details);
+            const rawNote = details.raw_text || details.text || details.clinical_note || details.note || "";
 
             return (
               <div
@@ -256,7 +291,7 @@ const ReviewQueue = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
-                  borderLeft: isSessionLevel ? '4px solid #3b82f6' : '4px solid #f59e0b',
+                  borderLeft: '4px solid #3b82f6',
                 }}
               >
                 {/* Top Bar */}
@@ -264,10 +299,10 @@ const ReviewQueue = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className="badge badge-primary">
-                        {isSessionLevel ? 'Patient Note Submission' : item.details?.type || 'Entity Mention'}
+                        {details.type || item.type || 'Patient Note Submission'}
                       </span>
                       <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        Session: <code style={{ color: '#38bdf8' }}>{item.session_id.substring(0, 8)}...</code>
+                        Session: <code style={{ color: '#38bdf8' }}>{(item.session_id || 'Session').substring(0, 8)}...</code>
                       </span>
                       <span style={{
                         fontSize: '11px',
@@ -286,7 +321,7 @@ const ReviewQueue = () => {
                     </div>
 
                     <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#f8fafc', marginTop: '4px' }}>
-                      {item.reason}
+                      {item.reason || "Patient-submitted clinical note — awaiting doctor pre-check"}
                     </h3>
                   </div>
 
@@ -337,8 +372,20 @@ const ReviewQueue = () => {
                   </div>
                 )}
 
+                {/* Submitted Clinical Note Text */}
+                {rawNote && (
+                  <div style={{ background: "rgba(15,23,42,0.8)", padding: "12px 16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 700, color: "#94a3b8", display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                      <FileText size={14} color="#38bdf8" /> Submitted Clinical Note Text:
+                    </div>
+                    <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: "13px", color: "#e2e8f0", maxHeight: "160px", overflowY: "auto" }}>
+                      {rawNote}
+                    </pre>
+                  </div>
+                )}
+
                 {/* Patient Summary & Enterprise Disease Cards */}
-                {isSessionLevel && patientSummary.length > 0 && (
+                {patientSummary.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                     <div style={{ fontSize: '13px', fontWeight: '600', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Stethoscope size={16} color="#3b82f6" /> AI-Extracted Clinical Conditions & Prescription Quality Audit:
