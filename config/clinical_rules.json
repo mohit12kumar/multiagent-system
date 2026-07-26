@@ -5,6 +5,14 @@
       "supported_diseases": ["Acute Inferior STEMI", "Myocardial Infarction", "Coronary Artery Disease", "CAD", "Angina", "Heart Failure"]
     },
     {
+      "symptom": "sweating",
+      "supported_diseases": ["Acute Inferior STEMI", "STEMI", "Myocardial Infarction", "CAD", "Angina"]
+    },
+    {
+      "symptom": "diaphoresis",
+      "supported_diseases": ["Acute Inferior STEMI", "STEMI", "Myocardial Infarction", "CAD", "Angina"]
+    },
+    {
       "symptom": "shortness of breath",
       "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure", "Congestive Heart Failure", "Pulmonary Edema"]
     },
@@ -171,6 +179,10 @@
       "supported_diseases": ["Hyperlipidemia", "CAD", "Coronary Artery Disease"]
     },
     {
+      "marker": "hdl",
+      "supported_diseases": ["Hyperlipidemia"]
+    },
+    {
       "marker": "cholesterol",
       "supported_diseases": ["Hyperlipidemia", "CAD", "Coronary Artery Disease"]
     },
@@ -211,6 +223,27 @@
     {
       "vital": "temperature",
       "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI"]
+    }
+  "lab_thresholds": [
+    {
+      "marker": "troponin",
+      "operator": ">",
+      "value": 0.04,
+      "unit": "ng/mL",
+      "severity": "Critically Elevated",
+      "condition": "Myocardial Injury",
+      "risk": "Acute Coronary Syndrome",
+      "action": "Immediate Cardiology Consultation & Cath Lab Activation"
+    },
+    {
+      "marker": "potassium",
+      "operator": ">",
+      "value": 5.5,
+      "unit": "mmol/L",
+      "severity": "Critically Elevated",
+      "condition": "Hyperkalemia",
+      "risk": "Fatal Arrhythmia",
+      "action": "IV Calcium Gluconate & Insulin + Dextrose"
     }
   ]
 }
