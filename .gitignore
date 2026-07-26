@@ -100,7 +100,8 @@ chroma_db/
 
 # HuggingFace cached models (can be huge)
 .cache/huggingface/
-models/
+/model_weights/
+.hf_cache/
 
 # ── Clinical Data / PHI ─────────────────────────────────────
 # Never commit real patient data or PHI

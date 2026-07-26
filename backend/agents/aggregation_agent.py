@@ -4,6 +4,10 @@ from backend.models.entity import EntityMentionModel
 from src.monitoring.logger import logger
 
 
+import os
+import yaml
+
+
 class AggregationAgent:
     def __init__(self, config: Dict[str, Any] = None):
         self.config = config or {}
@@ -15,6 +19,15 @@ class AggregationAgent:
             "local_llm": 1.2,
             "spacy": 1.0
         }
+        yaml_path = os.path.join("config", "agents.yaml")
+        if os.path.exists(yaml_path):
+            try:
+                with open(yaml_path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                    if data and "aggregation_agent" in data and "weights" in data["aggregation_agent"]:
+                        self.agent_weights.update(data["aggregation_agent"]["weights"])
+            except Exception as e:
+                logger.warning(f"Could not load {yaml_path}: {e}")
 
     def process(self, state: PipelineState) -> PipelineState:
         logger.info(f"Aggregation Agent merging extraction outputs for session {state.session_id}")
@@ -28,43 +41,58 @@ class AggregationAgent:
             state.aggregated_entities = []
             return state
 
-        # Step 1: Group by normalized text & type and compute weighted consensus confidence
-        merged_groups: Dict[str, List[EntityMentionModel]] = {}
-        for mention in all_mentions:
-            key = f"{mention.text.lower().strip()}_{mention.type}"
-            if key not in merged_groups:
-                merged_groups[key] = []
-            merged_groups[key].append(mention)
+        # Step 1: Cluster mentions by overlapping/adjacent position spans, then group by normalized text & type
+        all_mentions_sorted = sorted(all_mentions, key=lambda x: x.start_char)
+        span_clusters: List[List[EntityMentionModel]] = []
+        for mention in all_mentions_sorted:
+            placed = False
+            for cluster in span_clusters:
+                if any(abs(mention.start_char - c_m.start_char) <= 15 or
+                       (mention.start_char < c_m.end_char and mention.end_char > c_m.start_char)
+                       for c_m in cluster):
+                    cluster.append(mention)
+                    placed = True
+                    break
+            if not placed:
+                span_clusters.append([mention])
 
         aggregated: List[EntityMentionModel] = []
-        for key, group in merged_groups.items():
-            first = group[0]
-            sources = list(set([agent for m in group for agent in m.source_agents]))
+        for cluster in span_clusters:
+            merged_groups: Dict[str, List[EntityMentionModel]] = {}
+            for mention in cluster:
+                key = f"{mention.text.lower().strip()}_{mention.type}"
+                if key not in merged_groups:
+                    merged_groups[key] = []
+                merged_groups[key].append(mention)
 
-            base_score = sum(
-                m.confidence * self.agent_weights.get(
-                    m.source_agents[0] if m.source_agents else "spacy", 1.0
-                ) for m in group
-            )
-            denominator = sum(
-                self.agent_weights.get(
-                    m.source_agents[0] if m.source_agents else "spacy", 1.0
-                ) for m in group
-            )
-            raw_conf = base_score / denominator if denominator > 0 else 0.8
-            multi_agent_bonus = 0.05 * (len(sources) - 1)
-            final_conf = min(0.99, round(raw_conf + multi_agent_bonus, 2))
+            for key, group in merged_groups.items():
+                first = group[0]
+                sources = list(set([agent for m in group for agent in m.source_agents]))
 
-            aggregated.append(EntityMentionModel(
-                text=first.text,
-                type=first.type,
-                start_char=first.start_char,
-                end_char=first.end_char,
-                confidence=final_conf,
-                source_agents=sources
-            ))
+                base_score = sum(
+                    m.confidence * self.agent_weights.get(
+                        m.source_agents[0] if m.source_agents else "spacy", 1.0
+                    ) for m in group
+                )
+                denominator = sum(
+                    self.agent_weights.get(
+                        m.source_agents[0] if m.source_agents else "spacy", 1.0
+                    ) for m in group
+                )
+                raw_conf = base_score / denominator if denominator > 0 else 0.8
+                multi_agent_bonus = 0.05 * (len(sources) - 1)
+                final_conf = min(0.99, round(raw_conf + multi_agent_bonus, 2))
 
-        # Step 2: Remove sub-entity duplicates within the same type
+                aggregated.append(EntityMentionModel(
+                    text=first.text,
+                    type=first.type,
+                    start_char=first.start_char,
+                    end_char=first.end_char,
+                    confidence=final_conf,
+                    source_agents=sources
+                ))
+
+        # Step 2: Remove sub-entity duplicates within the same type (with proximity constraint)
         aggregated = self._deduplicate_subentities(aggregated)
 
         # Step 3: Resolve overlapping spans of different types (cross-type overlap resolution)
@@ -94,10 +122,11 @@ class AggregationAgent:
             kept: List[EntityMentionModel] = []
             for candidate in group_sorted:
                 candidate_lower = candidate.text.lower().strip()
-                # Substring deduplication
+                # Substring deduplication with proximity check (only dedupe if within 35 chars or overlapping)
                 is_redundant = any(
                     candidate_lower in kept_ent.text.lower().strip()
                     and candidate_lower != kept_ent.text.lower().strip()
+                    and abs(candidate.start_char - kept_ent.start_char) <= 35
                     for kept_ent in kept
                 )
                 if not is_redundant:

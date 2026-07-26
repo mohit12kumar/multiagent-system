@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from backend.models.entity import EntityMentionModel
 from src.monitoring.logger import logger
 
@@ -19,10 +19,11 @@ class BioBERTAgent:
             "migraine", "rheumatoid arthritis", "osteoarthritis", "chronic kidney disease"
         ]
 
-    def extract(self, sentences: List[dict]) -> List[EntityMentionModel]:
+    def extract(self, sentences: List[dict], full_text: Optional[str] = None) -> List[EntityMentionModel]:
         logger.info("BioBERT Agent executing disease recognition")
         entities = []
-        full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
+        if not full_text:
+            full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
 
         for disease in self.disease_conditions:
             for match in re.finditer(r'\b' + re.escape(disease) + r'\b', full_text, re.IGNORECASE):

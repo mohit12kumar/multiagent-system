@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from backend.models.entity import EntityMentionModel
 from src.monitoring.logger import logger
 
@@ -95,10 +95,11 @@ class RegexAgent:
             ]
         }
 
-    def extract(self, sentences: List[dict]) -> List[EntityMentionModel]:
+    def extract(self, sentences: List[dict], full_text: Optional[str] = None) -> List[EntityMentionModel]:
         logger.info("Regex Agent extracting dosage, frequency, duration, route, dates, times, drugs")
         entities = []
-        full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
+        if not full_text:
+            full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
         if not full_text:
             return entities
 

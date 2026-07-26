@@ -31,6 +31,9 @@ from src.monitoring.logger import logger, set_log_context
 
 class Coordinator:
     def __init__(self, db_session: Optional[Session] = None):
+        if db_session is None:
+            from backend.database.connection import SessionLocal
+            db_session = SessionLocal()
         self.db = db_session
         self.mysql_store = MySQLStore(db_session)
         self.chroma_service = ChromaService()
@@ -231,11 +234,11 @@ class Coordinator:
         return output
 
 
-    def _execute_extraction_agents(self, active_agents: List[str], sentences: List[dict]) -> Dict[str, List[Any]]:
+    def _execute_extraction_agents(self, active_agents: List[str], sentences: List[dict], full_text: Optional[str] = None) -> Dict[str, List[Any]]:
         raw_extractions = {}
-        with ThreadPoolExecutor(max_workers=len(active_agents)) as executor:
+        with ThreadPoolExecutor(max_workers=max(1, len(active_agents))) as executor:
             future_to_agent = {
-                executor.submit(self._run_extractor, agent_name, sentences): agent_name
+                executor.submit(self._run_extractor, agent_name, sentences, full_text): agent_name
                 for agent_name in active_agents
             }
             for future in as_completed(future_to_agent):
@@ -247,13 +250,13 @@ class Coordinator:
                     raw_extractions[agent_name] = []
         return raw_extractions
 
-    def _run_extractor(self, agent_name: str, sentences: List[dict]) -> List[Any]:
+    def _run_extractor(self, agent_name: str, sentences: List[dict], full_text: Optional[str] = None) -> List[Any]:
         if agent_name == "scispacy":
-            return self.scispacy_agent.extract(sentences)
+            return self.scispacy_agent.extract(sentences, full_text=full_text)
         elif agent_name == "biobert":
-            return self.biobert_agent.extract(sentences)
+            return self.biobert_agent.extract(sentences, full_text=full_text)
         elif agent_name == "regex":
-            return self.regex_agent.extract(sentences)
+            return self.regex_agent.extract(sentences, full_text=full_text)
         elif agent_name == "local_llm":
-            return self.llm_clinical_agent.extract(sentences)
+            return self.llm_clinical_agent.extract(sentences, full_text=full_text)
         return []

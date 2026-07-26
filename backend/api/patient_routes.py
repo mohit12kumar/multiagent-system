@@ -118,14 +118,19 @@ def get_patient_summary(session_id: str, db: Session = Depends(get_db), current_
     }
 
 
-from backend.api.auth import get_current_user, get_optional_current_user
+from backend.api.auth import get_current_user, get_current_user_with_query_fallback
 
 @router.get("/download-pdf/{session_id}")
-def download_patient_pdf(session_id: str, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_optional_current_user)):
+def download_patient_pdf(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_user_with_query_fallback)
+):
+    user_id = current_user.get("user_id")
+    user_role = current_user.get("role")
 
-    user_id = current_user.get("user_id") if current_user else None
     query = db.query(PatientHistory).filter(PatientHistory.session_id == session_id)
-    if user_id:
+    if user_role != "doctor":
         query = query.filter(PatientHistory.user_id == user_id)
     ph = query.first()
     if not ph:
@@ -159,8 +164,22 @@ def download_patient_pdf(session_id: str, db: Session = Depends(get_db), current
 
 
 @router.get("/sessions/user/{patient_id}")
-def get_user_sessions_by_id(patient_id: str, role: str = "user", db: Session = Depends(get_db)):
+def get_user_sessions_by_id(
+    patient_id: str,
+    role: str = "user",
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     """Retrieves all sessions for a given patient ID, merging metadata and raw entities."""
+    user_id = current_user.get("user_id")
+    user_role = current_user.get("role")
+    username = current_user.get("username")
+
+    if user_role != "doctor" and user_id != patient_id and username != patient_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Access forbidden: You can only access your own patient records."
+        )
     histories = []
     user = db.query(User).filter(User.username == patient_id).first()
     if user:

@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 from backend.database.connection import engine, Base, get_db, SessionLocal
 from backend.database.mysql_store import MySQLStore
 from backend.orchestrator.coordinator import Coordinator
-from backend.api.auth import create_access_token, hash_password, verify_password, get_current_user
+from backend.api.auth import create_access_token, hash_password, verify_password, is_legacy_hash, get_current_user
 from backend.api.doctor_routes import router as doctor_router
 from backend.api.patient_routes import router as patient_router
 
@@ -68,10 +68,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enable CORS for local Vite dev server
+# Enable CORS for explicit allowed origins
+cors_origins_raw = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
+)
+allowed_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -150,6 +156,11 @@ def login_user(req: LoginRequest, db: Session = Depends(get_db)):
     if not user or not verify_password(req.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
+    # Seamless password hash migration: upgrade legacy SHA-256 hashes to bcrypt on successful login
+    if is_legacy_hash(user.hashed_password):
+        user.hashed_password = hash_password(req.password)
+        db.commit()
+
     token = create_access_token({"sub": user.id, "username": user.username, "role": user.role})
     return {
         "access_token": token,
@@ -164,7 +175,6 @@ def login_user(req: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
-
 @app.post("/api/auth/token", include_in_schema=False)
 def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """OAuth2 form-data login — used by Swagger UI Authorize button only."""
@@ -172,7 +182,12 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     user = mysql_store.get_user_by_username(form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    token = create_access_token({"sub": user.id, "username": user.username, "role": user.role})
+
+    # Seamless password hash migration: upgrade legacy SHA-256 hashes to bcrypt on successful login
+    if is_legacy_hash(user.hashed_password):
+        user.hashed_password = hash_password(form_data.password)
+        db.commit()
+
     return {"access_token": token, "token_type": "bearer"}
 
 

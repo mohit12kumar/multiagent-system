@@ -2,7 +2,7 @@ import json
 import os
 import re
 import requests
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from backend.models.entity import EntityMentionModel
 from src.monitoring.logger import logger
 
@@ -30,10 +30,11 @@ class LLMClinicalAgent:
             except Exception as e:
                 logger.warning(f"Could not load clinical vocab from {vocab_path}: {e}")
 
-    def extract(self, sentences: List[dict]) -> List[EntityMentionModel]:
+    def extract(self, sentences: List[dict], full_text: Optional[str] = None) -> List[EntityMentionModel]:
         logger.info(f"Local Clinical LLM Agent ({self.model_name}) processing context")
         entities = []
-        full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
+        if not full_text:
+            full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
 
         if not full_text.strip():
             return entities

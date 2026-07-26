@@ -120,8 +120,14 @@ def get_doctor_patient_history(search: Optional[str] = None, db: Session = Depen
     return results
 
 
+from backend.api.auth import require_doctor, get_current_user, get_current_user_with_query_fallback
+
 @router.get("/export/json/{session_id}")
-def export_session_json(session_id: str, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_optional_current_user)):
+def export_session_json(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(require_doctor)
+):
     session = db.query(PipelineSession).filter(PipelineSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -174,9 +180,8 @@ def export_session_json(session_id: str, db: Session = Depends(get_db), current_
 def export_session_pdf(
     session_id: str,
     db: Session = Depends(get_db),
-    current_user: Dict[str, Any] = Depends(get_optional_current_user)
+    current_user: Dict[str, Any] = Depends(require_doctor)
 ):
-
     """Doctor-only: Export full clinical report as ReportLab PDF."""
     try:
         json_data = export_session_json(session_id=session_id, db=db, current_user=current_user)
@@ -195,21 +200,26 @@ def export_session_pdf(
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
 
 
-from backend.api.auth import require_doctor, get_current_user, get_optional_current_user
-
 # Alias used by frontend Extraction.jsx export button & direct browser PDF links
 @router.get("/sessions/export/pdf/{session_id}")
 def export_session_pdf_alias(
     session_id: str,
     db: Session = Depends(get_db),
-    current_user: Dict[str, Any] = Depends(get_optional_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user_with_query_fallback)
 ):
-
-    """Alias accessible by both doctors and patients for PDF download."""
+    """Alias accessible by authorized doctors and session owners for PDF download."""
     try:
         session = db.query(PipelineSession).filter(PipelineSession.id == session_id).first()
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
+
+        # Authorization check: Doctor or patient who owns the document
+        user_role = current_user.get("role")
+        user_id = current_user.get("user_id")
+        if user_role != "doctor":
+            doc = db.query(Document).filter(Document.id == session.document_id).first()
+            if not doc or doc.user_id != user_id:
+                raise HTTPException(status_code=403, detail="Access forbidden: You can only download reports for your own sessions.")
 
         mentions   = db.query(EntityMention).filter(EntityMention.session_id == session_id).all()
         med_rels   = db.query(MedicationRelation).filter(MedicationRelation.session_id == session_id).all()

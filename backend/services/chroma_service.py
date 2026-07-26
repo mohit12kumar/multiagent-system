@@ -3,7 +3,7 @@ import yaml
 import chromadb
 from chromadb.config import Settings
 from typing import Any, Dict, List, Optional
-from src.utils.embedding_model import EmbeddingModel
+from backend.utils.embedding_model import EmbeddingModel
 from src.monitoring.logger import logger
 
 

@@ -456,13 +456,16 @@ class FormattingAgent:
             "ai_version": "2.5.0"
         }
 
-        enterprise_audit_trail = {
-            "ner_agent": "Extracted diseases, meds, labs, and vitals",
-            "clinical_consistency_agent": "Validated multi-source evidence and eliminated hallucinations",
-            "severity_risk_engine": "Stratified organ risks and triage urgency",
-            "contraindication_agent": "Flagged drug-disease safety conflicts",
-            "doctor_review": "Pending physician verification"
-        }
+        enterprise_audit_trail = {}
+        if "EXTRACTION" not in state.failed_stages:
+            enterprise_audit_trail["ner_agent"] = "Extracted diseases, meds, labs, and vitals across active extraction agents"
+        if "VALIDATION" not in state.failed_stages:
+            enterprise_audit_trail["validation_agent"] = "Validated clinical entity confidence and taxonomy rules"
+        if "RELATION_EXTRACTION" not in state.failed_stages:
+            enterprise_audit_trail["relation_extraction_agent"] = "Mapped clinical relations between diseases, symptoms, and medications"
+        if "MEDICATION_VALIDATION" not in state.failed_stages:
+            enterprise_audit_trail["medication_validation_agent"] = "Audited prescription dosages and safety contraindications"
+        enterprise_audit_trail["doctor_review"] = "Pending physician verification"
 
         documentation_quality_score = {
             "overall_score": "86%",

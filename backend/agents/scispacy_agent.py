@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from backend.models.entity import EntityMentionModel
 from src.monitoring.logger import logger
 
@@ -47,10 +47,11 @@ class SciSpaCyAgent:
                 self._nlp = False
         return self._nlp if self._nlp is not False else None
 
-    def extract(self, sentences: List[dict]) -> List[EntityMentionModel]:
+    def extract(self, sentences: List[dict], full_text: Optional[str] = None) -> List[EntityMentionModel]:
         logger.info(f"SciSpaCy Agent extracting biomedical entities from {len(sentences)} sentences")
         entities = []
-        full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
+        if not full_text:
+            full_text = " ".join([s.get("text", "") for s in sentences]) if sentences else ""
 
         if not full_text.strip():
             return entities

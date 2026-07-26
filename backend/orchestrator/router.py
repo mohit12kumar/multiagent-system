@@ -8,4 +8,4 @@ class Router:
 
     def route(self, state: PipelineState) -> List[str]:
         """Routes text to active extraction agents."""
-        return ["scispacy", "biobert", "spacy", "regex", "local_llm"]
+        return ["scispacy", "biobert", "regex", "local_llm"]

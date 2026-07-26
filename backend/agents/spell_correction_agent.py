@@ -10,8 +10,11 @@ class MedicalSpellCorrectionAgent:
         self.cutoff = self.config.get("spell_cutoff", 0.82)
         self.vocab = []
         
-        # Load vocabulary from clinical_vocab.json
-        vocab_path = "d:/office project/multiagent_system/config/clinical_vocab.json"
+        # Load vocabulary from clinical_vocab.json relative to repository config directory
+        default_vocab_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "..", "config", "clinical_vocab.json"
+        )
+        vocab_path = os.getenv("CLINICAL_VOCAB_PATH", default_vocab_path)
         if os.path.exists(vocab_path):
             try:
                 with open(vocab_path, "r", encoding="utf-8") as f:
@@ -23,7 +26,9 @@ class MedicalSpellCorrectionAgent:
                 # Deduplicate
                 self.vocab = list(set(self.vocab))
             except Exception as e:
-                print(f"[SpellCorrectionAgent] Warning loading vocab: {e}")
+                print(f"[SpellCorrectionAgent] WARNING: Failed loading vocab from {vocab_path}: {e}")
+        else:
+            print(f"[SpellCorrectionAgent] WARNING: Vocabulary file not found at '{vocab_path}'. Spell correction will be limited.")
 
     def correct_word(self, word: str) -> str:
         """Suggests the closest matching vocabulary term if spelling similarity is high."""
