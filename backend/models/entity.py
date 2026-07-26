@@ -15,3 +15,4 @@ class EntityMentionModel(BaseModel):
     cui: Optional[str] = Field(None, description="UMLS Concept Unique Identifier")
     icd10: Optional[str] = Field(None, description="ICD-10-CM code")
     needs_review: bool = Field(False, description="Flag indicating if mention requires physician review")
+    section: Optional[str] = Field(None, description="Document section where entity was extracted")

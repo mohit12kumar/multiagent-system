@@ -131,7 +131,7 @@ class ClinicalKnowledgeGraph:
                 if any(d_name_low in sd or sd in d_name_low for sd in supported):
                     return True
                 return False
-        return True
+        return False
 
     @classmethod
     def build_graph(
@@ -178,31 +178,6 @@ class ClinicalKnowledgeGraph:
                     if m_name and m_name not in [rm.get("name") for rm in rel_meds]:
                         rel_meds.append(m)
 
-            # Severity & Confidence Calculation
-            severity, severity_reason = SeverityRiskEngine.evaluate_severity(d, rel_symptoms, vitals, labs)
-            confidence_data = EvidenceConfidenceEngine.calculate_disease_confidence(
-                d, rel_symptoms, bool(rel_meds), bool(vitals), bool(labs)
-            )
-
-            # Prescription Quality Audit
-            audited_meds = []
-            for m in rel_meds:
-                m_name = m.get("name") or m.get("medication_name") or "Medication"
-                m_code = MedicalCoder.get_medication_code(m_name)
-                audit = PrescriptionChecker.audit_prescription(
-                    m_name, m.get("dosage"), m.get("frequency"), m.get("route"), m.get("duration")
-                )
-                audited_meds.append({
-                    "name": m_name,
-                    "rxnorm": m_code["rxnorm"],
-                    "snomed": m_code["snomed"],
-                    "dosage": m.get("dosage", "N/A"),
-                    "frequency": m.get("frequency", "N/A"),
-                    "duration": m.get("duration", "N/A"),
-                    "route": m.get("route", "Oral"),
-                    "audit": audit
-                })
-
             # Dynamic lab isolation per disease using configuration-driven rules
             evidence_labs = []
             for l in labs:
@@ -234,6 +209,36 @@ class ClinicalKnowledgeGraph:
                 evidence_imaging.append({"name": "Chest X-Ray", "value": "Pulmonary Edema & Vascular Congestion"})
             elif "pneumonia" in d_norm:
                 evidence_imaging.append({"name": "Chest X-Ray", "value": "Right Lower Lobe Infiltrate"})
+
+            # Severity & Confidence Calculation
+            severity, severity_reason = SeverityRiskEngine.evaluate_severity(d, rel_symptoms, vitals, labs)
+            confidence_data = EvidenceConfidenceEngine.calculate_disease_confidence(
+                d,
+                rel_symptoms,
+                medication_present=bool(rel_meds),
+                vitals_present=bool(evidence_vitals),
+                labs_present=bool(evidence_labs),
+                imaging_present=bool(evidence_imaging)
+            )
+
+            # Prescription Quality Audit
+            audited_meds = []
+            for m in rel_meds:
+                m_name = m.get("name") or m.get("medication_name") or "Medication"
+                m_code = MedicalCoder.get_medication_code(m_name)
+                audit = PrescriptionChecker.audit_prescription(
+                    m_name, m.get("dosage"), m.get("frequency"), m.get("route"), m.get("duration")
+                )
+                audited_meds.append({
+                    "name": m_name,
+                    "rxnorm": m_code["rxnorm"],
+                    "snomed": m_code["snomed"],
+                    "dosage": m.get("dosage", "N/A"),
+                    "frequency": m.get("frequency", "N/A"),
+                    "duration": m.get("duration", "N/A"),
+                    "route": m.get("route", "Oral"),
+                    "audit": audit
+                })
 
             detected_because = confidence_data.get("detected_because", [])
             stage_info = cls.calculate_disease_stage(d, labs, vitals, return_dict=True)

@@ -133,8 +133,20 @@ class Coordinator:
             # Stage 3: Parallel Entity Extractions
             self.mysql_store.update_session(session_id, "IN_PROGRESS", "EXTRACTION")
             active_agents = self.router.route(state)
-            raw_extractions = self._execute_extraction_agents(active_agents, state.sentences)
+            raw_extractions = self._execute_extraction_agents(active_agents, state.sentences, full_text=state.text)
             state.raw_extractions = raw_extractions
+
+            # Tag extracted entities with document section names based on character ranges
+            sections = state.metadata.get("sections", [])
+            if sections:
+                for agent_name, mentions in state.raw_extractions.items():
+                    for mention in mentions:
+                        for sec in sections:
+                            sec_start = sec.get("start_char", 0)
+                            sec_end = sec.get("end_char", len(state.text))
+                            if sec_start <= mention.start_char <= sec_end:
+                                mention.section = sec.get("name", "GENERAL")
+                                break
         except Exception as e:
             logger.warning(f"Extraction stage failed (non-fatal): {e}")
             state.raw_extractions = {}

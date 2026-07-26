@@ -1,0 +1,172 @@
+{
+  "symptom_relevancy": [
+    {
+      "symptom": "chest pain",
+      "supported_diseases": ["Acute Inferior STEMI", "Myocardial Infarction", "Coronary Artery Disease", "CAD", "Angina", "Heart Failure"]
+    },
+    {
+      "symptom": "shortness of breath",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure", "Congestive Heart Failure", "Pulmonary Edema"]
+    },
+    {
+      "symptom": "breathlessness",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
+    },
+    {
+      "symptom": "dyspnea",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
+    },
+    {
+      "symptom": "cough",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Bronchitis", "Bacterial Infection"]
+    },
+    {
+      "symptom": "productive cough",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Bronchitis"]
+    },
+    {
+      "symptom": "fever",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "Urinary Tract Infection", "UTI", "Cellulitis"]
+    },
+    {
+      "symptom": "chills",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI"]
+    },
+    {
+      "symptom": "headache",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Migraine"]
+    },
+    {
+      "symptom": "dizziness",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Anemia", "Stroke"]
+    },
+    {
+      "symptom": "swelling",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI"]
+    },
+    {
+      "symptom": "edema",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI"]
+    },
+    {
+      "symptom": "leg swelling",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD"]
+    },
+    {
+      "symptom": "pedal edema",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD"]
+    },
+    {
+      "symptom": "decreased urine output",
+      "supported_diseases": ["Acute Kidney Injury", "AKI", "Chronic Kidney Disease", "CKD", "Renal Failure"]
+    },
+    {
+      "symptom": "oliguria",
+      "supported_diseases": ["Acute Kidney Injury", "AKI", "Chronic Kidney Disease", "CKD", "Renal Failure"]
+    },
+    {
+      "symptom": "fatigue",
+      "supported_diseases": ["Anemia", "Diabetes Mellitus", "Chronic Kidney Disease", "CKD", "Hypothyroidism", "Heart Failure", "Depression"]
+    },
+    {
+      "symptom": "weakness",
+      "supported_diseases": ["Anemia", "Diabetes Mellitus", "Chronic Kidney Disease", "CKD", "Hyperkalemia", "Heart Failure"]
+    },
+    {
+      "symptom": "heartburn",
+      "supported_diseases": ["Gastroesophageal Reflux Disease", "GERD"]
+    },
+    {
+      "symptom": "acid reflux",
+      "supported_diseases": ["Gastroesophageal Reflux Disease", "GERD"]
+    },
+    {
+      "symptom": "joint pain",
+      "supported_diseases": ["Rheumatoid Arthritis", "Osteoarthritis", "Arthritis", "Gout"]
+    }
+  ],
+  "lab_relevancy": [
+    {
+      "marker": "troponin",
+      "supported_diseases": ["Acute Inferior STEMI", "Myocardial Infarction", "CAD", "Angina"]
+    },
+    {
+      "marker": "bnp",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Pulmonary Edema"]
+    },
+    {
+      "marker": "creatinine",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
+    },
+    {
+      "marker": "egfr",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
+    },
+    {
+      "marker": "gfr",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
+    },
+    {
+      "marker": "bun",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
+    },
+    {
+      "marker": "potassium",
+      "supported_diseases": ["Hyperkalemia", "Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI"]
+    },
+    {
+      "marker": "hba1c",
+      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes", "Type 1 Diabetes"]
+    },
+    {
+      "marker": "fasting glucose",
+      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes", "Type 1 Diabetes"]
+    },
+    {
+      "marker": "ldl",
+      "supported_diseases": ["Hyperlipidemia", "CAD", "Coronary Artery Disease"]
+    },
+    {
+      "marker": "cholesterol",
+      "supported_diseases": ["Hyperlipidemia", "CAD", "Coronary Artery Disease"]
+    },
+    {
+      "marker": "triglycerides",
+      "supported_diseases": ["Hyperlipidemia"]
+    },
+    {
+      "marker": "wbc",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI", "Cellulitis"]
+    },
+    {
+      "marker": "hemoglobin",
+      "supported_diseases": ["Anemia"]
+    }
+  ],
+  "vital_relevancy": [
+    {
+      "vital": "blood pressure",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Heart Failure", "Acute Inferior STEMI"]
+    },
+    {
+      "vital": "bp",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Heart Failure", "Acute Inferior STEMI"]
+    },
+    {
+      "vital": "spo2",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
+    },
+    {
+      "vital": "oxygen saturation",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
+    },
+    {
+      "vital": "heart rate",
+      "supported_diseases": ["Atrial Fibrillation", "Arrhythmia", "Heart Failure", "Acute Inferior STEMI"]
+    },
+    {
+      "vital": "temperature",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI"]
+    }
+  ]
+}
