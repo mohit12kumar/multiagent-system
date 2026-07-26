@@ -70,7 +70,31 @@
     },
     {
       "symptom": "weakness",
-      "supported_diseases": ["Anemia", "Diabetes Mellitus", "Chronic Kidney Disease", "CKD", "Hyperkalemia", "Heart Failure"]
+      "supported_diseases": ["Anemia", "Diabetes Mellitus", "Type 2 Diabetes Mellitus", "Chronic Kidney Disease", "CKD", "Hyperkalemia", "Heart Failure"]
+    },
+    {
+      "symptom": "increased thirst",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "excessive thirst",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "frequent urination",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "excessive urination",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "polydipsia",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "polyuria",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
     },
     {
       "symptom": "heartburn",
@@ -86,6 +110,26 @@
     }
   ],
   "lab_relevancy": [
+    {
+      "marker": "hba1c",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "marker": "blood glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "marker": "glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "marker": "fasting glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "marker": "random glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
     {
       "marker": "troponin",
       "supported_diseases": ["Acute Inferior STEMI", "Myocardial Infarction", "CAD", "Angina"]

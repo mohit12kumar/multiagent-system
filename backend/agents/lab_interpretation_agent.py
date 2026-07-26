@@ -20,7 +20,9 @@ class LabInterpretationAgent:
 
     # Each lab rule: (keyword, low, high, unit, low_msg, high_msg, low_severity, high_severity, low_disease, high_disease)
     LAB_RULES = [
-        ("hba1c",      4.0,   5.6,  "%",          "Normal",             "Poor Glycaemic Control",         "Normal", "Critically Elevated", None,                          "Type 2 Diabetes Mellitus"),
+        ("hba1c",      4.0,   5.6,  "%",          "Normal",             "Poor Glycemic Control",          "Normal", "Critically Elevated", None,                          "Type 2 Diabetes Mellitus"),
+        ("blood glucose",70.0,140.0, "mg/dL",      "Hypoglycemia",       "Hyperglycemia / Poor Glycemic Control","Low", "Elevated",            "Hypoglycemia",                "Type 2 Diabetes Mellitus"),
+        ("glucose",    70.0,  140.0,"mg/dL",      "Hypoglycemia",       "Hyperglycemia / Poor Glycemic Control","Low", "Elevated",            "Hypoglycemia",                "Type 2 Diabetes Mellitus"),
         ("creatinine", 0.6,   1.2,  "mg/dL",      "Normal",             "Renal Impairment",               "Normal", "Elevated",            None,                          "Chronic Kidney Disease"),
         ("egfr",       60.0,  150.0,"mL/min",     "Renal Impairment",   "Normal",                         "Low",    "Normal",              "Chronic Kidney Disease",      None),
         ("potassium",  3.5,   5.0,  "mmol/L",     "Hypokalemia",        "Hyperkalemia",                   "Low",    "Critically Elevated", "Hypokalemia",                 "Hyperkalemia / CKD"),

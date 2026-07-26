@@ -81,9 +81,16 @@ class RegexAgent:
             # Capture lab results like "Serum Creatinine: 2.2 mg/dL" as LAB_VALUE entities
             "LAB_VALUE": [
                 r'(?i)\b(?:serum\s+creatinine|creatinine|bun|blood\s+urea\s+nitrogen|'
-                r'ldl|hdl|total\s+cholesterol|triglycerides|hba1c|fasting\s+glucose|'
-                r'hemoglobin|wbc|platelets|sodium|potassium|calcium|tsh|egfr|gfr|'
+                r'ldl|hdl|total\s+cholesterol|triglycerides|hba1c|blood\s+glucose|fasting\s+glucose|'
+                r'random\s+glucose|glucose|hemoglobin|wbc|platelets|sodium|potassium|calcium|tsh|egfr|gfr|'
                 r'alt|ast|bilirubin|albumin|troponin|bnp|natriuretic|ejection\s+fraction|ef|st\s+elevation)\s*[:\s]+\d+(?:\.\d+)?\s*(?:mg/dL|mmol/L|g/dL|IU/L|mEq/L|%|U/L|ng/mL|pg/mL)?\b'
+            ],
+
+            # ── Clinical Symptoms ─────────────────────────────────────────
+            "SYMPTOM": [
+                r'(?i)\b(?:increased\s+thirst|frequent\s+urination|excessive\s+thirst|excessive\s+urination|'
+                r'polydipsia|polyuria|polyphagia|fatigue|weakness|shortness\s+of\s+breath|dyspnea|orthopnea|'
+                r'pedal\s+edema|leg\s+swelling|chest\s+pain|dizziness|nausea|vomiting|fever|cough|sweating|diaphoresis)\b'
             ],
 
             # ── Critical Disease Extractions ─────────────────────────────

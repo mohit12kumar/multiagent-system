@@ -20,6 +20,7 @@ class SciSpaCyAgent:
                 "rheumatoid arthritis", "chronic kidney disease", "urinary tract infection", "uti", "anemia"
             ],
             "SYMPTOM": [
+                "increased thirst", "frequent urination", "excessive thirst", "excessive urination", "polydipsia", "polyuria", "polyphagia",
                 "headache", "dizziness", "chest pain", "shortness of breath", "fever", "chills", "cough",
                 "productive cough", "dry cough", "phlegm", "sore throat", "fatigue", "weakness", "nausea",
                 "vomiting", "diarrhea", "constipation", "abdominal pain", "joint pain", "muscle pain",

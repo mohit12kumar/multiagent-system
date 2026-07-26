@@ -237,7 +237,7 @@ class FormattingAgent:
                 "symptoms": node["symptoms"],
                 "medications": node["medications"],
                 "possible_risks": node["possible_risks"],
-                "labs": [l["lab"] for l in abnormal_labs if l.get("supporting_disease") and d_name.lower() in l["supporting_disease"].lower()],
+                "labs": [l["name"] for l in node.get("supporting_labs", [])] if node.get("supporting_labs") else [l["lab"] for l in abnormal_labs if l.get("supporting_disease") and d_name.lower() in l["supporting_disease"].lower()],
                 "supporting_evidence": node.get("supporting_evidence", {}),
                 "supporting_labs": node.get("supporting_labs", []),
                 "clinical_statement": f"Clinical findings support diagnosis of {d_name} (ICD-10: {node['icd10']}).",
