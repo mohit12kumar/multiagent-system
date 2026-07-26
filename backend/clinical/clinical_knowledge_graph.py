@@ -151,6 +151,23 @@ class ClinicalKnowledgeGraph:
 
         normalized_diseases = list(dict.fromkeys([cls.normalize_term(d) for d in diseases if d]))
 
+        # Filter out generic Infection false positives if labs (WBC, CRP) and temp are normal
+        has_abnormal_infection_lab = any(
+            ("wbc" in str(l).lower() and any(x in str(l).lower() for x in ["elevated", "high", "leukocytosis"])) or
+            ("crp" in str(l).lower() and any(x in str(l).lower() for x in ["elevated", "high", "inflammation"]))
+            for l in labs
+        )
+        has_fever = any("fever" in str(v).lower() or "hyperthermia" in str(v).lower() for v in vitals)
+
+        filtered_diseases = []
+        for d in normalized_diseases:
+            d_norm = d.lower().strip()
+            if d_norm in ("infection", "bacterial infection", "systemic infection") and not (has_abnormal_infection_lab or has_fever):
+                continue  # Discard generic Infection false positive when objective markers are normal
+            filtered_diseases.append(d)
+
+        normalized_diseases = filtered_diseases
+
         for d in normalized_diseases:
             d_codes = MedicalCoder.get_disease_codes(d)
             d_norm = cls.normalize_term(d).lower()
@@ -159,6 +176,12 @@ class ClinicalKnowledgeGraph:
             for s in symptoms:
                 s_str = s.get("name") if isinstance(s, dict) else str(s)
                 s_dis = (s.get("disease_name") or s.get("supporting_disease") or "").lower() if isinstance(s, dict) else ""
+
+                # Heart Failure symptom prioritization: reserve chest pain for STEMI/CAD
+                if "heart failure" in d_norm or "chf" in d_norm:
+                    if s_str.lower().strip() in ("chest pain", "severe chest pain"):
+                        continue
+
                 if s_dis:
                     if d_norm in s_dis or s_dis in d_norm:
                         rel_symptoms.append(s_str)

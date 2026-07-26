@@ -223,6 +223,9 @@ class FormattingAgent:
                 max_priority_score = node_triage["priority_score"]
                 triage_info = node_triage
 
+            from backend.clinical.clinical_recommendation_engine import ClinicalRecommendationEngine
+            recs = ClinicalRecommendationEngine.generate_recommendations(d_name)
+
             grouped_structured.append({
                 "disease": d_name,
                 "icd10": node["icd10"],
@@ -240,7 +243,8 @@ class FormattingAgent:
                 "clinical_statement": f"Clinical findings support diagnosis of {d_name} (ICD-10: {node['icd10']}).",
                 "confidence": node["confidence"],
                 "detected_because": node["detected_because"],
-                "evidence_scores": node["confidence_breakdown"]
+                "evidence_scores": node["confidence_breakdown"],
+                "actionable_recommendations": recs
             })
 
         # Plain language summary

@@ -212,15 +212,21 @@ class LabInterpretationAgent:
                     systolic = int(m.group(1))
                     diastolic = int(m.group(2))
                     val_str = f"{systolic}/{diastolic}"
-                    label, severity, disease = "Normal", "Normal", None
-                    for sys_th, dia_th, lbl, sev, dis in rule["thresholds"]:
-                        if systolic >= sys_th or diastolic >= dia_th:
-                            label, severity, disease = lbl, sev, dis
-                    arrow = "↑" if severity not in ("Normal", None) else "→"
+                    if systolic < 90 or diastolic < 60:
+                        label = "Hypotension"
+                        severity = "Low"
+                        disease = "Hypotension / Hypoperfusion"
+                        arrow = "↓"
+                    else:
+                        label, severity, disease = "Normal", "Normal", None
+                        for sys_th, dia_th, lbl, sev, dis in rule["thresholds"]:
+                            if systolic >= sys_th or diastolic >= dia_th:
+                                label, severity, disease = lbl, sev, dis
+                        arrow = "↑" if severity not in ("Normal", None) else "→"
                     results.append({
                         "vital": name,
                         "value": f"{val_str} {rule['unit']}",
-                        "reference": "< 120/80 mmHg",
+                        "reference": "90/60 - 120/80 mmHg",
                         "interpretation": label,
                         "arrow": arrow,
                         "severity": severity,
