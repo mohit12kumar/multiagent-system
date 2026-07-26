@@ -107,6 +107,21 @@ class LabInterpretationAgent:
         text_lower = text.lower()
         seen: set = set()
 
+        CANONICAL_LAB_MAP = {
+            "glucose": "Blood Glucose",
+            "blood glucose": "Blood Glucose",
+            "serum glucose": "Blood Glucose",
+            "random glucose": "Blood Glucose",
+            "fasting glucose": "Blood Glucose",
+        }
+
+        display_names = {
+            "hba1c": "HbA1c", "egfr": "eGFR", "wbc": "WBC",
+            "crp": "CRP", "bun": "BUN", "ldl": "LDL", "hdl": "HDL",
+            "alt": "ALT", "ast": "AST", "bnp": "BNP",
+            "blood glucose": "Blood Glucose", "glucose": "Blood Glucose"
+        }
+
         for rule in self.LAB_RULES:
             kw, low, high, unit, low_msg, high_msg, low_sev, high_sev, low_dis, high_dis = rule
             pattern = re.compile(rf"\b{re.escape(kw)}\b[\s\:\-]*([\d]+(?:\.\d+)?)", re.IGNORECASE)
@@ -114,7 +129,8 @@ class LabInterpretationAgent:
                 val_str = m.group(1)
                 try:
                     val = float(val_str)
-                    dedup_key = f"{kw}_{val_str}"
+                    lab_name = CANONICAL_LAB_MAP.get(kw.lower(), display_names.get(kw.lower(), kw.title()))
+                    dedup_key = f"{lab_name.lower()}_{val_str}"
                     if dedup_key in seen:
                         continue
                     seen.add(dedup_key)
@@ -137,14 +153,6 @@ class LabInterpretationAgent:
                         elif val < 60:
                             interp, severity, disease = "CKD Stage IIIa (Mild-Moderate)", "Elevated", "Chronic Kidney Disease"
                         arrow = "↓"
-
-                    # Display name formatting
-                    display_names = {
-                        "hba1c": "HbA1c", "egfr": "eGFR", "wbc": "WBC",
-                        "crp": "CRP", "bun": "BUN", "ldl": "LDL", "hdl": "HDL",
-                        "alt": "ALT", "ast": "AST", "bnp": "BNP",
-                    }
-                    lab_name = display_names.get(kw, kw.capitalize())
 
                     interpretations.append({
                         "lab": lab_name,

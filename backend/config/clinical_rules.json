@@ -1,271 +1,216 @@
 {
-  "version": "1.3.0",
   "symptom_relevancy": [
     {
       "symptom": "chest pain",
-      "supported_diseases": ["Acute Inferior STEMI", "Acute Myocardial Infarction", "Coronary Artery Disease", "Heart Failure"],
-      "weight": 20
-    },
-    {
-      "symptom": "sweating",
-      "supported_diseases": ["Acute Inferior STEMI", "Acute Myocardial Infarction", "Coronary Artery Disease", "Sepsis"],
-      "weight": 20
-    },
-    {
-      "symptom": "diaphoresis",
-      "supported_diseases": ["Acute Inferior STEMI", "Acute Myocardial Infarction", "Coronary Artery Disease", "Sepsis"],
-      "weight": 20
-    },
-    {
-      "symptom": "edema",
-      "supported_diseases": ["Heart Failure", "Chronic Kidney Disease", "Acute Kidney Injury"],
-      "weight": 20
+      "supported_diseases": ["Acute Inferior STEMI", "Myocardial Infarction", "Coronary Artery Disease", "CAD", "Angina", "Heart Failure"]
     },
     {
       "symptom": "shortness of breath",
-      "supported_diseases": ["Heart Failure", "COPD", "Community Acquired Pneumonia", "Pneumonia", "Acute Inferior STEMI"],
-      "weight": 20
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure", "Congestive Heart Failure", "Pulmonary Edema"]
+    },
+    {
+      "symptom": "breathlessness",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
     },
     {
       "symptom": "dyspnea",
-      "supported_diseases": ["Heart Failure", "COPD", "Community Acquired Pneumonia", "Pneumonia", "Acute Inferior STEMI"],
-      "weight": 20
-    },
-    {
-      "symptom": "headache",
-      "supported_diseases": ["Hypertension"],
-      "weight": 15
-    },
-    {
-      "symptom": "dizziness",
-      "supported_diseases": ["Hypertension"],
-      "weight": 15
-    },
-    {
-      "symptom": "polyuria",
-      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes Mellitus"],
-      "weight": 20
-    },
-    {
-      "symptom": "polydipsia",
-      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes Mellitus"],
-      "weight": 20
-    },
-    {
-      "symptom": "wheeze",
-      "supported_diseases": ["COPD", "Asthma"],
-      "weight": 20
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
     },
     {
       "symptom": "cough",
-      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD"],
-      "weight": 15
-    }
-  ],
-  "vital_relevancy": [
-    {
-      "vital": "Blood Pressure",
-      "supported_diseases": ["Hypertension", "Heart Failure", "Coronary Artery Disease"],
-      "weight": 25
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Bronchitis", "Bacterial Infection"]
     },
     {
-      "vital": "Heart Rate",
-      "supported_diseases": ["Acute Inferior STEMI", "Coronary Artery Disease", "Heart Failure", "Pneumonia"],
-      "weight": 15
+      "symptom": "productive cough",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Bronchitis"]
     },
     {
-      "vital": "Respiratory Rate",
-      "supported_diseases": ["COPD", "Community Acquired Pneumonia", "Pneumonia", "Heart Failure"],
-      "weight": 15
+      "symptom": "fever",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "Urinary Tract Infection", "UTI", "Cellulitis"]
     },
     {
-      "vital": "Temperature",
-      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Systemic Infection"],
-      "weight": 25
+      "symptom": "chills",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI"]
     },
     {
-      "vital": "Body Temperature",
-      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Systemic Infection"],
-      "weight": 25
+      "symptom": "headache",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Migraine"]
     },
     {
-      "vital": "SpO2",
-      "supported_diseases": ["COPD", "Community Acquired Pneumonia", "Pneumonia", "Heart Failure"],
-      "weight": 20
+      "symptom": "dizziness",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Anemia", "Stroke"]
+    },
+    {
+      "symptom": "swelling",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI"]
+    },
+    {
+      "symptom": "edema",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI"]
+    },
+    {
+      "symptom": "leg swelling",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD"]
+    },
+    {
+      "symptom": "pedal edema",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Chronic Kidney Disease", "CKD"]
+    },
+    {
+      "symptom": "decreased urine output",
+      "supported_diseases": ["Acute Kidney Injury", "AKI", "Chronic Kidney Disease", "CKD", "Renal Failure"]
+    },
+    {
+      "symptom": "oliguria",
+      "supported_diseases": ["Acute Kidney Injury", "AKI", "Chronic Kidney Disease", "CKD", "Renal Failure"]
+    },
+    {
+      "symptom": "fatigue",
+      "supported_diseases": ["Anemia", "Diabetes Mellitus", "Chronic Kidney Disease", "CKD", "Hypothyroidism", "Heart Failure", "Depression"]
+    },
+    {
+      "symptom": "weakness",
+      "supported_diseases": ["Anemia", "Diabetes Mellitus", "Type 2 Diabetes Mellitus", "Chronic Kidney Disease", "CKD", "Hyperkalemia", "Heart Failure"]
+    },
+    {
+      "symptom": "increased thirst",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "excessive thirst",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "frequent urination",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "excessive urination",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "polydipsia",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "polyuria",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
+    },
+    {
+      "symptom": "heartburn",
+      "supported_diseases": ["Gastroesophageal Reflux Disease", "GERD"]
+    },
+    {
+      "symptom": "acid reflux",
+      "supported_diseases": ["Gastroesophageal Reflux Disease", "GERD"]
+    },
+    {
+      "symptom": "joint pain",
+      "supported_diseases": ["Rheumatoid Arthritis", "Osteoarthritis", "Arthritis", "Gout"]
     }
   ],
   "lab_relevancy": [
     {
-      "marker": "Troponin",
-      "supported_diseases": ["Acute Inferior STEMI", "Acute Myocardial Infarction", "Coronary Artery Disease"],
-      "weight": 40,
-      "tier": "Primary"
+      "marker": "hba1c",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
     },
     {
-      "marker": "BNP",
-      "supported_diseases": ["Heart Failure", "Congestive Heart Failure"],
-      "weight": 40,
-      "tier": "Primary"
+      "marker": "blood glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
     },
     {
-      "marker": "Creatinine",
-      "supported_diseases": ["Chronic Kidney Disease", "Acute Kidney Injury"],
-      "weight": 35,
-      "tier": "Primary"
+      "marker": "glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
     },
     {
-      "marker": "eGFR",
-      "supported_diseases": ["Chronic Kidney Disease", "Acute Kidney Injury"],
-      "weight": 35,
-      "tier": "Primary"
+      "marker": "fasting glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
     },
     {
-      "marker": "BUN",
-      "supported_diseases": ["Chronic Kidney Disease", "Acute Kidney Injury"],
-      "weight": 20,
-      "tier": "Supporting"
+      "marker": "random glucose",
+      "supported_diseases": ["Type 2 Diabetes Mellitus", "Diabetes Mellitus"]
     },
     {
-      "marker": "HbA1c",
-      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes Mellitus"],
-      "weight": 40,
-      "tier": "Primary"
+      "marker": "troponin",
+      "supported_diseases": ["Acute Inferior STEMI", "Myocardial Infarction", "CAD", "Angina"]
     },
     {
-      "marker": "Glucose",
-      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes Mellitus"],
-      "weight": 30,
-      "tier": "Primary"
+      "marker": "bnp",
+      "supported_diseases": ["Heart Failure", "Congestive Heart Failure", "Pulmonary Edema"]
     },
     {
-      "marker": "LDL",
-      "supported_diseases": ["Hyperlipidemia"],
-      "weight": 40,
-      "tier": "Primary"
+      "marker": "creatinine",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
     },
     {
-      "marker": "HDL",
-      "supported_diseases": ["Hyperlipidemia"],
-      "weight": 20,
-      "tier": "Primary"
+      "marker": "egfr",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
     },
     {
-      "marker": "Triglycerides",
-      "supported_diseases": ["Hyperlipidemia"],
-      "weight": 20,
-      "tier": "Primary"
+      "marker": "gfr",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
     },
     {
-      "marker": "WBC",
-      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Systemic Infection"],
-      "weight": 30,
-      "tier": "Primary"
+      "marker": "bun",
+      "supported_diseases": ["Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI", "Renal Failure"]
     },
     {
-      "marker": "CRP",
-      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Systemic Infection"],
-      "weight": 25,
-      "tier": "Supporting"
+      "marker": "potassium",
+      "supported_diseases": ["Hyperkalemia", "Chronic Kidney Disease", "CKD", "Acute Kidney Injury", "AKI"]
     },
     {
-      "marker": "Potassium",
-      "supported_diseases": ["Hyperkalemia", "Chronic Kidney Disease"],
-      "weight": 35,
-      "tier": "Primary"
+      "marker": "hba1c",
+      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes", "Type 1 Diabetes"]
+    },
+    {
+      "marker": "fasting glucose",
+      "supported_diseases": ["Diabetes Mellitus", "Type 2 Diabetes", "Type 1 Diabetes"]
+    },
+    {
+      "marker": "ldl",
+      "supported_diseases": ["Hyperlipidemia", "CAD", "Coronary Artery Disease"]
+    },
+    {
+      "marker": "cholesterol",
+      "supported_diseases": ["Hyperlipidemia", "CAD", "Coronary Artery Disease"]
+    },
+    {
+      "marker": "triglycerides",
+      "supported_diseases": ["Hyperlipidemia"]
+    },
+    {
+      "marker": "wbc",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI", "Cellulitis"]
+    },
+    {
+      "marker": "hemoglobin",
+      "supported_diseases": ["Anemia"]
     }
   ],
-  "lab_thresholds": [
+  "vital_relevancy": [
     {
-      "marker": "Troponin",
-      "operator": ">",
-      "value": 0.04,
-      "unit": "ng/mL",
-      "severity": "Critical",
-      "condition": "Acute Myocardial Infarction / STEMI",
-      "risk": "Myocardial Injury",
-      "action": "Urgent PCI / Cardiology Consult"
+      "vital": "blood pressure",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Heart Failure", "Acute Inferior STEMI"]
     },
     {
-      "marker": "BNP",
-      "operator": ">",
-      "value": 400,
-      "unit": "pg/mL",
-      "severity": "Major",
-      "condition": "Heart Failure",
-      "risk": "Acute Decompensated Heart Failure",
-      "action": "Diuresis & Cardiology Evaluation"
+      "vital": "bp",
+      "supported_diseases": ["Hypertension", "Essential Hypertension", "Heart Failure", "Acute Inferior STEMI"]
     },
     {
-      "marker": "Potassium",
-      "operator": ">",
-      "value": 5.5,
-      "unit": "mmol/L",
-      "severity": "Critical",
-      "condition": "Hyperkalemia",
-      "risk": "Cardiac Arrhythmia",
-      "action": "ECG STAT & Potassium Lowering Therapy"
+      "vital": "spo2",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
     },
     {
-      "marker": "Creatinine",
-      "operator": ">",
-      "value": 2.0,
-      "unit": "mg/dL",
-      "severity": "Major",
-      "condition": "Acute Kidney Injury",
-      "risk": "Renal Failure",
-      "action": "Hold Nephrotoxic Drugs & Renal Consult"
+      "vital": "oxygen saturation",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "COPD", "Asthma", "Heart Failure"]
     },
     {
-      "marker": "eGFR",
-      "operator": "<",
-      "value": 30,
-      "unit": "mL/min/1.73m2",
-      "severity": "Critical",
-      "condition": "CKD Stage IV / AKI",
-      "risk": "Severe Renal Impairment",
-      "action": "Adjust Renal Drug Dosages"
+      "vital": "heart rate",
+      "supported_diseases": ["Atrial Fibrillation", "Arrhythmia", "Heart Failure", "Acute Inferior STEMI"]
     },
     {
-      "marker": "WBC",
-      "operator": ">",
-      "value": 12.0,
-      "unit": "x10^3/uL",
-      "severity": "Moderate",
-      "condition": "Systemic Infection / Leukocytosis",
-      "risk": "Sepsis Risk",
-      "action": "Blood Cultures & Antibiotic Audit"
-    }
-  ],
-  "contraindication_rules": [
-    {
-      "drug_keyword": "metformin",
-      "condition_keyword": "egfr",
-      "threshold": 30,
-      "operator": "<",
-      "severity": "Critical",
-      "reason": "Metformin contraindication in severe renal impairment (eGFR <30 mL/min)",
-      "risk": "Lactic Acidosis",
-      "recommendation": "Hold Metformin immediately"
-    },
-    {
-      "drug_keyword": "losartan",
-      "condition_keyword": "potassium",
-      "threshold": 5.5,
-      "operator": ">",
-      "severity": "Critical",
-      "reason": "ARB therapy contraindicated in severe hyperkalemia",
-      "risk": "Refractory Hyperkalemia & Fatal Arrhythmia",
-      "recommendation": "Hold Losartan & Monitor ECG STAT"
-    },
-    {
-      "drug_keyword": "ibuprofen",
-      "condition_keyword": "ckd",
-      "threshold": null,
-      "operator": "exists",
-      "severity": "Major",
-      "reason": "NSAIDs impair renal perfusion in CKD",
-      "risk": "Acute Kidney Injury Progression",
-      "recommendation": "Discontinue NSAIDs"
+      "vital": "temperature",
+      "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI"]
     }
   ]
 }

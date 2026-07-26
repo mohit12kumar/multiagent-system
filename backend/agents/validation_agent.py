@@ -47,8 +47,12 @@ class ValidationAgent:
                 ent.type = "ALLERGY"
 
             # Block lab markers from becoming medications
-            lab_keywords = {"creatinine", "ldl", "hemoglobin", "egfr", "potassium", "sodium", "hba1c", "wbc", "crp", "bun"}
-            if clean_text in lab_keywords:
+            lab_keywords = {
+                "creatinine", "ldl", "hdl", "hemoglobin", "haemoglobin", "egfr", "gfr",
+                "potassium", "sodium", "hba1c", "wbc", "crp", "bun", "glucose", "blood glucose",
+                "random glucose", "fasting glucose", "troponin", "bnp", "ast", "alt", "d-dimer", "lactate"
+            }
+            if clean_text in lab_keywords and not any(kw in clean_text for kw in ["dextrose", "infusion", "50%"]):
                 ent.type = "LAB_VALUE"
 
             # 1. Taxonomy type check
