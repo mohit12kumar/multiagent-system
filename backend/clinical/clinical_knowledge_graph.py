@@ -94,13 +94,17 @@ class ClinicalKnowledgeGraph:
         l_name_low = lab_name.lower().strip()
         d_name_low = cls.normalize_term(disease_name).lower().strip()
 
+        matched_rule = False
         for item in relevancy_list:
-            if item.get("marker", "").lower() in l_name_low or l_name_low in item.get("marker", "").lower():
+            marker = item.get("marker", "").lower().strip()
+            if marker and (marker in l_name_low or l_name_low in marker):
+                matched_rule = True
                 supported = [cls.normalize_term(sd).lower() for sd in item.get("supported_diseases", [])]
                 if any(d_name_low in sd or sd in d_name_low for sd in supported):
                     return True
-                return False
 
+        if matched_rule:
+            return False
         return d_name_low in l_name_low or l_name_low in d_name_low
 
     @classmethod
@@ -110,12 +114,17 @@ class ClinicalKnowledgeGraph:
         v_name_low = vital_name.lower().strip()
         d_name_low = cls.normalize_term(disease_name).lower().strip()
 
+        matched_rule = False
         for item in relevancy_list:
-            if item.get("vital", "").lower() in v_name_low or v_name_low in item.get("vital", "").lower():
+            vital = item.get("vital", "").lower().strip()
+            if vital and (vital in v_name_low or v_name_low in vital):
+                matched_rule = True
                 supported = [cls.normalize_term(sd).lower() for sd in item.get("supported_diseases", [])]
                 if any(d_name_low in sd or sd in d_name_low for sd in supported):
                     return True
-                return False
+
+        if matched_rule:
+            return False
         return d_name_low in v_name_low or v_name_low in d_name_low
 
     @classmethod
@@ -125,12 +134,17 @@ class ClinicalKnowledgeGraph:
         s_name_low = symptom_name.lower().strip()
         d_name_low = cls.normalize_term(disease_name).lower().strip()
 
+        matched_rule = False
         for item in relevancy_list:
-            if item.get("symptom", "").lower() in s_name_low or s_name_low in item.get("symptom", "").lower():
+            symptom = item.get("symptom", "").lower().strip()
+            if symptom and (symptom in s_name_low or s_name_low in symptom):
+                matched_rule = True
                 supported = [cls.normalize_term(sd).lower() for sd in item.get("supported_diseases", [])]
                 if any(d_name_low in sd or sd in d_name_low for sd in supported):
                     return True
-                return False
+
+        if matched_rule:
+            return False
         return False
 
     @classmethod

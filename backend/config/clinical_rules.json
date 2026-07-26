@@ -224,6 +224,7 @@
       "vital": "temperature",
       "supported_diseases": ["Community Acquired Pneumonia", "Pneumonia", "Bacterial Infection", "UTI"]
     }
+  ],
   "lab_thresholds": [
     {
       "marker": "troponin",
