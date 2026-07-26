@@ -227,7 +227,7 @@
   ],
   "lab_thresholds": [
     {
-      "marker": "troponin",
+      "marker": "Troponin",
       "operator": ">",
       "value": 0.04,
       "unit": "ng/mL",
@@ -237,7 +237,7 @@
       "action": "Immediate Cardiology Consultation & Cath Lab Activation"
     },
     {
-      "marker": "potassium",
+      "marker": "Potassium",
       "operator": ">",
       "value": 5.5,
       "unit": "mmol/L",
