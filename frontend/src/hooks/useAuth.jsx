@@ -8,12 +8,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('ner_token');
     if (token) {
       authAPI.getMe()
         .then((res) => setUser(res.data))
         .catch(() => {
+          localStorage.removeItem('ner_token');
           localStorage.removeItem('token');
+          localStorage.removeItem('ner_role');
+          localStorage.removeItem('user_role');
+          localStorage.removeItem('ner_username');
           setUser(null);
         })
         .finally(() => setLoading(false));
@@ -24,20 +28,32 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     const res = await authAPI.login(username, password);
+    localStorage.setItem('ner_token', res.data.access_token);
     localStorage.setItem('token', res.data.access_token);
+    localStorage.setItem('ner_role', res.data.user.role);
+    localStorage.setItem('user_role', res.data.user.role);
+    localStorage.setItem('ner_username', res.data.user.username);
     setUser(res.data.user);
     return res.data.user;
   };
 
   const register = async (data) => {
     const res = await authAPI.register(data);
+    localStorage.setItem('ner_token', res.data.access_token);
     localStorage.setItem('token', res.data.access_token);
+    localStorage.setItem('ner_role', res.data.user.role);
+    localStorage.setItem('user_role', res.data.user.role);
+    localStorage.setItem('ner_username', res.data.user.username);
     setUser(res.data.user);
     return res.data.user;
   };
 
   const logout = () => {
+    localStorage.removeItem('ner_token');
     localStorage.removeItem('token');
+    localStorage.removeItem('ner_role');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('ner_username');
     setUser(null);
   };
 

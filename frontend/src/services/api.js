@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,7 +12,7 @@ const api = axios.create({
 // Intercept requests to add JWT token if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('ner_token') || localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -66,6 +66,10 @@ export const doctorAPI = {
   getReviewQueue: () => api.get('/api/doctor/review-queue'),
   takeReviewAction: (id, action, reviewer, newValue = null) =>
     api.post(`/api/doctor/review/${id}/action`, { action, reviewer, new_value: newValue }),
+  approveReview: (reviewId, reviewer) =>
+    api.post(`/api/doctor/review/${reviewId}/action`, { action: 'APPROVED', reviewer }),
+  rejectReview: (reviewId, reviewer) =>
+    api.post(`/api/doctor/review/${reviewId}/action`, { action: 'REJECTED', reviewer }),
   approveAll: () => api.post('/api/doctor/review-queue/approve-all'),
   getPatientHistory: (search = '') => api.get(`/api/doctor/patient-history?search=${search}`),
   exportJSON: (sessionId) => api.get(`/api/doctor/export/json/${sessionId}`),

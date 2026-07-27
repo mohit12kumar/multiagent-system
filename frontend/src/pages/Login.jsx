@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Stethoscope, UserCheck, ShieldAlert, User, Key, UserPlus } from 'lucide-react';
+import { Stethoscope, UserCheck, ShieldAlert, User, Key, ArrowRight, ShieldCheck } from 'lucide-react';
 
 const Login = () => {
   const { login, register } = useAuth();
@@ -45,42 +45,65 @@ const Login = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '460px', padding: '36px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ display: 'inline-flex', padding: '12px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '16px', color: '#3b82f6', marginBottom: '12px' }}>
-            <Stethoscope size={38} />
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        background: '#0B0F19',
+        backgroundImage: 'radial-gradient(circle at 50% 30%, rgba(79, 70, 229, 0.15), transparent 45%)',
+      }}
+    >
+      <div
+        className="glass-panel animate-fade-in"
+        style={{
+          width: '100%',
+          maxWidth: '460px',
+          padding: '40px',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+        }}
+      >
+        {/* Brand Logo Header */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              padding: '14px',
+              background: 'linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)',
+              borderRadius: '16px',
+              color: '#FFFFFF',
+              marginBottom: '14px',
+              boxShadow: '0 0 20px rgba(79, 70, 229, 0.4)',
+            }}
+          >
+            <Stethoscope size={36} />
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#f8fafc' }}>Clinical Multi-Agent System</h2>
-          <p style={{ fontSize: '14px', marginTop: '6px', color: '#94a3b8' }}>
-            {isRegister ? 'Register new Doctor or Patient ID' : 'Sign in to access your clinical dashboard'}
-          </p>
+          <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+            Clinical Intelligence Platform
+          </h2>
+          <div style={{ display: 'inline-block', marginTop: '6px' }}>
+            <span className="badge badge-indigo">MICROSOFT FABRIC / PALANTIR EDITION</span>
+          </div>
         </div>
 
-        {/* Quick Demo Selectors */}
-        {!isRegister && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '24px' }}>
-            <button
-              type="button"
-              onClick={setDemoDoctor}
-              className={`btn ${username === 'dr_jenkins' ? 'btn-primary' : 'btn-outline'}`}
-              style={{ fontSize: '12px', padding: '8px' }}
-            >
-              <UserCheck size={14} /> Doctor Account
-            </button>
-            <button
-              type="button"
-              onClick={setDemoPatient}
-              className={`btn ${username === 'patient_john' ? 'btn-success' : 'btn-outline'}`}
-              style={{ fontSize: '12px', padding: '8px' }}
-            >
-              <User size={14} /> Patient (PAT-88421)
-            </button>
-          </div>
-        )}
-
         {error && (
-          <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', color: '#f87171', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+          <div
+            style={{
+              padding: '12px 16px',
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              color: '#F87171',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px',
+            }}
+          >
             <ShieldAlert size={18} /> {error}
           </div>
         )}
@@ -89,7 +112,7 @@ const Login = () => {
           {isRegister && (
             <>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Full Name / Doctor Title</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#CBD5E1' }}>Full Name / Doctor Title</label>
                 <input
                   type="text"
                   className="input-field"
@@ -100,7 +123,7 @@ const Login = () => {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Email Address</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#CBD5E1' }}>Email Address</label>
                 <input
                   type="email"
                   className="input-field"
@@ -114,7 +137,7 @@ const Login = () => {
           )}
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Username / Patient ID</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#CBD5E1' }}>Username / Patient ID</label>
             <input
               type="text"
               className="input-field"
@@ -126,7 +149,7 @@ const Login = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Password</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#CBD5E1' }}>Password</label>
             <input
               type="password"
               className="input-field"
@@ -139,12 +162,12 @@ const Login = () => {
 
           {isRegister && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Access Role</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#CBD5E1' }}>Access Role</label>
               <select
                 className="input-field"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                style={{ background: '#0f172a' }}
+                style={{ background: '#0B0F19' }}
               >
                 <option value="doctor">Doctor / Clinician</option>
                 <option value="patient">Patient</option>
@@ -153,21 +176,21 @@ const Login = () => {
           )}
 
           <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: '8px', padding: '12px' }}>
-            {submitting ? <div className="spinner" /> : (isRegister ? 'Register Account' : 'Sign In')}
+            {submitting ? <div className="spinner" /> : (isRegister ? 'Register Account' : 'Authenticate Credentials')}
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#94a3b8' }}>
-          {isRegister ? 'Already have an account?' : "Need a new Doctor or Patient account?"}{' '}
+        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: '#94A3B8' }}>
+          {isRegister ? 'Already registered?' : 'Need a new Doctor or Patient ID?'}{' '}
           <button
             type="button"
             onClick={() => {
               setIsRegister(!isRegister);
               setError('');
             }}
-            style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: '600', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: '#38BDF8', fontWeight: '700', cursor: 'pointer' }}
           >
-            {isRegister ? 'Sign In' : 'Register New'}
+            {isRegister ? 'Sign In' : 'Register New ID'}
           </button>
         </div>
       </div>

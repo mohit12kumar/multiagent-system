@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Send, Activity, AlertTriangle, CheckCircle, FileText, ChevronDown, ChevronRight, FlaskConical, Heart, Pill, Thermometer, ShieldCheck, HelpCircle, UserCheck } from "lucide-react";
+import { API_BASE_URL } from '../services/api';
 
 function severityColor(sev) {
   if (!sev) return "var(--text-secondary)";
@@ -226,8 +227,8 @@ export default function Extraction() {
     setError("");
 
     try {
-      const token = localStorage.getItem("ner_token");
-      const response = await fetch("http://localhost:8000/api/v1/extract", {
+      const token = localStorage.getItem("ner_token") || localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/v1/extract`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -254,8 +255,8 @@ export default function Extraction() {
     if (!result?.session_id) return;
     setPdfLoading(true);
     try {
-      const token = localStorage.getItem("ner_token");
-      const url = `http://localhost:8000/api/v1/sessions/export/pdf/${result.session_id}`;
+      const token = localStorage.getItem("ner_token") || localStorage.getItem("token");
+      const url = `${API_BASE_URL}/api/v1/sessions/export/pdf/${result.session_id}`;
       const resp = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
       if (!resp.ok) throw new Error(`PDF export failed with status ${resp.status}`);
       const blob = await resp.blob();

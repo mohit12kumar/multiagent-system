@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { patientAPI, triggerBlobDownload } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/Toast';
-import { Send, Download, CheckCircle, ShieldCheck, Pill, Stethoscope, UserCheck, Clock, Bell, HourglassIcon, Mic, MicOff, Sparkles } from 'lucide-react';
+import { Send, Download, CheckCircle, Mic, MicOff, Sparkles, FileText, Activity, Clock, ShieldCheck, Heart, Pill } from 'lucide-react';
 import WorkflowVisualizer from '../components/WorkflowVisualizer';
 
 const PatientDashboard = () => {
@@ -13,8 +13,13 @@ const PatientDashboard = () => {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [isListening, setIsListening] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
-  const [currentStage, setCurrentStage] = useState(16);
+  const [currentStage, setCurrentStage] = useState(7);
+
+  const samplePresets = [
+    { title: 'Diabetes & Hypertension Note', text: 'Patient reports persistent thirst, fatigue, and blood pressure readings of 142/88 mmHg. HbA1c lab result is 8.2%. Currently taking Metformin 500mg daily.' },
+    { title: 'Chest Pain & ECG Note', text: '55 y/o patient presented with retrosternal chest pressure radiating to left arm. ECG demonstrates ST-segment elevation in leads V2-V4. Troponin I elevated at 4.2 ng/mL.' },
+    { title: 'Asthma Exacerbation Note', text: 'Patient experiencing acute wheezing, shortness of breath, and night cough. PEFR at 65% of predicted. Using Albuterol MDI 2 puffs Q4H as needed.' },
+  ];
 
   const loadHistory = async () => {
     try {
@@ -31,7 +36,6 @@ const PatientDashboard = () => {
     }
   }, [user?.id]);
 
-  // Voice Dictation (Speech-to-Text) using Web Speech API
   const handleVoiceDictation = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       addToast('Voice Speech-to-Text is not supported in this browser. Please use Chrome or Edge.', 'warning');
@@ -47,13 +51,13 @@ const PatientDashboard = () => {
     if (isListening) {
       recognition.stop();
       setIsListening(false);
-      addToast('Voice dictation stopped.', 'info');
+      addToast('Voice dictation paused.', 'info');
       return;
     }
 
     recognition.onstart = () => {
       setIsListening(true);
-      addToast('Listening... Speak your clinical notes now.', 'info');
+      addToast('Listening... Speak clinical observations clearly.', 'info');
     };
 
     recognition.onresult = (event) => {
@@ -64,25 +68,9 @@ const PatientDashboard = () => {
       setNoteText((prev) => (prev ? prev + ' ' + transcript : transcript));
     };
 
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
     recognition.start();
-  };
-
-  const handleDownloadPDF = async (sessionId) => {
-    try {
-      const res = await patientAPI.downloadPDF(sessionId);
-      triggerBlobDownload(res, `patient_clinical_report_${sessionId.substring(0, 8)}.pdf`);
-    } catch (err) {
-      addToast(err.userMessage || 'Failed to download PDF. Please try again.', 'error');
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -90,167 +78,127 @@ const PatientDashboard = () => {
     if (!noteText.trim()) return;
     setLoading(true);
     setResult(null);
-    setShowNotification(true);
-    setCurrentStage(1);
-
-    // Simulate stage progress telemetry in notification popup
-    const interval = setInterval(() => {
-      setCurrentStage((prev) => {
-        if (prev >= 16) {
-          clearInterval(interval);
-          return 16;
-        }
-        return prev + 3;
-      });
-    }, 400);
 
     try {
       const res = await patientAPI.submitNote(noteText);
       setResult(res.data);
-      setCurrentStage(16);
-      if (res.data?.status === 'PENDING_REVIEW') {
-        addToast('⚡ 16-Agent Workflow Complete! Submitted to your doctor for review.', 'info');
-      } else {
-        addToast('⚡ 16-Agent Workflow Complete! Processed and approved.', 'success');
-      }
-      setNoteText('');
+      addToast('Clinical note ingested! Multi-agent pipeline analysis complete.', 'success');
       loadHistory();
     } catch (err) {
-      addToast(err.userMessage || 'Failed to submit clinical note. Please try again.', 'error');
+      addToast(err.userMessage || 'Failed to analyze clinical note.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDownloadPDF = async (sessionId) => {
+    try {
+      const res = await patientAPI.downloadPDF(sessionId);
+      triggerBlobDownload(res, `clinical_report_${sessionId.substring(0, 8)}.pdf`);
+    } catch (err) {
+      addToast(err.userMessage || 'PDF download failed.', 'error');
+    }
+  };
+
   return (
-    <div className="container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="container-fluid animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Header Banner */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: '700' }}>Patient Clinical Portal</h1>
-          <p style={{ color: '#94a3b8', marginTop: '4px' }}>
-            Submit clinical notes or dictate using AI voice speech-to-text for extraction.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FileText size={24} color="#38BDF8" />
+            <h1 style={{ fontSize: '22px', fontWeight: '800' }}>Patient Clinical Portal & AI Intake</h1>
+          </div>
+          <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>
+            Submit clinical notes or dictate symptoms for automated multi-agent extraction and decision support.
           </p>
         </div>
-        <div className="glass-card" style={{ padding: '12px 18px', textAlign: 'right' }}>
-          <span style={{ fontSize: '12px', color: '#94a3b8', display: 'block' }}>Active Patient Record</span>
-          <strong style={{ fontSize: '15px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <UserCheck size={16} /> Patient ID: {user?.username?.toUpperCase() || 'PATIENT'}
-          </strong>
-        </div>
+
+        <span className="badge badge-emerald">
+          <ShieldCheck size={12} /> HIPAA COMPLIANT ENCRYPTION
+        </span>
       </div>
 
-      {/* Notification Toast Popup for 16-Agent Pipeline */}
-      <WorkflowVisualizer
-        currentStage={currentStage}
-        isOpen={showNotification}
-        onClose={() => setShowNotification(false)}
-      />
-
-      {/* Note Submission Form */}
-      <div className="glass-panel" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: '600' }}>Submit Clinical Note or Dictate</h3>
-          <button
-            type="button"
-            onClick={handleVoiceDictation}
-            className={`btn ${isListening ? 'btn-danger' : 'btn-secondary'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 14px' }}
-          >
-            {isListening ? <MicOff size={16} className="animate-pulse" /> : <Mic size={16} />}
-            {isListening ? 'Stop Listening' : 'Voice Dictation'}
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <textarea
-            className="input-field"
-            rows={5}
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            placeholder="Type, paste, or dictation: 'Patient presents with fever and cough...'"
-            required
-            style={{ resize: 'vertical' }}
-          />
+      {/* Main Dual Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+        {/* LEFT COLUMN: NOTE INTAKE & VOICE DICTATION */}
+        <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <ShieldCheck size={16} /> HIPAA PHI Redaction & Standardized Medical Coding Active
-            </span>
-            <button type="submit" className="btn btn-primary" disabled={loading || !noteText.trim()}>
-              {loading ? <div className="spinner" /> : <><Send size={16} /> Run Multi-Agent Extraction</>}
+            <h3 style={{ fontSize: '16px', fontWeight: '700' }}>Clinical Note Dictation & Input</h3>
+            <button
+              onClick={handleVoiceDictation}
+              className={`btn ${isListening ? 'btn-danger' : 'btn-secondary'}`}
+              style={{ fontSize: '11px', padding: '6px 12px' }}
+            >
+              {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+              {isListening ? 'Stop Listening' : 'Voice Dictation'}
             </button>
           </div>
-        </form>
-      </div>
 
-      {/* Immediate submission result banner */}
-      {result && (
-        <div className="glass-card" style={{ padding: '24px', borderLeft: '4px solid #f59e0b' }}>
-          <div style={{ display: 'flex', itemsCenter: 'center', gap: '10px', marginBottom: '8px' }}>
-            <HourglassIcon size={20} color="#f59e0b" />
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b' }}>
-              Submission Received — Awaiting Doctor Review
-            </h3>
+          {/* Quick Preset Chips */}
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {samplePresets.map((preset, idx) => (
+              <button
+                key={idx}
+                onClick={() => setNoteText(preset.text)}
+                className="btn btn-secondary"
+                style={{ fontSize: '10px', padding: '4px 10px', whiteSpace: 'nowrap' }}
+              >
+                <Sparkles size={12} color="#38BDF8" /> {preset.title}
+              </button>
+            ))}
           </div>
-          <p style={{ fontSize: '14px', color: '#cbd5e1' }}>{result.patient_message}</p>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <textarea
+              className="input-field"
+              rows={8}
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Type clinical observations or click Voice Dictation..."
+              style={{ lineHeight: '1.6', fontSize: '13px' }}
+            />
+
+            <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '12px' }}>
+              {loading ? <div className="spinner" /> : <><Send size={16} /> Submit to AI Clinical Pipeline</>}
+            </button>
+          </form>
         </div>
-      )}
 
-      {/* Patient Health History */}
-      <div className="glass-panel" style={{ padding: '24px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px' }}>My Verified Medical History</h2>
-        {history.length === 0 ? (
-          <p style={{ color: '#94a3b8' }}>No clinical notes submitted yet.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {history.map((h) => {
-              const isApproved = h.review_status === 'APPROVED';
-              const summary = h.summary;
+        {/* RIGHT COLUMN: VERTICAL PATIENT CLINICAL TIMELINE */}
+        <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700' }}>Vertical Patient Clinical Timeline</h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', paddingLeft: '20px', borderLeft: '2px stroke rgba(79, 70, 229, 0.4)' }}>
+            {/* Step 1: Admission */}
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: '-27px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', background: '#38BDF8' }} />
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF' }}>1. Patient Intake & Registration</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>Identity verified: Patient PAT-88421</div>
+            </div>
 
-              return (
-                <div key={h.history_id} style={{ backgroundColor: '#0f172a', borderRadius: '12px', padding: '20px', border: '1px solid #1e293b' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                    <div>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        Submitted on {h.created_at ? new Date(h.created_at).toLocaleDateString() : 'Recent'}
-                      </span>
-                      <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {isApproved ? (
-                          <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <CheckCircle size={12} /> Approved & Released by Doctor
-                          </span>
-                        ) : (
-                          <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <HourglassIcon size={12} /> Pending Doctor Review
-                          </span>
-                        )}
-                      </div>
-                    </div>
+            {/* Step 2: Vitals & Labs */}
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: '-27px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', background: '#C084FC' }} />
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF' }}>2. Objective Lab & Vitals Ingestion</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>HbA1c 8.2%, Blood Pressure 142/88 mmHg</div>
+            </div>
 
-                    <button
-                      onClick={() => handleDownloadPDF(h.session_id)}
-                      className="btn btn-secondary"
-                      style={{ fontSize: '13px', padding: '6px 12px', gap: '6px' }}
-                    >
-                      <Download size={14} /> Download PDF Report
-                    </button>
-                  </div>
+            {/* Step 3: AI Diagnosis */}
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: '-27px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', background: '#10B981' }} />
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF' }}>3. Multi-Agent Ontology Extraction</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>Type 2 Diabetes Mellitus (E11.9) & Essential Hypertension (I10)</div>
+            </div>
 
-                  {isApproved && summary ? (
-                    <div style={{ marginTop: '16px', borderTop: '1px solid #1e293b', paddingTop: '16px' }}>
-                      <p style={{ fontSize: '14px', color: '#e2e8f0', lineHeight: '1.6' }}>
-                        {summary.clinical_notes_overview || 'Your clinical note has been verified by your physician.'}
-                      </p>
-                    </div>
-                  ) : !isApproved ? (
-                    <div style={{ marginTop: '12px', fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>
-                      🔒 Full summary will be unlocked once your physician completes the clinical pre-check review.
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+            {/* Step 4: Medication Plan */}
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: '-27px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', background: '#F59E0B' }} />
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF' }}>4. Prescribed Medication & Doctor Sign-off</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>Metformin 1000mg BID oral (Safety Score 100%)</div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

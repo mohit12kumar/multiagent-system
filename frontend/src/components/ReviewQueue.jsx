@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, XCircle, Edit3, CheckCircle2 } from 'lucide-react';
+import { API_BASE_URL } from '../services/api';
 
 export default function ReviewQueue() {
   const [sessions, setSessions] = useState([]);
@@ -11,8 +12,8 @@ export default function ReviewQueue() {
   const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('ner_token');
-      const response = await fetch('http://localhost:8000/api/v1/review/queue', {
+      const token = localStorage.getItem('ner_token') || localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/api/v1/review/queue`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Failed to fetch review queue');
@@ -32,14 +33,14 @@ export default function ReviewQueue() {
 
   const handleFeedback = async (mentionId, action, overrides = null) => {
     try {
-      const token = localStorage.getItem('ner_token');
+      const token = localStorage.getItem('ner_token') || localStorage.getItem('token');
       const payload = { entity_mention_id: mentionId, action };
       if (overrides) {
         if (overrides.new_type) payload.new_type = overrides.new_type;
         if (overrides.new_text) payload.new_text = overrides.new_text;
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/review/feedback', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/review/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +60,7 @@ export default function ReviewQueue() {
 
   const handleApproveAll = async (session) => {
     try {
-      const token = localStorage.getItem('ner_token');
+      const token = localStorage.getItem('ner_token') || localStorage.getItem('token');
       const mentionIds = session.entities.map(e => e.entity_mention_id);
       
       const payload = {
@@ -67,7 +68,7 @@ export default function ReviewQueue() {
         action: 'APPROVED'
       };
 
-      const response = await fetch('http://localhost:8000/api/v1/review/feedback/bulk', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/review/feedback/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

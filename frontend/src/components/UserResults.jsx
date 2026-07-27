@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, Activity, FileText, Clock, AlertCircle, Heart, FlaskConical, Thermometer, AlertTriangle, Pill, ChevronDown, ChevronRight } from "lucide-react";
+import { API_BASE_URL } from '../services/api';
 
 function Chip({ label, color }) {
   return (
@@ -198,8 +199,8 @@ export default function UserResults() {
         return;
       }
       try {
-        const token = localStorage.getItem("ner_token");
-        const response = await fetch(`http://localhost:8000/api/v1/sessions/user/${patientId}?role=user`, {
+        const token = localStorage.getItem("ner_token") || localStorage.getItem("token");
+        const response = await fetch(`${API_BASE_URL}/api/v1/sessions/user/${patientId}?role=user`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (!response.ok) throw new Error("Failed to retrieve history");
@@ -218,8 +219,8 @@ export default function UserResults() {
     setPdfLoading(prev => ({ ...prev, [sessionId]: true }));
     setPdfError(prev => ({ ...prev, [sessionId]: "" }));
     try {
-      const token = localStorage.getItem("ner_token");
-      const url = `http://localhost:8000/api/v1/sessions/export/pdf/${sessionId}`;
+      const token = localStorage.getItem("ner_token") || localStorage.getItem("token");
+      const url = `${API_BASE_URL}/api/v1/sessions/export/pdf/${sessionId}`;
       const resp = await fetch(url, {
         headers: { "Authorization": `Bearer ${token}` }
       });
