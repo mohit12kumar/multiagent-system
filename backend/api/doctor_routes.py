@@ -59,7 +59,9 @@ def get_doctor_dashboard_analytics(db: Session = Depends(get_db), current_user: 
         "total_extractions": total_extractions,
         "diseases_detected": diseases_detected or 38,
         "completed_sessions": completed_sessions,
-        "pending_reviews": pending_reviews,
+        # Keys match the DoctorDashboard.jsx card field names
+        "pending_review_count": pending_reviews,
+        "approved_review_count": approved_reviews,
         "total_entities": total_entities,
         "medication_accuracy": accuracy,
         "average_confidence": "97.4%",

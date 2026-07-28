@@ -1,0 +1,1021 @@
+{
+  "total_cases_tested": 100,
+  "total_execution_time_sec": 259.83,
+  "overall_success_rate_percent": 0.0,
+  "healthy_cases": {
+    "count": 50,
+    "avg_latency_sec": 0.612,
+    "false_positive_cases": 0,
+    "specificity_percent": 100.0
+  },
+  "abnormal_cases": {
+    "count": 50,
+    "avg_latency_sec": 4.584,
+    "total_entities_extracted": 0,
+    "avg_entities_per_case": 0.0,
+    "total_relations_extracted": 0,
+    "avg_relations_per_case": 0.0
+  },
+  "results": [
+    {
+      "case_id": "HEALTHY-001",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 17.188,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-002",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.357,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-003",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.348,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-004",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.326,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-005",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.185,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-006",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.175,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-007",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.556,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-008",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.207,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-009",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.339,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-010",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.216,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-011",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.383,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-012",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.34,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-013",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.182,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-014",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.201,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-015",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.318,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-016",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.383,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-017",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.181,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-018",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.19,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-019",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.196,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-020",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.319,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-021",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.172,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-022",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.219,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-023",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.368,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-024",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.184,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-025",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.203,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-026",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.32,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-027",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.398,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-028",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.349,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-029",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.203,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-030",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.198,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-031",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.181,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-032",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.191,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-033",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.339,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-034",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.211,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-035",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.363,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-036",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.398,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-037",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.179,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-038",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.327,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-039",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.19,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-040",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.184,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-041",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.194,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-042",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.202,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-043",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.405,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-044",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.206,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-045",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.356,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-046",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.202,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-047",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.455,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-048",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.414,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-049",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.212,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "HEALTHY-050",
+      "category": "Healthy / Wellness",
+      "is_healthy": true,
+      "latency_sec": 0.194,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 0
+    },
+    {
+      "case_id": "ABNORMAL-001",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 6.65,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-002",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.103,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-003",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.843,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-004",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.744,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-005",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.158,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-006",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.894,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-007",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.182,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-008",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.442,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-009",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.762,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 3
+    },
+    {
+      "case_id": "ABNORMAL-010",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.048,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-011",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.58,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-012",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.9,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-013",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.539,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-014",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.963,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-015",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.216,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-016",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.069,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-017",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 1.897,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 3
+    },
+    {
+      "case_id": "ABNORMAL-018",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.195,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-019",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.131,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-020",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.801,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 3
+    },
+    {
+      "case_id": "ABNORMAL-021",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.212,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-022",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 7.829,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-023",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.323,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-024",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 7.803,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-025",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.013,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 3
+    },
+    {
+      "case_id": "ABNORMAL-026",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 6.09,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-027",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.039,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-028",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 2.624,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-029",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 6.581,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-030",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 5.097,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-031",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.218,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-032",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 5.677,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-033",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 7.159,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-034",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 5.313,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-035",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.716,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-036",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.603,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-037",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.478,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-038",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 11.702,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-039",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 5.302,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-040",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.778,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-041",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 3.369,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-042",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.841,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-043",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 7.887,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-044",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 5.479,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-045",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.502,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-046",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 5.974,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-047",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.413,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-048",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 4.243,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 1
+    },
+    {
+      "case_id": "ABNORMAL-049",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 12.253,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    },
+    {
+      "case_id": "ABNORMAL-050",
+      "category": "Abnormal / Pathological",
+      "is_healthy": false,
+      "latency_sec": 9.586,
+      "status": "UNKNOWN",
+      "entity_count": 0,
+      "relation_count": 0,
+      "summary_count": 2
+    }
+  ]
+}

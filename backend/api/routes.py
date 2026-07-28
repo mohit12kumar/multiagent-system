@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import Optional, Dict, Any
 
 from backend.database.connection import engine, Base, get_db, SessionLocal
@@ -104,8 +104,20 @@ class LoginRequest(BaseModel):
 
 
 class ExtractNoteRequest(BaseModel):
-    content: str
+    content: Optional[str] = None
+    text: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_content_or_text(cls, values):
+        if isinstance(values, dict):
+            c = values.get("content") or values.get("text")
+            if not c:
+                raise ValueError("Either 'content' or 'text' must be provided.")
+            values["content"] = c
+            values["text"] = c
+        return values
 
 
 @app.get("/")

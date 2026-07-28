@@ -275,6 +275,7 @@ class MySQLStore:
                 doc_content = ""
                 patient_summary = []
                 patient_user_id = None
+                patient_username = "Patient"
                 if session:
                     if session.document:
                         doc_content = session.document.content or ""
@@ -284,12 +285,16 @@ class MySQLStore:
                     if ph:
                         patient_summary = ph.summary_json or []
                         patient_user_id = ph.user_id
+                        if ph.user:
+                            patient_username = ph.user.full_name or ph.user.username
                 mention_data = {
                     "type": "patient_submission",
-                    "raw_note": doc_content[:500] + ("..." if len(doc_content) > 500 else ""),
+                    "raw_note": doc_content,
                     "patient_user_id": patient_user_id,
+                    "patient_name": patient_username,
                     "patient_summary": patient_summary
                 }
+
 
             results.append({
                 "id": item.id,

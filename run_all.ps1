@@ -41,12 +41,13 @@ $job1 = Start-Job -Name "FastAPI" -ScriptBlock {
     .\venv\Scripts\uvicorn backend.api.routes:app --reload --host 127.0.0.1 --port 8080 2>&1
 }
 
-# Start React Frontend as a background job
-Write-Host "`n[2/2] Spawning React Frontend (Vite)..." -ForegroundColor Yellow
-$job2 = Start-Job -Name "Vite" -ScriptBlock {
-    Set-Location "$using:PWD\frontend"
-    npx vite --host 127.0.0.1 --port 5173 2>&1
+# Start Streamlit Frontend as a background job
+Write-Host "`n[2/2] Spawning Streamlit Frontend..." -ForegroundColor Yellow
+$job2 = Start-Job -Name "Streamlit" -ScriptBlock {
+    Set-Location $using:PWD
+    .\venv\Scripts\streamlit run frontend/app.py --server.port 5173 --server.address 127.0.0.1 --server.headless true 2>&1
 }
+
 
 Write-Host "`n==========================================================" -ForegroundColor Green
 Write-Host "   Multi-Agent Clinical System startup commands triggered!" -ForegroundColor Green
@@ -146,9 +147,10 @@ try {
         }
 
         if ($frontendFails -ge $maxFails) {
-            Write-Host "`n[ERROR] Vite frontend job has stopped for $($frontendFails * 2)s!" -ForegroundColor Red
+            Write-Host "`n[ERROR] Streamlit frontend job has stopped for $($frontendFails * 2)s!" -ForegroundColor Red
             break
         }
+
 
         # Status line every 15s so terminal doesn't look frozen
         if (($elapsed % 15) -eq 0) {
