@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 from backend.models.pipeline_state import PipelineState
 from backend.models.entity import EntityMentionModel
+from backend.clinical.clinical_context_classifier import ClinicalContextClassifier
 from src.monitoring.logger import logger
 
 
@@ -15,7 +16,7 @@ class ValidationAgent:
         self.review_threshold = self.config.get("review_threshold", 0.75)
 
         # Stop words / invalid entity texts to purge
-        self.blacklisted_terms = {"patient", "doctor", "hospital", "clinic", "treatment", "day", "days", "note", "report", "the", "and"}
+        self.blacklisted_terms = {"patient", "doctor", "hospital", "clinic", "treatment", "day", "days", "note", "report", "the", "and", "illness", "conditions", "findings"}
 
     def process(self, state: PipelineState) -> PipelineState:
         logger.info(f"Executing Validation Agent for session {state.session_id}")
@@ -31,6 +32,15 @@ class ValidationAgent:
 
         for ent in input_entities:
             clean_text = ent.text.strip().lower()
+
+            # Negation & Context Check: Filter out entities that are negated in sentence context
+            ent_start = getattr(ent, "start_char", 0)
+            snippet = ClinicalContextClassifier.get_sentence_for_entity(state.text or "", ent_start) if state.text else clean_text
+            context = ClinicalContextClassifier.classify_context(snippet)
+
+            if context == "NEGATED":
+                logger.info(f"Rejecting entity '{ent.text}': negated in snippet '{snippet}'")
+                continue
 
             # Context-Aware Entity Classification
             sec = get_section_for_char(ent.start_char)
@@ -50,9 +60,10 @@ class ValidationAgent:
             lab_keywords = {
                 "creatinine", "ldl", "hdl", "hemoglobin", "haemoglobin", "egfr", "gfr",
                 "potassium", "sodium", "hba1c", "wbc", "crp", "bun", "glucose", "blood glucose",
-                "random glucose", "fasting glucose", "troponin", "bnp", "ast", "alt", "d-dimer", "lactate"
+                "random glucose", "fasting glucose", "troponin", "bnp", "ast", "alt", "d-dimer", "lactate",
+                "cholesterol", "total cholesterol", "triglycerides", "esr", "albumin"
             }
-            if clean_text in lab_keywords and not any(kw in clean_text for kw in ["dextrose", "infusion", "50%"]):
+            if any(k in clean_text for k in lab_keywords) and not any(kw in clean_text for kw in ["dextrose", "infusion", "50%"]):
                 ent.type = "LAB_VALUE"
 
             # 1. Taxonomy type check

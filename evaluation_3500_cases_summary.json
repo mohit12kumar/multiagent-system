@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-07-29 12:45:40",
+  "total_test_cases": 100,
+  "disease_test_cases": 80,
+  "healthy_test_cases": 20,
+  "overall_accuracy_pct": 0.0,
+  "healthy_control_accuracy_pct": 0.0,
+  "healthy_false_positive_rate_pct": 0.0,
+  "disease_detection_sensitivity_pct": 0.0,
+  "total_duration_seconds": 5.26,
+  "average_latency_ms": 207.05,
+  "throughput_notes_per_sec": 19.0,
+  "error_count": 99
+}

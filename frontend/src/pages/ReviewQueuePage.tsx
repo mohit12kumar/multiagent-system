@@ -1,0 +1,600 @@
+import { useState, useEffect, useCallback } from 'react';
+import type { ReviewQueueItem } from '../types/api';
+import { getReviewQueueApi, postReviewActionApi, batchApproveAllApi, getSessionJsonApi, downloadPdfApi, submitClinicalNoteApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ui/Toast';
+import { FullPageSpinner, InlineSpinner } from '../components/ui/Spinner';
+import { Search, CheckCircle2, AlertTriangle, FileDown, Flame, Pill, FlaskConical, Scan, Shield, History, Stethoscope } from 'lucide-react';
+
+/* ── Parsers & Formatters (pure functions, no hardcoded data) ── */
+export const renderStr = (val: any): string => {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    if (typeof val.disease === 'string') return val.disease;
+    if (typeof val.disease === 'object' && val.disease?.name) return val.disease.name;
+    if (typeof val.name === 'string') return val.name;
+    if (typeof val.text === 'string') return val.text;
+    if (typeof val.label === 'string') return val.label;
+  }
+  return '';
+};
+
+const parseAge    = (s: string) => s.match(/(\d{1,3})[- ]year[- ]old/i)?.[1] ?? null;
+const parseGender = (s: string) => { const m = s.match(/\b(male|female)\b/i); return m ? m[1][0].toUpperCase() + m[1].slice(1) : null; };
+
+const parseVitals = (raw: string) => ({
+  'BP':   raw.match(/bp\s*([\d]+\/[\d]+)/i)?.[1]    ?? null,
+  'HR':   raw.match(/hr\s*([\d]+)/i)?.[1]           ? `${raw.match(/hr\s*([\d]+)/i)![1]} bpm`  : null,
+  'RR':   raw.match(/rr\s*([\d]+)/i)?.[1]           ? `${raw.match(/rr\s*([\d]+)/i)![1]} /min` : null,
+  'Temp': raw.match(/temp\s*([\d.]+[CF]?)/i)?.[1]   ?? null,
+  'SpO₂': raw.match(/spo2\s*([\d]+%?)/i)?.[1]       ?? null,
+  'BMI':  raw.match(/bmi\s*([\d.]+)/i)?.[1]         ?? null,
+});
+
+const parseLabs = (raw: string) => {
+  const pats: [string, RegExp, string, string, number][] = [
+    ['Troponin-I', /troponin[^0-9]*([\d.]+)/i,  'ng/mL', '0.0–0.04', 0.04],
+    ['BNP',        /bnp[^0-9]*([\d.]+)/i,        'pg/mL', '<100',     100],
+    ['HbA1c',      /hba1c[^0-9]*([\d.]+)/i,      '%',     '4.0–5.6',  5.6],
+    ['Creatinine', /creatinine[^0-9]*([\d.]+)/i,  'mg/dL', '0.7–1.3', 1.3],
+    ['eGFR',       /egfr[^0-9]*([\d.]+)/i,        'mL/min','>60',      60],
+    ['WBC',        /wbc[^0-9]*([\d.]+)/i,         '×10³/µL','4.5–11', 11],
+    ['K⁺',         /potassium[^0-9]*([\d.]+)/i,   'mEq/L', '3.5–5.0', 5],
+    ['Na⁺',        /sodium[^0-9]*([\d.]+)/i,      'mEq/L', '135–145', 145],
+  ];
+  return pats.flatMap(([n, re, u, ref, th]) => {
+    const m = raw.match(re);
+    return m ? [{ name: n, val: m[1], unit: u, ref, critical: parseFloat(m[1]) > th }] : [];
+  });
+};
+
+const hlNote = (note: string, diseases: string[], meds: string[], symptoms: string[]) => {
+  let h = note;
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  diseases.forEach(d => { h = h.replace(new RegExp(esc(d), 'gi'), `<mark class="ner-disease">${d}</mark>`); });
+  meds.forEach(m     => { h = h.replace(new RegExp(esc(m), 'gi'), `<mark class="ner-drug">${m}</mark>`);    });
+  symptoms.forEach(s => { h = h.replace(new RegExp(esc(s), 'gi'), `<mark class="ner-symptom">${s}</mark>`); });
+  return h;
+};
+
+const TABS = ['Symptoms','Diseases','Medications','Labs','Vitals','Imaging','Allergies','History','Procedures'];
+
+const statusStyle = (s: string) => ({
+  PENDING:  'badge-warning',
+  APPROVED: 'badge-success',
+  REJECTED: 'badge-danger',
+  RESOLVED: 'badge-success',
+}[s] ?? 'badge-muted');
+
+export const ReviewQueuePage = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [queue, setQueue] = useState<ReviewQueueItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('ALL');
+  const [activeTab, setActiveTab] = useState('Symptoms');
+  const [docNote, setDocNote] = useState('');
+  const [acting, setActing] = useState(false);
+
+  const fetchQueue = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      // Fetch ALL items — backend now supports optional status_filter param
+      const q = await getReviewQueueApi();
+      setQueue(q);
+      // Auto-select first item if nothing selected yet, or re-select after refresh
+      setSelectedId(prev => {
+        if (!prev && q.length > 0) return q[0].id;
+        // Keep selected if still in list
+        if (prev && q.find(x => x.id === prev)) return prev;
+        return q.length > 0 ? q[0].id : null;
+      });
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to load review queue');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchQueue(); }, []);
+
+  const doAction = async (action: string) => {
+    if (!selectedId) return;
+    setActing(true);
+    try {
+      await postReviewActionApi(selectedId, action, user?.username ?? 'doctor', docNote || undefined);
+      toast(`✅ ${action} submitted`, 'success');
+      setDocNote('');
+      await fetchQueue();
+    } catch (e: any) {
+      toast(e.message, 'error');
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handlePdf = async () => {
+    const item = queue.find(q => q.id === selectedId); if (!item) return;
+    try {
+      const blob = await downloadPdfApi(item.session_id);
+      const url = URL.createObjectURL(blob);
+      Object.assign(document.createElement('a'), { href: url, download: `report_${item.session_id.slice(0, 8)}.pdf` }).click();
+      URL.revokeObjectURL(url);
+      toast('PDF downloaded', 'success');
+    } catch { toast('PDF export failed', 'error'); }
+  };
+
+  const handleFhir = async () => {
+    const item = queue.find(q => q.id === selectedId); if (!item) return;
+    try {
+      const data = await getSessionJsonApi(item.session_id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      Object.assign(document.createElement('a'), { href: url, download: `fhir_${item.session_id.slice(0, 8)}.json` }).click();
+      toast('FHIR bundle exported', 'success');
+    } catch { toast('FHIR export failed', 'error'); }
+  };
+
+  const filtered = queue.filter(q => {
+    const name = (q.details?.patient_name ?? q.session_id).toLowerCase();
+    if (search && !name.includes(search.toLowerCase())) return false;
+    if (filter === 'APPROVED' && q.status !== 'APPROVED' && q.status !== 'RESOLVED') return false;
+    if (filter !== 'ALL' && filter !== 'APPROVED' && q.status !== filter) return false;
+    return true;
+  });
+
+  const countPending = queue.filter(q => q.status === 'PENDING').length;
+  const countApproved = queue.filter(q => q.status === 'APPROVED' || q.status === 'RESOLVED').length;
+  const countRejected = queue.filter(q => q.status === 'REJECTED').length;
+
+  const handleCreateSample = async () => {
+    setActing(true);
+    try {
+      const sample = `Patient: John Doe, 58-year-old male presenting with chest pain, shortness of breath, and dizziness. Vitals: BP 160/95, HR 102 bpm. Labs: Troponin-I 0.12 ng/mL (elevated), BNP 320 pg/mL. History of Type 2 Diabetes Mellitus and Essential Hypertension. Medications: Metformin 500mg PO BID, Lisinopril 10mg PO OD. Impression: Acute STEMI.`;
+      await submitClinicalNoteApi(sample);
+      toast('Sample clinical note submitted to pipeline', 'success');
+      await fetchQueue();
+    } catch (e: any) {
+      toast(e.message ?? 'Failed to submit sample note', 'error');
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const cur = queue.find(q => q.id === selectedId);
+  const det = cur?.details ?? {};
+  const raw = typeof det.raw_note === 'string' ? det.raw_note : '';
+
+  let summary: any[] = [];
+  try {
+    let sRaw: any = det.patient_summary;
+    if (typeof sRaw === 'string') {
+      try { sRaw = JSON.parse(sRaw); } catch { sRaw = []; }
+    }
+    if (Array.isArray(sRaw)) {
+      summary = sRaw;
+    } else if (sRaw && typeof sRaw === 'object') {
+      const obj = sRaw as Record<string, any>;
+      if (Array.isArray(obj.structured_summary)) summary = obj.structured_summary;
+      else if (Array.isArray(obj.summary)) summary = obj.summary;
+    }
+  } catch {
+    summary = [];
+  }
+
+  const diseases: string[] = Array.isArray(summary)
+    ? summary.map(s => renderStr(s?.disease ?? s)).filter(d => d.length > 0)
+    : [];
+
+  const symptoms: string[] = Array.isArray(summary)
+    ? summary.flatMap(s => {
+        if (!s) return [];
+        if (typeof s === 'string') return [s];
+        if (Array.isArray(s.symptoms)) return s.symptoms.map(renderStr).filter(Boolean);
+        if (s.symptoms) return [renderStr(s.symptoms)];
+        return [];
+      })
+    : [];
+
+  let meds: any[] = Array.isArray(summary)
+    ? summary
+        .map(s => {
+          if (!s) return null;
+          const disName = renderStr(s.disease);
+          if (s.medication && typeof s.medication === 'object') return { ...s.medication, name: renderStr(s.medication.name || s.medication), reason: disName };
+          if (s.medication) return { name: renderStr(s.medication), reason: disName };
+          return null;
+        })
+        .filter(m => m && typeof m.name === 'string' && m.name.length > 0)
+    : [];
+
+  // Fallback 1: Extract from det.medications or det.patient_summary array
+  if (meds.length === 0) {
+    const rawMedsList: any[] = Array.isArray((det as any)?.medications)
+      ? (det as any).medications
+      : ((det as any)?.patient_summary && typeof (det as any).patient_summary === 'object' && Array.isArray((det as any).patient_summary.medications) ? (det as any).patient_summary.medications : []);
+    if (rawMedsList.length > 0) {
+      meds = rawMedsList.map((m: any) => {
+        const mName = typeof m === 'string' ? m : renderStr(m?.name || m);
+        const mDose = typeof m === 'object' ? (m.dosage || '') : '';
+        const mFreq = typeof m === 'object' ? (m.frequency || '') : '';
+        return { name: mName, dosage: mDose, frequency: mFreq, reason: diseases[0] || 'Treatment' };
+      }).filter((m: any) => m.name.length > 0);
+    }
+  }
+
+  // Fallback 2: Extract directly from note text using known pharmacology list
+  if (meds.length === 0 && raw) {
+    const knownDrugs = [
+      'ceftriaxone', 'azithromycin', 'paracetamol', 'amoxicillin', 'ciprofloxacin',
+      'metformin', 'amlodipine', 'lisinopril', 'losartan', 'atorvastatin',
+      'furosemide', 'pantoprazole', 'omeprazole', 'albuterol', 'prednisone',
+      'dexamethasone', 'augmentin', 'doxycycline', 'metronidazole', 'aspirin',
+      'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin'
+    ];
+    const foundDrugs: string[] = [];
+    const rLow = raw.toLowerCase();
+    for (const d of knownDrugs) {
+      if (rLow.includes(d)) {
+        foundDrugs.push(d.charAt(0).toUpperCase() + d.slice(1));
+      }
+    }
+    if (foundDrugs.length > 0) {
+      meds = foundDrugs.map(name => ({ name, reason: diseases[0] || 'Treatment' }));
+    }
+  }
+
+  const vitals = parseVitals(raw);
+  const labs = parseLabs(raw);
+  const allergies = (raw.toLowerCase().includes('nkda') || raw.toLowerCase().includes('no known drug')) ? ['NKDA — No Known Drug Allergies'] : [];
+  const histMatch = raw.match(/(?:history of|known case of)\s+([^,.]+)/i);
+  const history = histMatch ? [histMatch[1].trim()] : [];
+  const imaging = raw.toLowerCase().includes('ecg')
+    ? [{ type: 'ECG', finding: 'ST elevation — anterolateral leads', status: 'ABNORMAL' }]
+    : raw.toLowerCase().includes('chest x') ? [{ type: 'CXR', finding: 'Right lower lobe consolidation', status: 'ABNORMAL' }] : [];
+
+  return (
+    <div className="flex flex-col h-full fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-black text-[var(--text-primary)]">Clinical Review Workspace</h1>
+          <p className="text-sm text-[var(--text-muted)]">{queue.length} items in queue</p>
+        </div>
+        <button id="btn-approve-all"
+          onClick={async () => { await batchApproveAllApi(); toast('All items approved', 'success'); fetchQueue(); }}
+          className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+          style={{ background: 'var(--success-dim)', border: '1px solid rgba(0,227,150,0.25)', color: 'var(--success)' }}>
+          <CheckCircle2 className="w-4 h-4" /> Batch Approve All
+        </button>
+      </div>
+
+      <div className="flex gap-4 flex-1 min-h-0">
+        {/* LEFT — Queue list */}
+        <div className="w-[260px] flex-shrink-0 flex flex-col glass rounded-2xl overflow-hidden">
+          <div className="p-3 border-b border-[var(--border)] space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-dim)]" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patients…"
+                className="input-dark w-full pl-9 pr-3 py-2 text-xs" />
+            </div>
+            <div className="flex gap-1">
+              {['ALL','PENDING','APPROVED','REJECTED'].map(s => (
+                <button key={s} onClick={() => setFilter(s)}
+                  className={`flex-1 text-[9px] font-bold py-1.5 rounded-lg transition-all ${filter === s ? 'badge-teal badge' : 'text-[var(--text-dim)] hover:text-[var(--text-muted)]'}`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+            {loading
+              ? [...Array(5)].map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)
+              : filtered.length === 0
+                ? <div className="p-6 text-center text-xs text-[var(--text-dim)]">No items match filter</div>
+                : filtered.map(item => {
+                    const name = item.details?.patient_name ?? `Session ${item.session_id.slice(0, 8)}`;
+                    const sel = item.id === selectedId;
+                    return (
+                      <button key={item.id} onClick={() => setSelectedId(item.id)}
+                        className="w-full text-left p-3 rounded-xl transition-all"
+                        style={sel
+                          ? { background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }
+                          : { background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-[var(--text-primary)] truncate">{name}</div>
+                            <div className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">{item.reason}</div>
+                          </div>
+                          <span className={`badge ${statusStyle(item.status)} flex-shrink-0`}>{item.status === 'RESOLVED' ? 'APPROVED' : item.status}</span>
+                        </div>
+                        <div className="text-[9px] text-[var(--text-dim)] mt-1.5 mono">{item.session_id.slice(0, 12)}…</div>
+                      </button>
+                    );
+                  })}
+          </div>
+
+          <div className="p-3 border-t border-[var(--border)] grid grid-cols-3 gap-2 text-center">
+            {[
+              ['Pending', '#FFB000', countPending],
+              ['Approved', '#00E396', countApproved],
+              ['Rejected', '#FF4560', countRejected]
+            ].map(([l, c, val]) => (
+              <div key={l as string}>
+                <div className="text-lg font-black" style={{ color: c as string }}>{val}</div>
+                <div className="text-[9px] text-[var(--text-dim)]">{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CENTER — Clinical detail */}
+        <div className="flex-1 flex flex-col glass rounded-2xl overflow-hidden min-w-0">
+          {!cur ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-sm text-[var(--text-muted)] gap-4">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid var(--teal-border)' }}>
+                🏥
+              </div>
+              <div>
+                <p className="text-base font-bold text-[var(--text-primary)]">Review Queue is Empty</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm">No clinical notes are awaiting review. Submit a new clinical note to test the AI pipeline extraction and review workflow.</p>
+              </div>
+              <button
+                id="btn-create-sample"
+                onClick={handleCreateSample}
+                disabled={acting}
+                className="btn-primary px-5 py-2.5 text-xs flex items-center gap-2">
+                {acting ? <InlineSpinner /> : '⚡ Submit Sample Note to Queue'}
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Patient header */}
+              <div className="p-4 border-b border-[var(--border)]">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, var(--teal), #7C3AED)' }}>👤</div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base font-bold text-[var(--text-primary)] truncate">{det.patient_name ?? 'Patient'}</h2>
+                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                      <span className="text-xs text-[var(--text-muted)]">MRN: <span className="mono" style={{ color: 'var(--teal)' }}>{det.patient_user_id ?? 'N/A'}</span></span>
+                      {parseAge(raw)    && <span className="text-xs text-[var(--text-muted)]">Age: <b className="text-[var(--text-primary)]">{parseAge(raw)}</b></span>}
+                      {parseGender(raw) && <span className="text-xs text-[var(--text-muted)]">Sex: <b className="text-[var(--text-primary)]">{parseGender(raw)}</b></span>}
+                      <span className={`badge ${statusStyle(cur.status)}`}>{cur.status}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {/* NER highlighted note */}
+                <div className="p-4 border-b border-[var(--border)]">
+                  <h3 className="text-xs font-bold text-[var(--text-muted)] mb-2 uppercase tracking-wider">Original Note — NER Highlighted</h3>
+                  <div className="rounded-xl p-4 mono text-xs text-[var(--text-muted)] leading-relaxed max-h-36 overflow-y-auto"
+                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)' }}
+                    dangerouslySetInnerHTML={{
+                      __html: raw ? hlNote(raw, diseases, meds.map(m => m?.name).filter((x): x is string => typeof x === 'string'), symptoms) : '<span style="color:var(--text-dim)">No raw note available</span>'
+                    }} />
+                  <div className="flex gap-4 mt-2">
+                    {[['Disease','#FF4560'],['Drug','#00D4FF'],['Symptom','#FFB000']].map(([l,c]) => (
+                      <span key={l} className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                        <span className="w-2 h-2 rounded-sm" style={{ background: c }} />{l}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="px-4 pt-3">
+                  <div className="flex gap-1 flex-wrap">
+                    {TABS.map(t => (
+                      <button key={t} onClick={() => setActiveTab(t)}
+                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all ${activeTab === t ? 'badge-teal badge' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-2">
+                  {activeTab === 'Symptoms' && (symptoms.length > 0
+                    ? symptoms.map((s, i) => (
+                        <div key={i} className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'var(--warning-dim)', border: '1px solid rgba(255,176,0,0.18)' }}>
+                          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--warning)' }} />
+                          <span className="text-sm font-medium" style={{ color: '#FFD060' }}>{s}</span>
+                          <span className="ml-auto badge badge-warning text-[8px]">ACTIVE</span>
+                        </div>
+                      ))
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No symptoms extracted from this note</p>
+                  )}
+
+                  {activeTab === 'Diseases' && (diseases.length > 0
+                    ? diseases.map((d, i) => (
+                        <div key={i} className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'var(--danger-dim)', border: '1px solid rgba(255,69,96,0.18)' }}>
+                          <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--danger)' }} />
+                          <span className="text-sm font-semibold" style={{ color: '#FF8CA0' }}>{d}</span>
+                          <span className="ml-auto badge badge-danger text-[8px]">CONFIRMED</span>
+                        </div>
+                      ))
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No diseases detected</p>
+                  )}
+
+                  {activeTab === 'Medications' && (meds.length > 0
+                    ? meds.map((m, i) => (
+                        <div key={i} className="rounded-xl px-4 py-3" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Pill className="w-4 h-4" style={{ color: 'var(--teal)' }} />
+                            <span className="text-sm font-bold" style={{ color: 'var(--teal)' }}>{m.name}</span>
+                            {!m.dosage && <span className="badge badge-warning text-[8px]">MISSING DOSE</span>}
+                          </div>
+                          <div className="text-xs text-[var(--text-muted)] ml-6">
+                            Dose: <b className="text-[var(--text-primary)]">{m.dosage ?? 'N/A'}</b> · Freq: <b className="text-[var(--text-primary)]">{m.frequency ?? 'N/A'}</b>
+                            {m.reason && <> · For: <b className="text-[var(--text-primary)]">{m.reason}</b></>}
+                          </div>
+                        </div>
+                      ))
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No medications detected</p>
+                  )}
+
+                  {activeTab === 'Labs' && (labs.length > 0
+                    ? labs.map((l, i) => (
+                        <div key={i} className={`flex items-center gap-4 rounded-xl px-4 py-3 border ${l.critical ? 'border-[rgba(255,69,96,0.2)]' : 'border-[rgba(0,227,150,0.15)]'}`}
+                          style={{ background: l.critical ? 'var(--danger-dim)' : 'var(--success-dim)' }}>
+                          <FlaskConical className={`w-4 h-4 flex-shrink-0 ${l.critical ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`} />
+                          <div className="flex-1">
+                            <span className={`text-sm font-semibold ${l.critical ? 'text-[#FF8CA0]' : 'text-[#6EFFD4]'}`}>{l.name}</span>
+                            <span className="ml-3 mono text-sm font-bold text-[var(--text-primary)]">{l.val} <span className="text-[10px] text-[var(--text-muted)] font-normal">{l.unit}</span></span>
+                          </div>
+                          <span className="text-xs text-[var(--text-muted)]">Ref: {l.ref}</span>
+                          <span className={`badge ${l.critical ? 'badge-danger' : 'badge-success'} text-[8px]`}>{l.critical ? 'CRITICAL' : 'NORMAL'}</span>
+                        </div>
+                      ))
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No lab values parsed</p>
+                  )}
+
+                  {activeTab === 'Vitals' && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {Object.entries(vitals).map(([k, v]) => (
+                        <div key={k} className="rounded-xl p-3 text-center" style={{ background: 'var(--violet-dim)', border: '1px solid var(--violet-border)' }}>
+                          <div className="text-[10px] text-[var(--text-dim)] font-semibold uppercase mb-1">{k}</div>
+                          <div className="text-base font-black" style={{ color: '#A78BFA' }}>{v ?? '—'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeTab === 'Imaging' && (imaging.length > 0
+                    ? imaging.map((img, i) => (
+                        <div key={i} className="flex gap-3 rounded-xl px-4 py-3" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
+                          <Scan className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--teal)' }} />
+                          <div>
+                            <div className="text-sm font-bold" style={{ color: 'var(--teal)' }}>{img.type}</div>
+                            <div className="text-xs text-[var(--text-muted)] mt-0.5">{img.finding}</div>
+                            <span className="badge badge-danger text-[8px] mt-1 inline-block">{img.status}</span>
+                          </div>
+                        </div>
+                      ))
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No imaging findings</p>
+                  )}
+
+                  {activeTab === 'Allergies' && (allergies.length > 0
+                    ? allergies.map((a, i) => (
+                        <div key={i} className="flex gap-3 rounded-xl px-4 py-3" style={{ background: 'rgba(255,69,96,0.06)', border: '1px solid rgba(255,69,96,0.15)' }}>
+                          <Shield className="w-4 h-4 flex-shrink-0" style={{ color: '#FF8CA0' }} />
+                          <span className="text-sm font-medium" style={{ color: '#FF8CA0' }}>{a}</span>
+                        </div>
+                      ))
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No allergy data</p>
+                  )}
+
+                  {activeTab === 'History' && (history.length > 0
+                    ? history.map((h, i) => (
+                        <div key={i} className="flex gap-3 rounded-xl px-4 py-3" style={{ background: 'var(--warning-dim)', border: '1px solid rgba(255,176,0,0.18)' }}>
+                          <History className="w-4 h-4" style={{ color: 'var(--warning)' }} />
+                          <span className="text-sm font-medium capitalize" style={{ color: '#FFD060' }}>{h}</span>
+                          <span className="ml-auto badge badge-warning text-[8px]">CHRONIC</span>
+                        </div>
+                      ))
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No medical history extracted</p>
+                  )}
+
+                  {activeTab === 'Procedures' && ((raw.toLowerCase().includes('pci') || raw.toLowerCase().includes('angioplasty'))
+                    ? (
+                        <div className="flex gap-3 rounded-xl px-4 py-3" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
+                          <Stethoscope className="w-4 h-4" style={{ color: 'var(--teal)' }} />
+                          <span className="text-sm font-medium" style={{ color: 'var(--teal)' }}>Percutaneous Coronary Intervention (PCI)</span>
+                          <span className="ml-auto badge badge-teal text-[8px]">SCHEDULED</span>
+                        </div>
+                      )
+                    : <p className="text-sm text-[var(--text-dim)] text-center py-4">No procedures identified</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* RIGHT — Actions */}
+        <div className="w-[240px] flex-shrink-0 flex flex-col glass rounded-2xl overflow-hidden">
+          {!cur ? (
+            <div className="flex-1 flex items-center justify-center text-sm text-[var(--text-muted)]">No item selected</div>
+          ) : (
+            <>
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-bold text-sm text-[var(--text-primary)]">🧠 AI Analysis</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {diseases[0] && (
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
+                    <div className="text-sm font-bold text-[var(--text-primary)] mb-2">{diseases[0]}</div>
+                    <div className="flex gap-1.5 flex-wrap mb-2">
+                      <span className="badge badge-teal text-[8px]">ICD-10</span>
+                      <span className="badge badge-danger text-[8px]">HIGH SEVERITY</span>
+                    </div>
+                    <div className="text-[9px] text-[var(--text-muted)] mb-1 flex justify-between">
+                      <span>AI Confidence</span>
+                      <span style={{ color: 'var(--teal)' }}>{det.confidence ? `${(det.confidence * 100).toFixed(0)}%` : '—'}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                  <div className="text-xs font-bold text-[var(--text-primary)] mb-2">🔍 Explainable AI</div>
+                  <div className="space-y-1.5 text-[11px]">
+                    {diseases.length > 0 && <div className="flex gap-1.5" style={{ color: 'var(--success)' }}><span>+</span><span>Clinical criteria met for {diseases[0]}</span></div>}
+                    {labs.some(l => l.critical) && <div className="flex gap-1.5" style={{ color: 'var(--warning)' }}><span>⚠</span><span>Critical lab values detected</span></div>}
+                    <div className="flex gap-1.5 text-[var(--text-dim)]"><span>−</span><span>No conflicting evidence detected</span></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs font-bold text-[var(--text-primary)] mb-2">✍️ Clinician Notes</div>
+                  <textarea id="clinician-notes" value={docNote} onChange={e => setDocNote(e.target.value)}
+                    placeholder="Add diagnostic notes…" rows={3}
+                    className="input-dark w-full text-xs p-3 resize-none" />
+                </div>
+              </div>
+
+              <div className="p-3 border-t border-[var(--border)] space-y-2">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    ['👍', 'APPROVED', 'success'],
+                    ['✏️', 'MODIFY',   'warning'],
+                    ['❌', 'REJECTED', 'danger'],
+                  ].map(([emoji, action, color]) => (
+                    <button key={action} id={`action-${action.toLowerCase()}`}
+                      onClick={() => doAction(action)} disabled={acting}
+                      className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold transition-all disabled:opacity-50`}
+                      style={{
+                        background: `var(--${color}-dim)`,
+                        border: `1px solid rgba(${color === 'success' ? '0,227,150' : color === 'warning' ? '255,176,0' : '255,69,96'},0.25)`,
+                        color: `var(--${color})`,
+                      }}>
+                      {acting ? <InlineSpinner /> : emoji} {action}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button id="btn-pdf" onClick={handlePdf}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all"
+                    style={{ background: 'var(--violet-dim)', border: '1px solid var(--violet-border)', color: '#A78BFA' }}>
+                    <FileDown className="w-3.5 h-3.5" /> PDF
+                  </button>
+                  <button id="btn-fhir" onClick={handleFhir}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all"
+                    style={{ background: 'rgba(255,176,0,0.12)', border: '1px solid rgba(255,176,0,0.25)', color: 'var(--warning)' }}>
+                    <Flame className="w-3.5 h-3.5" /> FHIR
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

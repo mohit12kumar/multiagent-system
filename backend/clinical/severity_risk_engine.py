@@ -83,7 +83,7 @@ class SeverityRiskEngine:
                 "max_review_time": "15 minutes",
                 "priority_score": 95
             }
-        elif severity == "Severe" or overall_confidence < 0.75:
+        elif severity == "Severe":
             return {
                 "level": "High",
                 "badge": "High 🚨 1 hour",

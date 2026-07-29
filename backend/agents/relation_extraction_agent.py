@@ -311,9 +311,9 @@ class RelationExtractionAgent:
         for dr in drugs:
             window = full_text[max(0, dr.start_char - 20): min(len(full_text), dr.end_char + 80)]
             form_val   = infer_formulation(dr.text, window)
-            dosage_val = self._find_after(dr, dosages, window, self.default_dosage)
-            freq_val   = expand_frequency(self._find_after(dr, frequencies, window, self.default_frequency))
-            dur_val    = self._find_after(dr, durations, window, None)
+            dosage_val = self._find_after(dr, dosages, full_text, self.default_dosage)
+            freq_val   = expand_frequency(self._find_after(dr, frequencies, full_text, self.default_frequency))
+            dur_val    = self._find_after(dr, durations, full_text, None)
             route_val  = infer_route(dr.text, form_val, window)
 
             # Validate dosage & formulation clinically
@@ -504,14 +504,17 @@ class RelationExtractionAgent:
             dist = c.start_char - drug.end_char
             if 0 <= dist < best_dist:
                 between = full_text[drug.end_char:c.start_char]
-                # If a period, semicolon, or another drug name appears between, do not map
                 if '.' in between or ';' in between:
                     continue
-                # Also skip if candidate is "g" for inhaler drugs
                 if any(inh in drug.text.lower() for inh in ["salbutamol", "salbutmol", "albuterol", "fluticasone", "budesonide", "tiotropium"]):
                     if c.text.strip().lower().endswith("g") and not c.text.strip().lower().endswith("mcg"):
                         continue
                 best, best_dist = c.text, dist
+            elif -40 <= dist < 0:
+                between = full_text[c.end_char:drug.start_char]
+                if '.' not in between and ';' not in between:
+                    if best is None:
+                        best, best_dist = c.text, abs(dist)
         return best if best else default
 
     def _nearest_disease(self, entity, diseases, window):

@@ -48,6 +48,40 @@ async def lifespan(app: FastAPI):
                 role="patient",
                 full_name="John Doe (PAT-88421)"
             )
+        
+        # Seed demo ReviewQueue item if empty
+        from backend.database.models import ReviewQueue
+        if db_seed.query(ReviewQueue).count() == 0:
+            pat = mysql_store.get_user_by_username("patient_john")
+            pat_id = pat.id if pat else None
+            doc1_id = str(uuid.uuid4())
+            sess1_id = str(uuid.uuid4())
+            sample_note_1 = (
+                "Patient: John Doe, 58-year-old male presenting with acute chest pain, shortness of breath, and dizziness. "
+                "BP 160/95, HR 102 bpm, RR 20/min. Labs: Troponin-I 0.12 ng/mL, BNP 320 pg/mL. "
+                "ECG: ST elevation in anterolateral leads. "
+                "History of Type 2 Diabetes Mellitus and Essential Hypertension. "
+                "Medications: Metformin 500mg PO BID, Lisinopril 10mg PO OD. "
+                "Impression: Acute STEMI in patient with poorly controlled T2DM and HTN."
+            )
+            mysql_store.create_document(doc1_id, sample_note_1, {"patient_id": "PAT-88421"}, user_id=pat_id)
+            mysql_store.create_session(sess1_id, doc1_id)
+            mysql_store.update_session(sess1_id, "COMPLETED", "FINISHED")
+            mysql_store.save_patient_history(user_id=pat_id, session_id=sess1_id, summary_json=[
+                {
+                    "disease": "Acute STEMI",
+                    "symptoms": ["chest pain", "shortness of breath", "dizziness"],
+                    "medication": {"name": "Metformin", "dosage": "500mg", "frequency": "PO BID", "duration": "Ongoing"}
+                },
+                {
+                    "disease": "Type 2 Diabetes Mellitus",
+                    "symptoms": ["elevated HbA1c"],
+                    "medication": {"name": "Lisinopril", "dosage": "10mg", "frequency": "PO OD", "duration": "Ongoing"}
+                }
+            ])
+            mysql_store.save_session_review_entry(session_id=sess1_id, user_id=pat_id)
+            print("[Startup] Seeded demo ReviewQueue session for patient_john.")
+
         db_seed.close()
     except Exception as e:
         print(f"Table creation/seeding warning: {e}")
@@ -77,10 +111,19 @@ allowed_origins = [origin.strip() for origin in cors_origins_raw.split(",") if o
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        *allowed_origins,
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include subrouters with and without /api/v1 prefix for complete frontend compatibility
@@ -130,6 +173,21 @@ def read_root():
 
 
 @app.post("/api/auth/register")
+
+
+@app.get('/api/health')
+def api_health_check():
+    import time as _t, platform as _p, sys as _s
+    return {
+        'status': 'healthy',
+        'service': 'Clinical Multi-Agent NLP System',
+        'version': '2.0.0',
+        'timestamp': _t.strftime('%Y-%m-%dT%H:%M:%SZ', _t.gmtime()),
+        'python_version': _s.version.split()[0],
+        'platform': _p.system(),
+    }
+
+
 def register_user(req: RegisterRequest, db: Session = Depends(get_db)):
     mysql_store = MySQLStore(db)
 
@@ -200,7 +258,8 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         user.hashed_password = hash_password(form_data.password)
         db.commit()
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token,
+     "token_type": "bearer"}
 
 
 @app.get("/api/auth/me")
@@ -224,10 +283,14 @@ def extract_clinical_note(req: ExtractNoteRequest, db: Session = Depends(get_db)
     coordinator = _shared_coordinator
     if coordinator is None:
         raise HTTPException(status_code=503, detail="Service initialising, please retry in a moment.")
-    # Attach the live db session to the shared coordinator for this request
     coordinator.set_db(db)
-    result = coordinator.run_pipeline(document_content=req.content, doc_metadata=req.metadata)
-    return result
+    try:
+        result = coordinator.run_pipeline(document_content=req.content, doc_metadata=req.metadata)
+        return result
+    except Exception as e:
+        import traceback
+        logger.error(f"Error in extract_clinical_note: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 from backend.api.auth import get_current_user, get_optional_current_user

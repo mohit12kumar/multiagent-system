@@ -38,22 +38,22 @@ $job1 = Start-Job -Name "FastAPI" -ScriptBlock {
     Set-Location $using:PWD
     $env:PYTHONPATH='.'
     $env:PYTHONUNBUFFERED='1'
-    .\venv\Scripts\uvicorn backend.api.routes:app --reload --host 127.0.0.1 --port 8080 2>&1
+    .\venv\Scripts\uvicorn backend.api.routes:app --reload --host 127.0.0.1 --port 8080 --reload-dir backend 2>&1
 }
 
-# Start Streamlit Frontend as a background job
-Write-Host "`n[2/2] Spawning Streamlit Frontend..." -ForegroundColor Yellow
-$job2 = Start-Job -Name "Streamlit" -ScriptBlock {
-    Set-Location $using:PWD
-    .\venv\Scripts\streamlit run frontend/app.py --server.port 5173 --server.address 127.0.0.1 --server.headless true 2>&1
+# Start React Frontend (Vite dev server) as a background job
+Write-Host "`n[2/2] Spawning React Enterprise Frontend (Vite on port 5173)..." -ForegroundColor Yellow
+$job2 = Start-Job -Name "React" -ScriptBlock {
+    Set-Location (Join-Path $using:PWD "frontend")
+    npm run dev 2>&1
 }
 
 
 Write-Host "`n==========================================================" -ForegroundColor Green
-Write-Host "   Multi-Agent Clinical System startup commands triggered!" -ForegroundColor Green
+Write-Host "   Enterprise Clinical Intelligence Platform — Starting!" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host "Access Endpoints:" -ForegroundColor Cyan
-Write-Host " - Frontend Application : http://localhost:5173"
+Write-Host " - React Frontend `(New`) : http://localhost:5173"
 Write-Host " - FastAPI Swagger UI   : http://localhost:8080/docs"
 Write-Host " - Log files saved to   : $logDir"
 Write-Host "`nPress Ctrl+C to stop the servers. Streaming logs live below..." -ForegroundColor Yellow
@@ -147,7 +147,7 @@ try {
         }
 
         if ($frontendFails -ge $maxFails) {
-            Write-Host "`n[ERROR] Streamlit frontend job has stopped for $($frontendFails * 2)s!" -ForegroundColor Red
+            Write-Host "`n[ERROR] React frontend (Vite) job has stopped for $($frontendFails * 2)s!" -ForegroundColor Red
             break
         }
 

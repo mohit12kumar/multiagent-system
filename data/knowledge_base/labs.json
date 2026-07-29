@@ -1,0 +1,117 @@
+{
+  "laboratories": [
+    {
+      "id": "LAB-001",
+      "test_name": "Hemoglobin A1c",
+      "loinc_code": "4548-4",
+      "canonical_name": "HbA1c",
+      "unit": "%",
+      "reference_range": {
+        "normal_min": 4.0,
+        "normal_max": 5.6,
+        "prediabetes_min": 5.7,
+        "prediabetes_max": 6.4,
+        "diabetes_threshold": 6.5
+      },
+      "critical_values": {
+        "critical_high": 12.0
+      },
+      "interpretations": {
+        "normal": "Normal Glycemic Control (< 5.7%)",
+        "prediabetes": "Increased risk of diabetes / Prediabetes (5.7% - 6.4%)",
+        "high": "Diagnostic of Diabetes Mellitus / Uncontrolled Glycemia (>= 6.5%)"
+      },
+      "associated_diseases": ["Diabetes Mellitus Type 2", "Diabetes Mellitus Type 1", "Gestational Diabetes"],
+      "monitoring_recommendations": "Check every 3 months if therapy modified or uncontrolled; every 6 months if meeting glycemic goals."
+    },
+    {
+      "id": "LAB-002",
+      "test_name": "Serum Creatinine",
+      "loinc_code": "2160-0",
+      "canonical_name": "Creatinine",
+      "unit": "mg/dL",
+      "reference_range": {
+        "male_min": 0.74,
+        "male_max": 1.35,
+        "female_min": 0.59,
+        "female_max": 1.04,
+        "normal_max": 1.2
+      },
+      "critical_values": {
+        "critical_high": 3.0
+      },
+      "interpretations": {
+        "low": "Low Muscle Mass / Severe Malnutrition",
+        "normal": "Normal Renal Excretory Function",
+        "high": "Renal Impairment / Acute Kidney Injury / Chronic Kidney Disease"
+      },
+      "associated_diseases": ["Chronic Kidney Disease Stage 4", "Acute Kidney Injury", "Diabetic Nephropathy", "Prerenal Azotemia"],
+      "monitoring_recommendations": "Evaluate with eGFR and serum electrolytes. Repeat within 48h if > 0.3 mg/dL acute rise."
+    },
+    {
+      "id": "LAB-003",
+      "test_name": "Serum Potassium",
+      "loinc_code": "2823-3",
+      "canonical_name": "Potassium",
+      "unit": "mmol/L",
+      "reference_range": {
+        "normal_min": 3.5,
+        "normal_max": 5.0
+      },
+      "critical_values": {
+        "critical_low": 2.8,
+        "critical_high": 6.0
+      },
+      "interpretations": {
+        "low": "Hypokalemia (Arrhythmia & muscle weakness risk)",
+        "normal": "Normal Serum Potassium Level",
+        "high": "Hyperkalemia (Severe cardiac conduction delay / Ventricular Arrhythmia risk)"
+      },
+      "associated_diseases": ["Chronic Kidney Disease Stage 4", "Hyperkalemia", "Acute Kidney Injury", "Adrenal Insufficiency"],
+      "monitoring_recommendations": "Obtain stat ECG if > 6.0 mmol/L or < 3.0 mmol/L. Recheck sample for hemolyzed falsely elevated result."
+    },
+    {
+      "id": "LAB-004",
+      "test_name": "C-Reactive Protein",
+      "loinc_code": "1988-5",
+      "canonical_name": "CRP",
+      "unit": "mg/L",
+      "reference_range": {
+        "normal_min": 0.0,
+        "normal_max": 3.0
+      },
+      "critical_values": {
+        "critical_high": 100.0
+      },
+      "interpretations": {
+        "normal": "Normal Inflammatory Marker Level (< 3.0 mg/L)",
+        "mildly_elevated": "Low-grade inflammation / Cardiovascular Risk (3.0 - 10.0 mg/L)",
+        "high": "Significant Systemic Inflammatory Response / Active Infection (> 10.0 mg/L)"
+      },
+      "associated_diseases": ["Community Acquired Pneumonia", "Sepsis", "Rheumatoid Arthritis", "Active Bacterial Infection"],
+      "monitoring_recommendations": "Repeat in 48-72h to track treatment response to antimicrobial/anti-inflammatory therapy."
+    },
+    {
+      "id": "LAB-005",
+      "test_name": "White Blood Cell Count",
+      "loinc_code": "6690-2",
+      "canonical_name": "WBC",
+      "unit": "x10^3/uL",
+      "reference_range": {
+        "normal_min": 4.5,
+        "normal_max": 11.0
+      },
+      "critical_values": {
+        "critical_low": 2.0,
+        "critical_high": 20.0
+      },
+      "interpretations": {
+        "low": "Leukopenia (Immunosuppression / Bone marrow suppression)",
+        "normal": "Normal Leukocyte Count",
+        "high": "Leukocytosis (Acute bacterial infection / Systemic Inflammatory Response)"
+      },
+      "associated_diseases": ["Community Acquired Pneumonia", "Severe Sepsis", "Complicated UTI", "Acute Appendicitis"],
+      "monitoring_recommendations": "Check CBC differential (Neutrophils, Lymphocytes, Bands) to differentiate bacterial vs viral infection."
+    }
+  ]
+}

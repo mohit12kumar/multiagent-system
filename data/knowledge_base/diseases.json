@@ -1,0 +1,233 @@
+{
+  "diseases": [
+    {
+      "id": "DIS-001",
+      "disease_name": "Diabetes Mellitus Type 2",
+      "icd10": "E11.9",
+      "icd11": "5A11",
+      "ontology_id": "DOID:9352",
+      "hpo_id": "HP:0000855",
+      "mesh_id": "D003924",
+      "symptoms": ["Polyuria", "Polydipsia", "Polyphagia", "Fatigue", "Blurred Vision", "Unexplained Weight Loss"],
+      "clinical_signs": ["Acanthosis Nigricans", "Decreased Vibratory Sensation", "Peripheral Neuropathy"],
+      "risk_factors": ["Obesity", "Sedentary Lifestyle", "Family History of Diabetes", "Hypertension", "Age > 45"],
+      "laboratory_findings": [
+        {"lab": "HbA1c", "criterion": "> 6.5%"},
+        {"lab": "Fasting Blood Sugar", "criterion": "> 126 mg/dL"},
+        {"lab": "Random Blood Glucose", "criterion": "> 200 mg/dL"}
+      ],
+      "imaging_findings": ["Fatty Liver (Ultrasound)", "Vascular Calcification (X-ray)"],
+      "ecg_findings": ["Sinus Tachycardia", "Prolonged QTc in severe autonomic neuropathy"],
+      "differential_diagnosis": ["Diabetes Mellitus Type 1", "Cushing's Syndrome", "Drug-Induced Hyperglycemia", "Diabetes Insipidus"],
+      "complications": ["Diabetic Nephropathy", "Diabetic Retinopathy", "Diabetic Neuropathy", "Cardiovascular Disease", "Diabetic Foot Ulcer"],
+      "first_line_medications": ["Metformin", "Empagliflozin", "Dapagliflozin"],
+      "alternative_medications": ["Sitagliptin", "Glimepiride", "Semaglutide", "Dulaglutide"],
+      "contraindications": ["Metformin in eGFR < 30 mL/min", "SGLT2 inhibitors in recurrent severe UTIs"],
+      "drug_interactions": [
+        {"medication": "Furosemide", "effect": "Hyperglycemia risk"},
+        {"medication": "Prednisone", "effect": "Severe glycemic spike"}
+      ],
+      "monitoring": ["HbA1c every 3 months", "Annual urine albumin-to-creatinine ratio", "Annual dilated eye exam", "Daily foot inspection"],
+      "clinical_recommendations": [
+        "First-line pharmacotherapy with Metformin unless eGFR < 30 mL/min.",
+        "Add SGLT2 inhibitor (Empagliflozin/Dapagliflozin) if established ASCVD, CKD, or Heart Failure.",
+        "Target HbA1c < 7.0% for most non-pregnant adults."
+      ],
+      "guideline_references": [
+        {"organization": "ADA", "title": "Standards of Care in Diabetes 2024", "url": "https://diabetesjournals.org/care"},
+        {"organization": "KDIGO", "title": "KDIGO Clinical Practice Guideline for Diabetes Management in CKD", "url": "https://kdigo.org"}
+      ],
+      "fhir_mapping": {
+        "resourceType": "Condition",
+        "code": {
+          "coding": [
+            {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "E11.9", "display": "Type 2 diabetes mellitus without complications"},
+            {"system": "http://snomed.info/sct", "code": "44054006", "display": "Type 2 diabetes mellitus"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "DIS-002",
+      "disease_name": "Essential Hypertension",
+      "icd10": "I10",
+      "icd11": "BA00",
+      "ontology_id": "DOID:10763",
+      "hpo_id": "HP:0000822",
+      "mesh_id": "D006973",
+      "symptoms": ["Asymptomatic", "Occipital Morning Headache", "Dizziness", "Epistaxis"],
+      "clinical_signs": ["Elevated Blood Pressure > 130/80 mmHg", "Arteriolar Narrowing on Fundoscopy", "S4 Gallop"],
+      "risk_factors": ["High Sodium Diet", "Physical Inactivity", "Obesity", "Excessive Alcohol", "Age > 55"],
+      "laboratory_findings": [
+        {"lab": "Serum Creatinine", "criterion": "Monitor for target organ damage"},
+        {"lab": "Serum Potassium", "criterion": "Baseline before ACEi/ARB"}
+      ],
+      "imaging_findings": ["Left Ventricular Hypertrophy (Echocardiogram)", "Renal Artery Stenosis Rule-Out (Duplex US)"],
+      "ecg_findings": ["Left Ventricular Hypertrophy (Sokolow-Lyon index > 35 mm)", "Left Axis Deviation"],
+      "differential_diagnosis": ["Secondary Hypertension", "Renovascular Hypertension", "Pheochromocytoma", "Primary Aldosteronism"],
+      "complications": ["Ischemic Stroke", "Myocardial Infarction", "Heart Failure", "Chronic Kidney Disease", "Hypertensive Retinopathy"],
+      "first_line_medications": ["Amlodipine", "Telmisartan", "Lisinopril", "Chlorthalidone"],
+      "alternative_medications": ["Losartan", "Hydrochlorothiazide", "Metoprolol Succinate", "Doxazosin"],
+      "contraindications": ["ACEi/ARBs in pregnancy", "Non-selective beta-blockers in severe asthma"],
+      "drug_interactions": [
+        {"medication": "NSAIDs (Ibuprofen)", "effect": "Attenuates antihypertensive efficacy"},
+        {"medication": "Spironolactone", "effect": "Hyperkalemia risk with ACEi"}
+      ],
+      "monitoring": ["Home Blood Pressure Monitoring (HBPM)", "Serum Electrolytes & Creatinine annually", "Urine Albumin/Creatinine Ratio"],
+      "clinical_recommendations": [
+        "Initiate dual antihypertensive therapy if BP > 20/10 mmHg above target.",
+        "First-line agents: Thiazide diuretic, CCB, ACEi, or ARB.",
+        "Sodium restriction to < 2,300 mg/day (DASH Diet)."
+      ],
+      "guideline_references": [
+        {"organization": "ACC/AHA", "title": "2017 ACC/AHA High Blood Pressure Clinical Practice Guideline", "url": "https://www.acc.org"},
+        {"organization": "NICE", "title": "Hypertension in adults: diagnosis and management [NG136]", "url": "https://www.nice.org.uk/guidance/ng136"}
+      ],
+      "fhir_mapping": {
+        "resourceType": "Condition",
+        "code": {
+          "coding": [
+            {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "I10", "display": "Essential (primary) hypertension"},
+            {"system": "http://snomed.info/sct", "code": "59621000", "display": "Essential hypertension"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "DIS-003",
+      "disease_name": "Community Acquired Pneumonia",
+      "icd10": "J18.9",
+      "icd11": "CA40",
+      "ontology_id": "DOID:552",
+      "hpo_id": "HP:0002090",
+      "mesh_id": "D011014",
+      "symptoms": ["Productive Cough", "Fever", "Chills", "Pleuritic Chest Pain", "Dyspnea"],
+      "clinical_signs": ["Tachypnea > 20/min", "Bronchial Breath Sounds", "Inspiratory Crackles", "Tactile Fremitus Increased"],
+      "laboratory_findings": [
+        {"lab": "WBC", "criterion": "> 11.0 x10^3/uL (Leukocytosis with bandemia)"},
+        {"lab": "CRP", "criterion": "> 50 mg/L"},
+        {"lab": "Procalcitonin", "criterion": "> 0.25 mcg/L (bacterial etiology)"}
+      ],
+      "imaging_findings": ["Chest X-Ray: Focal lobar consolidation or infiltrate", "CT Chest: Air bronchograms"],
+      "ecg_findings": ["Sinus Tachycardia", "Rule out cardiac ischemia in acute chest pain"],
+      "differential_diagnosis": ["Acute Bronchitis", "Pulmonary Embolism", "Congestive Heart Failure", "Lung Malignancy", "Aspiration Pneumonitis"],
+      "complications": ["Parapneumonic Effusion", "Empyema", "Sepsis", "Acute Respiratory Distress Syndrome (ARDS)", "Lung Abscess"],
+      "first_line_medications": ["Amoxicillin/Clavulanate", "Azithromycin", "Ceftriaxone"],
+      "alternative_medications": ["Levofloxacin", "Moxifloxacin", "Doxycycline"],
+      "contraindications": ["Fluoroquinolones in prolonged QTc", "Macrolides in known hypersensitivity"],
+      "drug_interactions": [
+        {"medication": "Warfarin", "effect": "Azithromycin increases INR"},
+        {"medication": "Antacids", "effect": "Chelation reduces fluoroquinolone absorption"}
+      ],
+      "monitoring": ["Pulse Oximetry (SpO2)", "Temperature curve", "Repeat Chest X-Ray in 6 weeks for resolution"],
+      "clinical_recommendations": [
+        "Calculate CURB-65 score to determine outpatient vs inpatient setting.",
+        "Initiate empiric antimicrobial therapy within 4 hours of presentation.",
+        "Empiric coverage should cover Streptococcus pneumoniae and atypicals."
+      ],
+      "guideline_references": [
+        {"organization": "ATS/IDSA", "title": "Diagnosis and Treatment of Community-Acquired Pneumonia 2019", "url": "https://www.atsjournals.org"}
+      ],
+      "fhir_mapping": {
+        "resourceType": "Condition",
+        "code": {
+          "coding": [
+            {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "J18.9", "display": "Pneumonia, unspecified organism"},
+            {"system": "http://snomed.info/sct", "code": "385093006", "display": "Community acquired pneumonia"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "DIS-004",
+      "disease_name": "Chronic Kidney Disease Stage 4",
+      "icd10": "N18.4",
+      "icd11": "GB61.4",
+      "ontology_id": "DOID:784",
+      "hpo_id": "HP:0000083",
+      "mesh_id": "D051436",
+      "symptoms": ["Fatigue", "Anorexia", "Nausea", "Pruritus", "Peripheral Edema", "Nocturia"],
+      "clinical_signs": ["Hypertension", "Pallor", "Asterixis in Uremia", "Periorbital Edema"],
+      "laboratory_findings": [
+        {"lab": "eGFR", "criterion": "15 - 29 mL/min/1.73m²"},
+        {"lab": "Serum Creatinine", "criterion": "Elevated (> 2.5 mg/dL)"},
+        {"lab": "Serum Potassium", "criterion": "Hyperkalemia risk (> 5.0 mmol/L)"},
+        {"lab": "Hemoglobin", "criterion": "< 10 g/dL (Renal Anemia)"}
+      ],
+      "imaging_findings": ["Renal Ultrasound: Small, echogenic kidneys with cortical thinning"],
+      "ecg_findings": ["Peaked T waves (Hyperkalemia)", "PR prolongation", "QTc prolongation"],
+      "differential_diagnosis": ["Acute Kidney Injury", "Prerenal Azotemia", "Rapidly Progressive Glomerulonephritis", "Renal Amyloidosis"],
+      "complications": ["End-Stage Renal Disease (ESRD)", "Severe Hyperkalemia", "Uremic Pericarditis", "Renal Osteodystrophy", "Metabolic Acidosis"],
+      "first_line_medications": ["Lisinopril", "Empagliflozin", "Furosemide", "Sevelamer"],
+      "alternative_medications": ["Losartan", "Torsemide", "Sodium Bicarbonate", "Erythropoietin"],
+      "contraindications": ["Metformin in eGFR < 30 mL/min", "NSAIDs completely contraindicated"],
+      "drug_interactions": [
+        {"medication": "Spironolactone", "effect": "Severe life-threatening hyperkalemia"},
+        {"medication": "ACEi + ARB dual therapy", "effect": "Accelerated renal decline"}
+      ],
+      "monitoring": ["Serum Electrolytes, Creatinine, eGFR every 1-3 months", "Serum Calcium, Phosphate, PTH", "Hemoglobin & Ferritin"],
+      "clinical_recommendations": [
+        "Nephrology referral for vascular access planning.",
+        "Protein restriction to 0.8 g/kg/day.",
+        "Avoid nephrotoxic agents (NSAIDs, IV Contrast, Aminoglycosides)."
+      ],
+      "guideline_references": [
+        {"organization": "KDIGO", "title": "KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease", "url": "https://kdigo.org"}
+      ],
+      "fhir_mapping": {
+        "resourceType": "Condition",
+        "code": {
+          "coding": [
+            {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "N18.4", "display": "Chronic kidney disease, stage 4 (severe)"},
+            {"system": "http://snomed.info/sct", "code": "433146000", "display": "Chronic kidney disease stage 4"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "DIS-005",
+      "disease_name": "Bronchial Asthma",
+      "icd10": "J45.909",
+      "icd11": "CA23",
+      "ontology_id": "DOID:2841",
+      "hpo_id": "HP:0002099",
+      "mesh_id": "D001249",
+      "symptoms": ["Wheezing", "Shortness of Breath", "Chest Tightness", "Cough (worse at night/early morning)"],
+      "clinical_signs": ["Expiratory Wheezing", "Use of Accessory Muscles", "Tachypnea", "Prolonged Expiratory Phase"],
+      "laboratory_findings": [
+        {"lab": "Spirometry", "criterion": "FEV1/FVC < 0.70 with > 12% and 200mL bronchodilator reversibility"},
+        {"lab": "Blood Eosinophils", "criterion": "> 300 cells/mcL (Type 2 Asthma)"},
+        {"lab": "FeNO", "criterion": "> 25 ppb"}
+      ],
+      "imaging_findings": ["Chest X-Ray: Hyperinflation, flattened diaphragms in severe attack"],
+      "ecg_findings": ["Normal or Sinus Tachycardia during exacerbation"],
+      "differential_diagnosis": ["COPD", "Congestive Heart Failure (Cardiac Asthma)", "Vocal Cord Dysfunction", "Foreign Body Aspiration", "GERD"],
+      "complications": ["Status Asthmaticus", "Pneumothorax", "Respiratory Failure", "Rib Fractures"],
+      "first_line_medications": ["Budesonide/Formoterol", "Albuterol", "Fluticasone Propionate"],
+      "alternative_medications": ["Montelukast", "Tiotropium", "Benralizumab", "Dupilumab"],
+      "contraindications": ["Non-selective Beta-Blockers (Propranolol)", "Aspirin in NSAID-exacerbated respiratory disease"],
+      "drug_interactions": [
+        {"medication": "Propranolol", "effect": "Severe bronchospasm"},
+        {"medication": "Ketoconazole", "effect": "Increases systemic corticosteroid levels"}
+      ],
+      "monitoring": ["Peak Expiratory Flow Rate (PEFR)", "Asthma Control Test (ACT) score", "Inhaler technique verification"],
+      "clinical_recommendations": [
+        "As per GINA 2023, low-dose ICS-formoterol is the preferred reliever across all steps.",
+        "SABA-only treatment is NO LONGER recommended.",
+        "Provide a written Asthma Action Plan."
+      ],
+      "guideline_references": [
+        {"organization": "GINA", "title": "Global Strategy for Asthma Management and Prevention 2023", "url": "https://ginasthma.org"}
+      ],
+      "fhir_mapping": {
+        "resourceType": "Condition",
+        "code": {
+          "coding": [
+            {"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "J45.909", "display": "Unspecified asthma, uncomplicated"},
+            {"system": "http://snomed.info/sct", "code": "195967001", "display": "Asthma"}
+          ]
+        }
+      }
+    }
+  ]
+}

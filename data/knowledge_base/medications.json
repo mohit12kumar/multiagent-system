@@ -1,0 +1,150 @@
+{
+  "medications": [
+    {
+      "id": "MED-001",
+      "generic_name": "Metformin",
+      "brand_names": ["Glucophage", "Fortamet"],
+      "rxnorm_code": "6809",
+      "drug_class": "Biguanide / Antidiabetic Agent",
+      "indications": ["Diabetes Mellitus Type 2", "Polycystic Ovary Syndrome"],
+      "contraindications": ["eGFR < 30 mL/min/1.73m²", "Severe Metabolic Acidosis", "Acute Heart Failure", "Severe Hepatic Impairment"],
+      "drug_interactions": [
+        {"drug": "Contrast Medium (IV)", "severity": "High", "effect": "Risk of Lactic Acidosis. Hold 48h post-procedure."},
+        {"drug": "Furosemide", "severity": "Moderate", "effect": "Increases Metformin plasma concentration."},
+        {"drug": "Prednisone", "severity": "Moderate", "effect": "Reduces glycemic control."}
+      ],
+      "renal_dose_adjustment": [
+        {"egfr_range": "> 60 mL/min", "recommendation": "1000 mg twice daily (No adjustment)"},
+        {"egfr_range": "45 - 59 mL/min", "recommendation": "Max 2000 mg/day (Monitor renal function every 3-6 months)"},
+        {"egfr_range": "30 - 44 mL/min", "recommendation": "Max 1000 mg/day (Do not initiate new therapy)"},
+        {"egfr_range": "< 30 mL/min", "recommendation": "CONTRAINDICATED"}
+      ],
+      "hepatic_dose_adjustment": "Avoid use in severe liver impairment or alcoholism due to lactic acidosis risk.",
+      "monitoring": ["eGFR & Creatinine baseline and annually", "Vitamin B12 level every 2-3 years", "Fasting Blood Glucose / HbA1c"],
+      "alternatives": ["Empagliflozin", "Sitagliptin", "Semaglutide"],
+      "fhir_mapping": {
+        "resourceType": "Medication",
+        "code": {
+          "coding": [
+            {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "6809", "display": "Metformin"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "MED-002",
+      "generic_name": "Amlodipine",
+      "brand_names": ["Norvasc"],
+      "rxnorm_code": "17767",
+      "drug_class": "Dihydropyridine Calcium Channel Blocker",
+      "indications": ["Essential Hypertension", "Coronary Artery Disease", "Vasospastic Angina"],
+      "contraindications": ["Severe Hypotension (SBP < 90 mmHg)", "Severe Aortic Stenosis"],
+      "drug_interactions": [
+        {"drug": "Simvastatin", "severity": "High", "effect": "Limit Simvastatin dose to max 20 mg/day due to myopathy risk."},
+        {"drug": "Ketoconazole", "severity": "Moderate", "effect": "CYP3A4 inhibition increases Amlodipine exposure."}
+      ],
+      "renal_dose_adjustment": [
+        {"egfr_range": "All ranges", "recommendation": "No renal dose adjustment required."}
+      ],
+      "hepatic_dose_adjustment": "Initiate at 2.5 mg once daily in severe hepatic impairment due to prolonged half-life.",
+      "monitoring": ["Blood pressure & heart rate", "Peripheral edema monitoring", "Liver function test baseline"],
+      "alternatives": ["Telmisartan", "Lisinopril", "Nifedipine ER"],
+      "fhir_mapping": {
+        "resourceType": "Medication",
+        "code": {
+          "coding": [
+            {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "17767", "display": "Amlodipine"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "MED-003",
+      "generic_name": "Lisinopril",
+      "brand_names": ["Zestril", "Prinivil"],
+      "rxnorm_code": "29046",
+      "drug_class": "Angiotensin-Converting Enzyme (ACE) Inhibitor",
+      "indications": ["Essential Hypertension", "Congestive Heart Failure", "Post-Myocardial Infarction", "Diabetic Nephropathy"],
+      "contraindications": ["Pregnancy (Fetal toxicity)", "History of ACEi-induced Angioedema", "Bilateral Renal Artery Stenosis", "Concurrent Aliskiren in Diabetes"],
+      "drug_interactions": [
+        {"drug": "Spironolactone", "severity": "High", "effect": "Severe hyperkalemia risk."},
+        {"drug": "Ibuprofen / NSAIDs", "severity": "Moderate", "effect": "Reduces antihypertensive effect and increases acute renal impairment risk."},
+        {"drug": "Lithium", "severity": "High", "effect": "Increases serum Lithium concentration to toxic levels."}
+      ],
+      "renal_dose_adjustment": [
+        {"egfr_range": "> 50 mL/min", "recommendation": "Initial 10 mg once daily"},
+        {"egfr_range": "10 - 50 mL/min", "recommendation": "Initial 2.5 - 5 mg once daily"},
+        {"egfr_range": "< 10 mL/min", "recommendation": "Initial 2.5 mg once daily (Titrate carefully)"}
+      ],
+      "hepatic_dose_adjustment": "No dose adjustment required.",
+      "monitoring": ["Serum Creatinine & Potassium 1-2 weeks post initiation", "Blood Pressure", "Dry cough assessment"],
+      "alternatives": ["Telmisartan", "Losartan", "Valsartan"],
+      "fhir_mapping": {
+        "resourceType": "Medication",
+        "code": {
+          "coding": [
+            {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "29046", "display": "Lisinopril"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "MED-004",
+      "generic_name": "Empagliflozin",
+      "brand_names": ["Jardiance"],
+      "rxnorm_code": "1545653",
+      "drug_class": "Sodium-Glucose Cotransporter 2 (SGLT2) Inhibitor",
+      "indications": ["Diabetes Mellitus Type 2", "Heart Failure (HFrEF & HFpEF)", "Chronic Kidney Disease"],
+      "contraindications": ["Dialysis / End-Stage Renal Disease", "History of serious hypersensitivity / Ketoacidosis"],
+      "drug_interactions": [
+        {"drug": "Insulin", "severity": "Moderate", "effect": "Hypoglycemia risk. Consider reducing Insulin dose."},
+        {"drug": "Furosemide", "severity": "Moderate", "effect": "Increased risk of intravascular volume depletion."}
+      ],
+      "renal_dose_adjustment": [
+        {"egfr_range": ">= 30 mL/min", "recommendation": "10 mg once daily (Can increase to 25 mg for glycemic control if eGFR >= 45)"},
+        {"egfr_range": "20 - 29 mL/min", "recommendation": "10 mg once daily (Indicated for CKD/HF progression reduction)"},
+        {"egfr_range": "< 20 mL/min", "recommendation": "Not recommended to initiate. If already taking 10 mg, may continue."}
+      ],
+      "hepatic_dose_adjustment": "No dosage adjustment necessary in hepatic impairment.",
+      "monitoring": ["Renal function (eGFR)", "Signs of Mycotic Genital Infections & UTIs", "Volume status / Blood Pressure"],
+      "alternatives": ["Dapagliflozin", "Canagliflozin", "Semaglutide"],
+      "fhir_mapping": {
+        "resourceType": "Medication",
+        "code": {
+          "coding": [
+            {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "1545653", "display": "Empagliflozin"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "MED-005",
+      "generic_name": "Amoxicillin/Clavulanate",
+      "brand_names": ["Augmentin"],
+      "rxnorm_code": "225008",
+      "drug_class": "Penicillin Combination Antibiotic",
+      "indications": ["Community Acquired Pneumonia", "Acute Bacterial Sinusitis", "Complicated UTI", "Skin Infection"],
+      "contraindications": ["History of Penicillin Hypersensitivity / Anaphylaxis", "History of Augmentin-associated cholestatic jaundice/hepatic dysfunction"],
+      "drug_interactions": [
+        {"drug": "Allopurinol", "severity": "Moderate", "effect": "Increased incidence of rash."},
+        {"drug": "Methotrexate", "severity": "High", "effect": "Decreases renal clearance of Methotrexate."}
+      ],
+      "renal_dose_adjustment": [
+        {"egfr_range": "> 30 mL/min", "recommendation": "875/125 mg every 12 hours (No adjustment)"},
+        {"egfr_range": "10 - 30 mL/min", "recommendation": "500/125 mg every 12 hours (Do not use 875mg tablet)"},
+        {"egfr_range": "< 10 mL/min", "recommendation": "500/125 mg every 24 hours"}
+      ],
+      "hepatic_dose_adjustment": "Dose with caution. Monitor hepatic function regularly.",
+      "monitoring": ["Renal and hepatic function during prolonged therapy", "CBC for leukopenia/thrombocytopenia"],
+      "alternatives": ["Azithromycin", "Ceftriaxone", "Levofloxacin"],
+      "fhir_mapping": {
+        "resourceType": "Medication",
+        "code": {
+          "coding": [
+            {"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "225008", "display": "Amoxicillin / Clavulanate"}
+          ]
+        }
+      }
+    }
+  ]
+}

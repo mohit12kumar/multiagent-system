@@ -27,7 +27,7 @@ class RegexAgent:
                 # Interval patterns: 'every 8 hours', 'every other day'
                 r'(?i)\bevery\s+(?:\d+\s+hours?|other\s+day|alternate\s+day)\b',
                 # Latin/short abbreviations (TDS, TID, BD, QID, PRN, SOS, etc.)
-                r'(?i)\b(?:once daily|twice daily|thrice daily|three times daily|four times daily|qd|bid|bd|tid|tds|qid|prn|sos|as needed|as required)\b'
+                r'(?i)\b(?:once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|prn|sos|as needed|as required)\b'
             ],
 
             # ── Duration ─────────────────────────────────────────────────

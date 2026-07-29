@@ -140,24 +140,24 @@ class MySQLStore:
         for rel in medication_relations:
             mr_id = str(uuid.uuid4())
             if isinstance(rel, dict):
-                disease_name = rel.get("disease_name", "")
-                med_name = rel.get("name", rel.get("medication_name", ""))
+                disease_name = rel.get("disease_name") or "General Condition"
+                med_name = rel.get("name", rel.get("medication_name", "")) or "Medication"
                 correct = rel.get("correct", True)
                 confidence = float(rel.get("confidence", 1.0))
-                dosage = rel.get("dosage", "N/A")
-                frequency = rel.get("frequency", "N/A")
-                duration = rel.get("duration", "N/A")
-                route = rel.get("route", "Oral")
+                dosage = rel.get("dosage") or "N/A"
+                frequency = rel.get("frequency") or "N/A"
+                duration = rel.get("duration") or "N/A"
+                route = rel.get("route") or "Oral"
                 val_status = str(rel.get("validation_status", "Correct Medication"))[:45]
                 val_reason = rel.get("validation_reason", None)
             else:
-                disease_name = getattr(rel, "disease_name", "")
-                med_name = getattr(rel, "name", getattr(rel, "medication_name", ""))
+                disease_name = getattr(rel, "disease_name", None) or "General Condition"
+                med_name = getattr(rel, "name", None) or getattr(rel, "medication_name", None) or "Medication"
                 correct = getattr(rel, "correct", True)
                 confidence = float(getattr(rel, "confidence", 1.0))
-                dosage = getattr(rel, "dosage", "N/A")
-                frequency = getattr(rel, "frequency", "N/A")
-                duration = getattr(rel, "duration", "N/A")
+                dosage = getattr(rel, "dosage", None) or "N/A"
+                frequency = getattr(rel, "frequency", None) or "N/A"
+                duration = getattr(rel, "duration", None) or "N/A"
                 route = getattr(rel, "route", "Oral")
                 val_status = str(getattr(rel, "validation_status", "Correct Medication"))[:45]
                 val_reason = getattr(rel, "validation_reason", None)

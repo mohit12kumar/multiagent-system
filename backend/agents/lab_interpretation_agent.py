@@ -30,7 +30,7 @@ class LabInterpretationAgent:
         ("ldl",        0.0,   100.0,"mg/dL",      "Normal",             "Hyperlipidemia",                 "Normal", "Elevated",            None,                          "Hyperlipidemia"),
         ("hdl",        40.0,  999.0,"mg/dL",      "Low HDL (Risk Factor)","Normal",                       "Low",    "Normal",              "Hyperlipidemia / CVD Risk",   None),
         ("wbc",        4.5,   11.0, "x10^3/uL",   "Leukopenia",         "Leukocytosis / Infection",       "Low",    "Elevated",            "Immunosuppression",           "Community Acquired Pneumonia"),
-        ("crp",        0.0,   0.3,  "mg/dL",      "Normal",             "Inflammation / Infection",       "Normal", "Elevated",            None,                          "Community Acquired Pneumonia"),
+        ("crp",        0.0,   3.0,  "mg/L",       "Normal",             "Inflammation / Infection",       "Normal", "Elevated",            None,                          "Community Acquired Pneumonia"),
         ("bun",        7.0,   20.0, "mg/dL",      "Normal",             "Renal Impairment / Uremia",      "Normal", "Elevated",            None,                          "Chronic Kidney Disease"),
         ("hemoglobin", 12.0,  17.0, "g/dL",       "Anaemia",            "Polycythaemia",                  "Low",    "Elevated",            "Anemia",                      None),
         ("haemoglobin",12.0,  17.0, "g/dL",       "Anaemia",            "Polycythaemia",                  "Low",    "Elevated",            "Anemia",                      None),

@@ -1,0 +1,66 @@
+{
+  "guidelines": [
+    {
+      "id": "GL-ADA-2024",
+      "organization": "American Diabetes Association (ADA)",
+      "guideline_title": "Standards of Care in Diabetes — 2024",
+      "specialty": "Endocrinology",
+      "key_recommendations": [
+        {
+          "indication": "Diabetes Mellitus Type 2",
+          "recommendation": "Metformin is preferred initial pharmacotherapy. In patients with established ASCVD, Heart Failure, or CKD, SGLT2 inhibitors or GLP-1 RAs should be initiated independently of HbA1c.",
+          "strength": "Class A Evidence"
+        },
+        {
+          "indication": "Glycemic Targets",
+          "recommendation": "Target HbA1c < 7.0% for non-pregnant adults without severe hypoglycemia. De-intensify regimen if recurrent hypoglycemia occurs.",
+          "strength": "Class A Evidence"
+        }
+      ]
+    },
+    {
+      "id": "GL-KDIGO-2024",
+      "organization": "Kidney Disease: Improving Global Outcomes (KDIGO)",
+      "guideline_title": "KDIGO 2024 Clinical Practice Guideline for the Management of CKD",
+      "specialty": "Nephrology",
+      "key_recommendations": [
+        {
+          "indication": "Chronic Kidney Disease Stage 1-4 with Albuminuria",
+          "recommendation": "First-line therapy includes an ACE inhibitor or ARB titrated to maximum tolerated dose, plus an SGLT2 inhibitor for eGFR >= 20 mL/min/1.73m².",
+          "strength": "Level 1A Recommendation"
+        },
+        {
+          "indication": "CKD Stage 4 (eGFR 15-29 mL/min)",
+          "recommendation": "Discontinue Metformin if eGFR < 30 mL/min. Initiate nephrology referral for vascular access planning and renal replacement modality counseling.",
+          "strength": "Level 1B Recommendation"
+        }
+      ]
+    },
+    {
+      "id": "GL-GINA-2023",
+      "organization": "Global Initiative for Asthma (GINA)",
+      "guideline_title": "GINA Global Strategy for Asthma Management and Prevention 2023",
+      "specialty": "Pulmonology",
+      "key_recommendations": [
+        {
+          "indication": "Bronchial Asthma Reliever & Controller",
+          "recommendation": "Low-dose ICS-formoterol is the preferred reliever across all asthma steps. SABA-only treatment without ICS is no longer recommended due to increased severe exacerbation risk.",
+          "strength": "Evidence Level A"
+        }
+      ]
+    },
+    {
+      "id": "GL-NICE-NG136",
+      "organization": "National Institute for Health and Care Excellence (NICE)",
+      "guideline_title": "Hypertension in adults: diagnosis and management [NG136]",
+      "specialty": "Cardiology",
+      "key_recommendations": [
+        {
+          "indication": "Essential Hypertension Step 1 Treatment",
+          "recommendation": "Offer an ACE inhibitor or ARB for adults aged < 55 or with type 2 diabetes. Offer a CCB for adults aged >= 55 or of Black African/Caribbean family origin.",
+          "strength": "NICE Recommended Practice"
+        }
+      ]
+    }
+  ]
+}

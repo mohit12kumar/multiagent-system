@@ -156,6 +156,26 @@ class FormattingAgent:
                         best_dos = dos_e.text
             return best_dos
 
+        def resolve_med_frequency_span(drug_name: str) -> str:
+            drug_ents = [e for e in active_entities if e.type == "DRUG" and e.text.lower() == drug_name.lower()]
+            freq_ents = [e for e in active_entities if e.type == "FREQUENCY"]
+            if not drug_ents or not freq_ents or not state.text:
+                return "Not Specified"
+            best_dist = float("inf")
+            best_freq = "Not Specified"
+            for d_e in drug_ents:
+                d_start = d_e.start_char
+                for f_e in freq_ents:
+                    f_start = f_e.start_char
+                    text_between = state.text[min(d_start, f_start):max(d_start, f_start)]
+                    if "." in text_between or "\n" in text_between:
+                        continue
+                    dist = abs(d_start - f_start)
+                    if dist < best_dist and dist < 65:
+                        best_dist = dist
+                        best_freq = f_e.text
+            return best_freq
+
         def resolve_med_route(drug_name: str) -> str:
             note = (state.text or "").lower()
             if "iv" in note or "intravenous" in note or "infusion" in note or "injection" in note:
@@ -172,12 +192,15 @@ class FormattingAgent:
                 rel_dos = getattr(mr, "dosage", None)
                 if not rel_dos or rel_dos in ["N/A", "Unknown", "Unspecified"]:
                     rel_dos = resolve_med_dosage_span(m_name)
+                rel_freq = getattr(mr, "frequency", None)
+                if not rel_freq or rel_freq in ["N/A", "Unknown", "Unspecified", "Not Specified"]:
+                    rel_freq = resolve_med_frequency_span(m_name)
                 rel_route = resolve_med_route(m_name)
                 raw_med_dicts.append({
                     "name": m_name,
                     "disease_name": getattr(mr, "disease_name", None),
                     "dosage": rel_dos,
-                    "frequency": getattr(mr, "frequency", "Not Specified"),
+                    "frequency": rel_freq,
                     "duration": getattr(mr, "duration", "Not Specified"),
                     "route": rel_route
                 })
@@ -187,7 +210,7 @@ class FormattingAgent:
                     "name": drug_name,
                     "disease_name": None,
                     "dosage": resolve_med_dosage_span(drug_name),
-                    "frequency": "Not Specified",
+                    "frequency": resolve_med_frequency_span(drug_name),
                     "duration": "Not Specified",
                     "route": resolve_med_route(drug_name)
                 })
@@ -401,38 +424,39 @@ class FormattingAgent:
             "avg_review_time": "2.4 min"
         }
 
-        # RAG Guideline Attributions
-        guideline_attributions = rag_agent.get_guideline_attributions(diseases)
+        # Guideline Engine Integration
+        from backend.knowledge.guideline_engine import GuidelineEngine
+        guideline_engine = GuidelineEngine()
+        
+        egfr_val = None
+        for l in abnormal_labs:
+            if l.get("lab") == "eGFR" or l.get("lab") == "egfr":
+                try:
+                    egfr_val = float(l.get("value"))
+                    break
+                except (ValueError, TypeError):
+                    pass
 
-        # Patient Readability & Clinical Quality Breakdown
+        guideline_res = guideline_engine.generate_recommendations(diseases=diseases, eGFR=egfr_val)
+        guideline_attributions = guideline_res["guideline_attributions"] or rag_agent.get_guideline_attributions(diseases)
+        guideline_investigation_recs = guideline_res["guideline_investigation_recommendations"] or [
+            "Pneumonia / Respiratory: Consider follow-up Chest X-ray, CBC, CRP, and Pulse Oximetry.",
+            "Chronic Kidney Disease: Monitor serum creatinine, eGFR, and electrolytes in 14 days.",
+            "Hypertension & Lipid: Repeat lipid panel and 24-hour BP monitoring in 30 days."
+        ]
+        guideline_medication_recs = guideline_res["guideline_medication_recommendations"] or [
+            "Urgent Cardiology Consultation & Immediate PCI Evaluation for Acute MI / STEMI.",
+            "Repeat Troponin STAT & Continuous 12-Lead ECG Monitoring.",
+            "Correct Hyperkalemia (Serum Potassium 6.1 mEq/L) & Repeat Electrolyte Panel."
+        ]
+
+        # Patient Readability Breakdown
         readability_score = {
             "grade_level": "Grade 6 (Plain English)",
             "readability_status": "Easy to understand",
             "jargon_removed": True,
             "flesch_reading_ease": 78.5
         }
-
-        clinical_quality_score = {
-            "overall_clinical_quality": "96.5%",
-            "evidence_score": "95%",
-            "medication_score": "100%",
-            "labs_score": "92%",
-            "assessment_score": "98%"
-        }
-
-        guideline_investigation_recs = [
-            "Pneumonia / Respiratory: Consider follow-up Chest X-ray, CBC, CRP, and Pulse Oximetry.",
-            "Chronic Kidney Disease: Monitor serum creatinine, eGFR, and electrolytes in 14 days.",
-            "Hypertension & Lipid: Repeat lipid panel and 24-hour BP monitoring in 30 days."
-        ]
-
-        guideline_medication_recs = [
-            "Urgent Cardiology Consultation & Immediate PCI Evaluation for Acute MI / STEMI.",
-            "Repeat Troponin STAT & Continuous 12-Lead ECG Monitoring.",
-            "Correct Hyperkalemia (Serum Potassium 6.1 mEq/L) & Repeat Electrolyte Panel.",
-            "Nephrology Consultation & Hold Metformin until eGFR/renal function reviewed.",
-            "Monitor BNP & Initiate Diuresis for Pulmonary Edema / CHF Exacerbation."
-        ]
 
         prioritized_recommendations = {
             "immediate": [
@@ -536,12 +560,19 @@ class FormattingAgent:
             "Vaccination History (Pneumococcal & Influenza status unspecified)"
         ]
 
+        risk_lvl = "Low (Healthy)" if len(diseases) == 0 else ("Moderate" if len(diseases) <= 3 else "High")
+        summary_stmt = (
+            "0 clinical conditions detected. Patient presentation is Healthy / Normal."
+            if len(diseases) == 0
+            else f"{len(diseases)} clinical conditions detected ({', '.join(diseases)}). Overall Risk Level: {risk_lvl}."
+        )
+
         overall_clinical_summary = {
             "disease_count": len(diseases),
             "diseases_detected": diseases,
-            "overall_risk": "Moderate" if len(diseases) <= 3 else "High",
-            "review_status": "Pending Doctor Review",
-            "summary_statement": f"{len(diseases)} clinical conditions detected ({', '.join(diseases)}). Overall Risk Level: {'Moderate' if len(diseases) <= 3 else 'High'}."
+            "overall_risk": risk_lvl,
+            "review_status": "Approved / Healthy" if len(diseases) == 0 else "Pending Doctor Review",
+            "summary_statement": summary_stmt
         }
 
         from backend.clinical.quality_score_engine import QualityScoreEngine
@@ -670,11 +701,11 @@ class FormattingAgent:
             "patient_message": f"[Notification] Clinical note processed! Multi-agent clinical intelligence report generated.",
             "medication_coverage_audit": coverage_audit,
             "clinical_warnings": [
-                "Hyperkalemia: Serum Potassium elevated (>5.0 mEq/L). Monitor renal function.",
-                "Elevated Creatinine: Serum Creatinine > 2.0 mg/dL indicating renal impairment.",
-                "Reduced eGFR: eGFR < 30 mL/min/1.73m² (Stage IV Chronic Kidney Disease).",
-                "High Infection Markers: CRP ↑ and WBC ↑ indicating systemic inflammatory response.",
-                "High Cardiovascular Risk: Stage 1/2 Hypertension & Hyperlipidemia co-morbidity."
+                f"{l.get('lab')}: {l.get('interpretation')} ({l.get('value')} {l.get('unit')})"
+                for l in abnormal_labs if l.get("interpretation") and l.get("interpretation") != "Normal"
+            ] + [
+                f"{v.get('vital')}: {v.get('interpretation')} ({v.get('value')})"
+                for v in vital_signs_interpreted if v.get("severity") and v.get("severity") not in ("Normal", "Low", None)
             ] + med_safety_audit.get("duplicate_alerts", []) + med_safety_audit.get("dosage_warnings", [])
         }
 
