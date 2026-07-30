@@ -4,6 +4,7 @@ import re
 import requests
 from typing import Dict, Any, List, Optional
 from backend.models.entity import EntityMentionModel
+from backend.core.retry import with_retry
 from src.monitoring.logger import logger
 
 
@@ -64,10 +65,19 @@ Return ONLY valid JSON matching this schema:
 
         if ollama_alive:
             try:
-                resp = requests.post(
-                    self.ollama_url,
-                    json={"model": self.model_name, "prompt": prompt, "stream": False},
-                    timeout=2
+                def _call_ollama():
+                    return requests.post(
+                        self.ollama_url,
+                        json={"model": self.model_name, "prompt": prompt, "stream": False},
+                        timeout=int(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
+                    )
+
+                resp = with_retry(
+                    _call_ollama,
+                    max_attempts=3,
+                    backoff_seconds=1.0,
+                    exceptions=(requests.ConnectionError, requests.Timeout),
+                    label=f"OllamaLLM({self.model_name})"
                 )
                 if resp.status_code == 200:
                     res_data = resp.json()

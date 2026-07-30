@@ -52,21 +52,23 @@ class ChromaService:
         )
 
     def add_entity(self, entity_id: str, name: str, entity_type: str) -> None:
+        from backend.core.chroma_lock import chroma_write_lock
         try:
             emb = self.embedding_model.get_embeddings([name], use_fallback=False)[0]
-            self.collection.add(
-                ids=[entity_id],
-                embeddings=[emb],
-                documents=[name],
-                metadatas=[{"type": entity_type, "name": name}]
-            )
-            target_coll = self.disease_collection if entity_type.upper() == "DISEASE" else self.drug_collection
-            target_coll.add(
-                ids=[entity_id],
-                embeddings=[emb],
-                documents=[name],
-                metadatas=[{"type": entity_type, "name": name}]
-            )
+            with chroma_write_lock():
+                self.collection.add(
+                    ids=[entity_id],
+                    embeddings=[emb],
+                    documents=[name],
+                    metadatas=[{"type": entity_type, "name": name}]
+                )
+                target_coll = self.disease_collection if entity_type.upper() == "DISEASE" else self.drug_collection
+                target_coll.add(
+                    ids=[entity_id],
+                    embeddings=[emb],
+                    documents=[name],
+                    metadatas=[{"type": entity_type, "name": name}]
+                )
         except Exception as e:
             logger.error(f"Failed to add entity to ChromaDB: {e}")
 

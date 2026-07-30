@@ -1,5 +1,5 @@
 import uuid
-import json
+import logging
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 from backend.database.models import (
@@ -7,6 +7,8 @@ from backend.database.models import (
     DiseaseRelation, MedicationRelation, ReviewQueue, ReviewLog,
     PatientHistory, PHIAuditLog
 )
+
+logger = logging.getLogger(__name__)
 
 
 class MySQLStore:
@@ -71,6 +73,7 @@ class MySQLStore:
             self.db.commit()
 
     def save_phi_audit(self, session_id: str, phi_items: List[Dict[str, Any]]):
+        """Stage add only — called within save_pipeline_results() transaction."""
         for item in phi_items:
             audit = PHIAuditLog(
                 id=str(uuid.uuid4()),
@@ -80,9 +83,10 @@ class MySQLStore:
                 redacted_value=item.get("redacted", "[REDACTED]")
             )
             self.db.add(audit)
-        self.db.commit()
+        # No commit here — called within atomic transaction
 
     def save_entity_mentions(self, session_id: str, doc_id: str, mentions: List[Dict[str, Any]]):
+        """Stage add only — called within save_pipeline_results() transaction."""
         for mention in mentions:
             m_id = str(uuid.uuid4())
             sources = mention.get("source_agents", [])
@@ -113,9 +117,10 @@ class MySQLStore:
                     reason="Low confidence extraction"
                 )
                 self.db.add(rq)
-        self.db.commit()
+        # No commit here — called within atomic transaction
 
     def save_disease_relations(self, session_id: str, disease_relations: List[Any]):
+        """Stage add only — called within save_pipeline_results() transaction."""
         for rel in disease_relations:
             if isinstance(rel, dict):
                 dis_name = rel.get("disease_name", "")
@@ -134,9 +139,10 @@ class MySQLStore:
                 confidence=conf
             )
             self.db.add(dr)
-        self.db.commit()
+        # No commit here — called within atomic transaction
 
     def save_medication_relations(self, session_id: str, medication_relations: List[Any]):
+        """Stage add only — called within save_pipeline_results() transaction."""
         for rel in medication_relations:
             mr_id = str(uuid.uuid4())
             if isinstance(rel, dict):
@@ -187,9 +193,10 @@ class MySQLStore:
                     reason=f"Medication validation review ({val_status})"
                 )
                 self.db.add(rq)
-        self.db.commit()
+        # No commit here — called within atomic transaction
 
-    def save_patient_history(self, user_id: str, session_id: str, summary_json: Any):
+    def save_patient_history(self, user_id: str, session_id: str, summary_json: Any) -> PatientHistory:
+        """Stage add only — called within save_pipeline_results() transaction."""
         ph = PatientHistory(
             id=str(uuid.uuid4()),
             user_id=user_id,
@@ -197,12 +204,11 @@ class MySQLStore:
             summary_json=summary_json
         )
         self.db.add(ph)
-        self.db.commit()
+        # No commit here — called within atomic transaction
         return ph
 
-    def save_session_review_entry(self, session_id: str, user_id: Optional[str] = None):
-        """Creates a ReviewQueue entry for the whole session so the doctor can always see
-        every patient-submitted note, even when all entity confidences pass the threshold."""
+    def save_session_review_entry(self, session_id: str, user_id: Optional[str] = None) -> ReviewQueue:
+        """Creates a session-level ReviewQueue entry. Stage add only — no commit."""
         # Avoid duplicate session-level review entries
         existing = self.db.query(ReviewQueue).filter(
             ReviewQueue.session_id == session_id,
@@ -221,8 +227,55 @@ class MySQLStore:
             reason=f"Patient-submitted clinical note — awaiting doctor pre-check (user: {user_id or 'anonymous'})"
         )
         self.db.add(rq)
-        self.db.commit()
+        # No commit here — called within atomic transaction
         return rq
+
+    def save_pipeline_results(
+        self,
+        session_id: str,
+        doc_id: str,
+        entity_mentions: List[Dict[str, Any]],
+        disease_relations: List[Any],
+        medication_relations: List[Any],
+        patient_summary: Any,
+        user_id: str,
+    ) -> None:
+        """
+        Atomically persist all pipeline output in a single DB transaction.
+
+        If any step fails, the entire transaction rolls back — preventing partial
+        state where e.g. diseases are saved but medications are not.
+
+        Parameters
+        ----------
+        session_id       : Pipeline session UUID.
+        doc_id           : Document UUID.
+        entity_mentions  : List of entity mention dicts from pipeline state.
+        disease_relations: List of disease relation objects/dicts.
+        medication_relations: List of medication relation objects/dicts.
+        patient_summary  : Formatted patient summary list for PatientHistory.
+        user_id          : Authenticated user ID (or 'anonymous_patient').
+        """
+        from backend.core.retry import with_db_retry
+        def _do_save():
+            try:
+                self.save_entity_mentions(session_id, doc_id, entity_mentions)
+                self.save_disease_relations(session_id, disease_relations)
+                self.save_medication_relations(session_id, medication_relations)
+                self.save_patient_history(user_id, session_id, patient_summary)
+                self.save_session_review_entry(session_id, user_id=user_id)
+                # Single commit — all or nothing
+                self.db.commit()
+                logger.info(f"[MySQLStore] Atomic pipeline results saved | session={session_id}")
+            except Exception as e:
+                self.db.rollback()
+                logger.error(
+                    f"[MySQLStore] Atomic save failed, rolled back | session={session_id} | error={e}",
+                    exc_info=True
+                )
+                raise e
+
+        with_db_retry(_do_save, label=f"Save Pipeline Results ({session_id})")
 
     # Canonical Entity CRUD
     def get_or_create_canonical_entity(self, name: str, entity_type: str, wikidata_id: Optional[str] = None, rxnorm_id: Optional[str] = None) -> CanonicalEntity:
@@ -306,20 +359,70 @@ class MySQLStore:
             })
         return results
 
-    def resolve_review_item(self, review_id: str, action: str, reviewer: str, new_value: Optional[str] = None) -> bool:
-        item = self.db.query(ReviewQueue).filter(ReviewQueue.id == review_id).first()
+    def resolve_review_item(
+        self,
+        review_id: str,
+        action: str,
+        reviewer: str,
+        new_value: Optional[str] = None,
+        expected_version: int = 0,
+    ) -> bool:
+        """
+        Resolve a review queue item with optimistic locking.
+
+        Parameters
+        ----------
+        review_id        : ReviewQueue primary key.
+        action           : 'APPROVE', 'REJECT', or 'MODIFY'.
+        reviewer         : Display name of the resolving doctor.
+        new_value        : Updated text/name (for MODIFY action).
+        expected_version : The version_number the caller read when loading the item.
+                           If the DB version differs, a concurrent update is detected.
+
+        Returns
+        -------
+        bool  — True on success.
+        Raises ConcurrentUpdateError if the item was concurrently modified.
+        Raises ValueError if item not found.
+        """
+        import datetime as _dt
+        from backend.core.exceptions import ConcurrentUpdateError
+
+        # with_for_update() places a row-level lock (SELECT FOR UPDATE)
+        # preventing another concurrent transaction from modifying this row.
+        item = (
+            self.db.query(ReviewQueue)
+            .filter(ReviewQueue.id == review_id, ReviewQueue.is_deleted == False)
+            .with_for_update()
+            .first()
+        )
         if not item:
             return False
 
-        item.status = "RESOLVED" if action in ("APPROVED", "MODIFIED") else "REJECTED"
-        old_val = ""
+        # Optimistic version check
+        if item.version_number != expected_version:
+            raise ConcurrentUpdateError(
+                f"Review item '{review_id}' was modified by another user. "
+                f"Expected version {expected_version}, found {item.version_number}. "
+                f"Please refresh and try again."
+            )
 
+        # Increment version on every mutation
+        item.version_number += 1
+        item.reviewed_by = reviewer
+        item.reviewed_at = _dt.datetime.now(_dt.timezone.utc)
+        item.status = "RESOLVED" if action in ("APPROVED", "MODIFIED") else "REJECTED"
+
+        old_val = ""
         if item.entity_mention:
             old_val = item.entity_mention.text
             if action == "MODIFIED" and new_value:
                 item.entity_mention.text = new_value
         elif item.medication_relation:
-            old_val = f"{item.medication_relation.medication_name} for {item.medication_relation.disease_name}"
+            old_val = (
+                f"{item.medication_relation.medication_name} "
+                f"for {item.medication_relation.disease_name}"
+            )
             if action == "APPROVED":
                 item.medication_relation.correct = True
             elif action == "REJECTED":
@@ -333,30 +436,59 @@ class MySQLStore:
             reviewer=reviewer,
             action=action,
             old_value=old_val,
-            new_value=new_value
+            new_value=new_value,
         )
         self.db.add(log)
 
-        # Update parent PipelineSession status if all pending items resolved
-        remaining_pending = self.db.query(ReviewQueue).filter(
-            ReviewQueue.session_id == item.session_id,
-            ReviewQueue.status == "PENDING",
-            ReviewQueue.id != item.id
-        ).count()
+        # Update parent PipelineSession when all pending items are resolved
+        remaining_pending = (
+            self.db.query(ReviewQueue)
+            .filter(
+                ReviewQueue.session_id == item.session_id,
+                ReviewQueue.status == "PENDING",
+                ReviewQueue.is_deleted == False,
+                ReviewQueue.id != item.id,
+            )
+            .count()
+        )
         if remaining_pending == 0:
-            session = self.db.query(PipelineSession).filter(PipelineSession.id == item.session_id).first()
+            session = (
+                self.db.query(PipelineSession)
+                .filter(PipelineSession.id == item.session_id)
+                .first()
+            )
             if session:
                 session.status = "COMPLETED"
 
         self.db.commit()
+        logger.info(
+            f"[MySQLStore] Review {review_id} resolved | action={action} "
+            f"| reviewer={reviewer} | version={item.version_number}"
+        )
         return True
 
     def approve_all_pending_reviews(self, reviewer: str) -> int:
-        pending_items = self.db.query(ReviewQueue).filter(ReviewQueue.status == "PENDING").all()
+        """
+        Bulk-approve all pending review items.
+        Soft-deleted items are excluded.
+        """
+        import datetime as _dt
+
+        pending_items = (
+            self.db.query(ReviewQueue)
+            .filter(ReviewQueue.status == "PENDING", ReviewQueue.is_deleted == False)
+            .with_for_update()
+            .all()
+        )
         count = len(pending_items)
         session_ids = set()
+        now = _dt.datetime.now(_dt.timezone.utc)
+
         for item in pending_items:
-            item.status = "RESOLVED"
+            item.status         = "RESOLVED"
+            item.reviewed_by    = reviewer
+            item.reviewed_at    = now
+            item.version_number = item.version_number + 1
             session_ids.add(item.session_id)
             if item.medication_relation:
                 item.medication_relation.correct = True
@@ -364,14 +496,21 @@ class MySQLStore:
                 id=str(uuid.uuid4()),
                 review_queue_id=item.id,
                 reviewer=reviewer,
-                action="APPROVED_ALL"
+                action="APPROVED_ALL",
             )
             self.db.add(log)
 
         for sid in session_ids:
-            session = self.db.query(PipelineSession).filter(PipelineSession.id == sid).first()
+            session = (
+                self.db.query(PipelineSession)
+                .filter(PipelineSession.id == sid)
+                .first()
+            )
             if session:
                 session.status = "COMPLETED"
 
         self.db.commit()
+        logger.info(
+            f"[MySQLStore] Bulk approved {count} pending reviews | reviewer={reviewer}"
+        )
         return count

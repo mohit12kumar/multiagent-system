@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
@@ -7,17 +7,24 @@ import logging
 from backend.database.connection import get_db
 from backend.database.mysql_store import MySQLStore
 from backend.database.models import Document, PipelineSession, EntityMention, DiseaseRelation, MedicationRelation, ReviewQueue, PatientHistory
-from backend.api.auth import require_doctor, get_current_user, get_optional_current_user
+from backend.api.auth import require_doctor, get_current_user, get_optional_current_user, get_current_user_with_query_fallback
 from backend.utils.pdf_generator import generate_clinical_report_pdf
+from backend.services.audit_service import (
+    log_action,
+    ACTION_REVIEW_APPROVE, ACTION_REVIEW_REJECT, ACTION_REVIEW_MODIFY,
+    ACTION_APPROVE_ALL, ACTION_PDF_EXPORT, ACTION_JSON_EXPORT
+)
+from backend.core.exceptions import ConcurrentUpdateError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/doctor", tags=["Doctor Dashboard & Review"])
 
 
 class ReviewActionRequest(BaseModel):
-    action: str  # 'APPROVE', 'REJECT', 'MODIFY'
+    action: str       # 'APPROVE', 'REJECT', 'MODIFY'
     reviewer: str = "Dr. Medical Reviewer"
     new_value: Optional[str] = None
+    expected_version: int = 0  # Optimistic locking: version the client last read
 
 
 @router.get("/dashboard")
@@ -145,18 +152,75 @@ def get_doctor_review_queue(
 
 
 @router.post("/review/{review_id}/action")
-def doctor_review_action(review_id: str, req: ReviewActionRequest, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(require_doctor)):
+def doctor_review_action(
+    review_id: str,
+    req: ReviewActionRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(require_doctor)
+):
+    """Resolve a review queue item. Uses optimistic locking to prevent double-approve."""
     mysql_store = MySQLStore(db)
-    success = mysql_store.resolve_review_item(review_id, req.action, req.reviewer, req.new_value)
+    action_upper = req.action.upper()
+
+    # Determine audit action constant
+    audit_action = {
+        "APPROVE": ACTION_REVIEW_APPROVE,
+        "REJECT":  ACTION_REVIEW_REJECT,
+        "MODIFY":  ACTION_REVIEW_MODIFY,
+    }.get(action_upper, req.action)
+
+    try:
+        success = mysql_store.resolve_review_item(
+            review_id=review_id,
+            action=action_upper,
+            reviewer=req.reviewer,
+            new_value=req.new_value,
+            expected_version=req.expected_version,
+        )
+    except ConcurrentUpdateError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc)
+        )
+
     if not success:
         raise HTTPException(status_code=404, detail="Review item not found")
+
+    # Audit log the decision
+    log_action(
+        db=db,
+        action=audit_action,
+        actor_user_id=current_user.get("user_id"),
+        resource_type="ReviewQueue",
+        resource_id=review_id,
+        new_value=req.new_value or action_upper,
+        ip_address=request.client.host if request.client else None,
+        notes=f"reviewer={req.reviewer}",
+    )
+
     return {"status": "success", "message": f"Review item {review_id} action '{req.action}' processed."}
 
 
 @router.post("/review-queue/approve-all")
-def doctor_approve_all(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(require_doctor)):
+def doctor_approve_all(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Dict[str, Any] = Depends(require_doctor)
+):
+    """Bulk-approve all pending review items."""
     mysql_store = MySQLStore(db)
-    count = mysql_store.approve_all_pending_reviews(reviewer=current_user.get("username", "Doctor"))
+    reviewer = current_user.get("username", "Doctor")
+    count = mysql_store.approve_all_pending_reviews(reviewer=reviewer)
+
+    log_action(
+        db=db,
+        action=ACTION_APPROVE_ALL,
+        actor_user_id=current_user.get("user_id"),
+        resource_type="ReviewQueue",
+        new_value=f"Approved {count} items",
+        ip_address=request.client.host if request.client else None,
+    )
     return {"status": "success", "approved_count": count, "message": f"Approved all {count} pending review items."}
 
 
@@ -187,6 +251,7 @@ def get_doctor_patient_history(search: Optional[str] = None, db: Session = Depen
 
 
 from backend.api.auth import require_doctor, get_current_user, get_current_user_with_query_fallback
+
 
 @router.get("/export/json/{session_id}")
 def export_session_json(

@@ -36,17 +36,14 @@ class SciSpaCyAgent:
             ]
         }
 
-    def _get_nlp(self):
-        """Lazy-load SciSpaCy model on first request, not at import time."""
-        if self._nlp is None:
-            try:
-                import spacy
-                self._nlp = spacy.load("en_core_sci_sm")
-                logger.info("SciSpaCy model 'en_core_sci_sm' loaded successfully.")
-            except Exception as e:
-                logger.warning(f"SciSpaCy model load failed: {e}")
-                self._nlp = False
-        return self._nlp if self._nlp is not False else None
+    def _factory(self):
+        try:
+            import spacy
+            logger.info("SciSpaCy model 'en_core_sci_sm' loaded into pool worker.")
+            return spacy.load("en_core_sci_sm")
+        except Exception as e:
+            logger.warning(f"SciSpaCy model load failed: {e}")
+            return None
 
     def extract(self, sentences: List[dict], full_text: Optional[str] = None) -> List[EntityMentionModel]:
         logger.info(f"SciSpaCy Agent extracting biomedical entities from {len(sentences)} sentences")
@@ -57,25 +54,27 @@ class SciSpaCyAgent:
         if not full_text.strip():
             return entities
 
-        # Option A: Model extraction
-        nlp_scispacy = self._get_nlp()
-        if nlp_scispacy:
-            try:
-                doc = nlp_scispacy(full_text)
-                for ent in doc.ents:
-                    etype = "DISEASE" if "disease" in ent.label_.lower() else "SYMPTOM"
-                    entities.append(EntityMentionModel(
-                        text=ent.text,
-                        type=etype,
-                        start_char=ent.start_char,
-                        end_char=ent.end_char,
-                        confidence=0.92,
-                        source_agents=[self.agent_name]
-                    ))
-                if entities:
-                    return entities
-            except Exception as e:
-                logger.warning(f"SciSpaCy model extraction failed: {e}")
+        # Option A: Model extraction with thread-safe pool
+        from backend.core.inference_pool import get_model_pool
+        pool = get_model_pool("en_core_sci_sm", self._factory, pool_size=2)
+        with pool.acquire() as nlp_scispacy:
+            if nlp_scispacy:
+                try:
+                    doc = nlp_scispacy(full_text)
+                    for ent in doc.ents:
+                        etype = "DISEASE" if "disease" in ent.label_.lower() else "SYMPTOM"
+                        entities.append(EntityMentionModel(
+                            text=ent.text,
+                            type=etype,
+                            start_char=ent.start_char,
+                            end_char=ent.end_char,
+                            confidence=0.92,
+                            source_agents=[self.agent_name]
+                        ))
+                    if entities:
+                        return entities
+                except Exception as e:
+                    logger.warning(f"SciSpaCy model extraction failed: {e}")
 
         # Option B: High-precision biomedical matcher
         extracted_spans = set()

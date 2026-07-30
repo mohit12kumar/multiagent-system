@@ -35,8 +35,11 @@ try:
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
-        pool_recycle=3600,
-        echo=False
+        pool_size=int(os.getenv("DATABASE_POOL_SIZE", "10")),
+        max_overflow=int(os.getenv("DATABASE_MAX_OVERFLOW", "20")),
+        pool_timeout=int(os.getenv("DATABASE_POOL_TIMEOUT", "30")),
+        pool_recycle=int(os.getenv("DATABASE_POOL_RECYCLE", "3600")),
+        echo=os.getenv("ENV", "development") == "development"
     )
     # Run schema migrations exactly once using a tracking table
     with engine.connect() as conn:
@@ -61,6 +64,24 @@ try:
             "add_canonical_entities_rxnorm_id": "ALTER TABLE canonical_entities ADD COLUMN rxnorm_id VARCHAR(50);",
             "drop_documents_fk1":               "ALTER TABLE documents DROP FOREIGN KEY documents_ibfk_1;",
             "drop_patient_history_fk1":          "ALTER TABLE patient_history DROP FOREIGN KEY patient_history_ibfk_1;",
+            # Phase 4: Optimistic locking + soft delete + audit
+            "add_review_queue_version_number":   "ALTER TABLE review_queue ADD COLUMN version_number INT DEFAULT 0;",
+            "add_review_queue_locked_by":        "ALTER TABLE review_queue ADD COLUMN locked_by VARCHAR(36);",
+            "add_review_queue_lock_time":        "ALTER TABLE review_queue ADD COLUMN lock_time DATETIME;",
+            "add_review_queue_reviewed_by":      "ALTER TABLE review_queue ADD COLUMN reviewed_by VARCHAR(100);",
+            "add_review_queue_reviewed_at":      "ALTER TABLE review_queue ADD COLUMN reviewed_at DATETIME;",
+            "add_review_queue_is_deleted":       "ALTER TABLE review_queue ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;",
+            "add_review_queue_deleted_at":       "ALTER TABLE review_queue ADD COLUMN deleted_at DATETIME;",
+            "add_review_queue_deleted_by":       "ALTER TABLE review_queue ADD COLUMN deleted_by VARCHAR(36);",
+            "add_documents_is_deleted":          "ALTER TABLE documents ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;",
+            "add_documents_deleted_at":          "ALTER TABLE documents ADD COLUMN deleted_at DATETIME;",
+            "add_documents_deleted_by":          "ALTER TABLE documents ADD COLUMN deleted_by VARCHAR(36);",
+            "add_patient_history_is_deleted":    "ALTER TABLE patient_history ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;",
+            "add_patient_history_deleted_at":    "ALTER TABLE patient_history ADD COLUMN deleted_at DATETIME;",
+            "add_patient_history_deleted_by":    "ALTER TABLE patient_history ADD COLUMN deleted_by VARCHAR(36);",
+            "add_users_is_active":               "ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE;",
+            "add_users_last_login":              "ALTER TABLE users ADD COLUMN last_login DATETIME;",
+            "add_users_login_count":             "ALTER TABLE users ADD COLUMN login_count INT DEFAULT 0;",
         }
 
         for migration_id, sql in _migrations.items():

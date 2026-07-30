@@ -1,4 +1,5 @@
 import re
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List
@@ -7,10 +8,18 @@ from pydantic import BaseModel, field_validator
 from backend.database.connection import get_db
 from backend.database.models import PatientHistory, PipelineSession, ReviewQueue, User, Document, EntityMention
 from backend.orchestrator.coordinator import Coordinator
-from backend.api.auth import get_current_user
+from backend.api.auth import get_current_user, get_current_user_with_query_fallback
 from backend.utils.pdf_generator import generate_clinical_report_pdf
+from backend.core.validators import validate_clinical_note
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/patient", tags=["Patient Portal"])
+
+
+def get_coordinator() -> Coordinator:
+    """Import the application-wide coordinator. Avoids circular imports."""
+    from backend.api.routes import get_coordinator as _get_coordinator
+    return _get_coordinator()
 
 
 class ClinicalNoteSubmissionRequest(BaseModel):
@@ -31,21 +40,48 @@ def submit_patient_clinical_note(
     db: Session = Depends(get_db),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    if not req.clinical_note.strip():
-        raise HTTPException(status_code=422, detail="Clinical note cannot be empty.")
+    """Submit a clinical note for AI pipeline processing."""
+    # Phase 6: Clinical note content validation
+    validation_errors = validate_clinical_note(req.clinical_note)
+    if validation_errors:
+        raise HTTPException(
+            status_code=422,
+            detail={"validation_errors": validation_errors}
+        )
 
     try:
-        coordinator = Coordinator(db)
+        # Use the application-wide stateless coordinator (models loaded once at startup).
+        # Pass db as a parameter — never stored inside the coordinator.
+        from backend.api.routes import _shared_coordinator
+        coordinator = _shared_coordinator
+        if coordinator is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Service is initialising. Please retry in a moment."
+            )
+
         user_id = current_user.get("user_id")
-        result = coordinator.run_pipeline(document_content=req.clinical_note, user_id=user_id)
+        result = coordinator.run_pipeline(
+            document_content=req.clinical_note,
+            db=db,
+            user_id=user_id
+        )
 
         if result.get("status") == "FAILED":
             raise HTTPException(
                 status_code=500,
-                detail=f"Pipeline failed at stage '{result.get('current_stage', 'unknown')}': {result.get('error_message', 'Unknown error')}"
+                detail=(
+                    f"Pipeline failed at stage '{result.get('current_stage', 'unknown')}': "
+                    f"{result.get('error_message', 'Unknown error')}"
+                )
             )
 
-        # Return a PENDING_REVIEW response — full results only shown after doctor approves
+        logger.info(
+            f"[PatientRoutes] Note submitted successfully | "
+            f"session={result.get('session_id')} user={user_id}"
+        )
+
+        # Return PENDING_REVIEW — full results shown only after doctor approves
         return {
             "status": "PENDING_REVIEW",
             "session_id": result.get("session_id"),
@@ -59,6 +95,7 @@ def submit_patient_clinical_note(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"[PatientRoutes] Unexpected error in submit-note: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Unexpected server error: {str(e)}")
 
 
@@ -118,7 +155,6 @@ def get_patient_summary(session_id: str, db: Session = Depends(get_db), current_
     }
 
 
-from backend.api.auth import get_current_user, get_current_user_with_query_fallback
 
 @router.get("/download-pdf/{session_id}")
 def download_patient_pdf(
