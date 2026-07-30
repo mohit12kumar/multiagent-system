@@ -4,7 +4,7 @@ from src.monitoring.logger import logger
 
 
 class HumanReviewAgent:
-    def __init__(self, mysql_store: MySQLStore):
+    def __init__(self, mysql_store: Optional[MySQLStore] = None):
         self.mysql_store = mysql_store
 
     def get_pending_queue(self) -> List[Dict[str, Any]]:
