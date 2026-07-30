@@ -203,12 +203,29 @@ export const ReviewQueuePage = () => {
 
   let meds: any[] = Array.isArray(summary)
     ? summary
-        .map(s => {
-          if (!s) return null;
+        .flatMap(s => {
+          if (!s) return [];
           const disName = renderStr(s.disease);
-          if (s.medication && typeof s.medication === 'object') return { ...s.medication, name: renderStr(s.medication.name || s.medication), reason: disName };
-          if (s.medication) return { name: renderStr(s.medication), reason: disName };
-          return null;
+          if (Array.isArray(s.medications) && s.medications.length > 0) {
+            return s.medications.map((m: any) => {
+              const mName = typeof m === 'string' ? m : renderStr(m.name || m);
+              const rawDose = typeof m === 'object' ? (m.dosage || '') : '';
+              const rawFreq = typeof m === 'object' ? (m.frequency || '') : '';
+              const mDose = rawDose && !['As prescribed', 'Not Specified', 'N/A', 'Unknown'].includes(rawDose) ? rawDose : undefined;
+              const mFreq = rawFreq && !['Not Specified', 'N/A', 'Unknown'].includes(rawFreq) ? rawFreq : undefined;
+              return { name: mName, dosage: mDose, frequency: mFreq, reason: disName };
+            });
+          }
+          if (s.medication && typeof s.medication === 'object') {
+            const m = s.medication;
+            const rawDose = m.dosage || '';
+            const rawFreq = m.frequency || '';
+            const mDose = rawDose && !['As prescribed', 'Not Specified', 'N/A', 'Unknown'].includes(rawDose) ? rawDose : undefined;
+            const mFreq = rawFreq && !['Not Specified', 'N/A', 'Unknown'].includes(rawFreq) ? rawFreq : undefined;
+            return [{ ...m, name: renderStr(m.name || m), dosage: mDose, frequency: mFreq, reason: disName }];
+          }
+          if (s.medication) return [{ name: renderStr(s.medication), reason: disName }];
+          return [];
         })
         .filter(m => m && typeof m.name === 'string' && m.name.length > 0)
     : [];
@@ -221,14 +238,16 @@ export const ReviewQueuePage = () => {
     if (rawMedsList.length > 0) {
       meds = rawMedsList.map((m: any) => {
         const mName = typeof m === 'string' ? m : renderStr(m?.name || m);
-        const mDose = typeof m === 'object' ? (m.dosage || '') : '';
-        const mFreq = typeof m === 'object' ? (m.frequency || '') : '';
+        const rawDose = typeof m === 'object' ? (m.dosage || '') : '';
+        const rawFreq = typeof m === 'object' ? (m.frequency || '') : '';
+        const mDose = rawDose && !['As prescribed', 'Not Specified', 'N/A', 'Unknown'].includes(rawDose) ? rawDose : undefined;
+        const mFreq = rawFreq && !['Not Specified', 'N/A', 'Unknown'].includes(rawFreq) ? rawFreq : undefined;
         return { name: mName, dosage: mDose, frequency: mFreq, reason: diseases[0] || 'Treatment' };
       }).filter((m: any) => m.name.length > 0);
     }
   }
 
-  // Fallback 2: Extract directly from note text using known pharmacology list
+  // Fallback 2: Extract directly from note text using known pharmacology list and line-level dosage regex
   if (meds.length === 0 && raw) {
     const knownDrugs = [
       'ceftriaxone', 'azithromycin', 'paracetamol', 'amoxicillin', 'ciprofloxacin',
@@ -237,15 +256,28 @@ export const ReviewQueuePage = () => {
       'dexamethasone', 'augmentin', 'doxycycline', 'metronidazole', 'aspirin',
       'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin'
     ];
-    const foundDrugs: string[] = [];
     const rLow = raw.toLowerCase();
     for (const d of knownDrugs) {
       if (rLow.includes(d)) {
-        foundDrugs.push(d.charAt(0).toUpperCase() + d.slice(1));
+        const name = d.charAt(0).toUpperCase() + d.slice(1);
+        let mDose: string | undefined = undefined;
+        let mFreq: string | undefined = undefined;
+
+        const dIdx = rLow.indexOf(d);
+        if (dIdx !== -1) {
+          const lStart = Math.max(0, raw.lastIndexOf('\n', dIdx));
+          const lEnd = raw.indexOf('\n', dIdx) === -1 ? raw.length : raw.indexOf('\n', dIdx);
+          const line = raw.slice(lStart, lEnd);
+
+          const doseMatch = line.match(/\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)\b/i);
+          if (doseMatch) mDose = doseMatch[0];
+
+          const freqMatch = line.match(/\b(?:1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od)\b/i);
+          if (freqMatch) mFreq = freqMatch[0].toUpperCase();
+        }
+
+        meds.push({ name, dosage: mDose, frequency: mFreq, reason: diseases[0] || 'Treatment' });
       }
-    }
-    if (foundDrugs.length > 0) {
-      meds = foundDrugs.map(name => ({ name, reason: diseases[0] || 'Treatment' }));
     }
   }
 

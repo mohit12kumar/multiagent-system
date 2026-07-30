@@ -365,19 +365,24 @@ class FormattingAgent:
             "overall_consensus": avg_disease_conf
         }
 
-        # Backwards compatibility flat list
+        # Backwards compatibility flat list with resolved dosages & frequencies
         patient_summary_list = []
         for item in state.patient_summary:
             med_dict = None
             if item.medication:
                 med = item.medication
+                resolved = next((rm for rm in raw_med_dicts if rm["name"].lower() == med.name.lower()), None)
+                resolved_dos = (resolved["dosage"] if resolved and resolved.get("dosage") and resolved.get("dosage") not in ["As prescribed", "N/A"] else None) or med.dosage
+                resolved_freq = (resolved["frequency"] if resolved and resolved.get("frequency") and resolved.get("frequency") not in ["Not Specified", "N/A"] else None) or med.frequency
+                resolved_route = (resolved["route"] if resolved and resolved.get("route") else None) or getattr(med, "route", "PO (Oral)")
                 med_dict = {
                     "name": med.name,
                     "correct": med.correct,
                     "confidence": med.confidence,
-                    "dosage": med.dosage,
-                    "frequency": med.frequency,
+                    "dosage": resolved_dos,
+                    "frequency": resolved_freq,
                     "duration": med.duration,
+                    "route": resolved_route,
                     "validation_status": med.validation_status,
                     "validation_reason": med.validation_reason
                 }
