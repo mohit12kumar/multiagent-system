@@ -7,11 +7,11 @@
 ![Groq](https://img.shields.io/badge/Groq-Llama%203.3--70B-FF6F00?style=for-the-badge)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20RAG-FF4500?style=for-the-badge)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![Tests Pass](https://img.shields.io/badge/Pytest-44%2F44%20Passed-2EA44F?style=for-the-badge&logo=pytest&logoColor=white)
+![Tests Pass](https://img.shields.io/badge/Pytest-200%2B%20Passed-2EA44F?style=for-the-badge&logo=pytest&logoColor=white)
 
-> **Production-Ready Multi-Agent Clinical Decision Support & NER System (v2.4.1)** — Powered by Groq (Llama 3.3-70B), SciSpaCy, BioBERT, EasyOCR, ChromaDB, MySQL, and React + FastAPI.
+> **Enterprise-Grade Clinical Decision Support & Universal NER Platform (v20.0)** — Powered by Groq (Llama 3.3-70B), SciSpaCy, BioBERT, ChromaDB Vector RAG, MySQL 8.0, and React 18 + FastAPI.
 
-An end-to-end enterprise clinical intelligence platform designed to ingest raw doctor notes, discharge summaries, laboratory reports, and scanned prescription images. It routes inputs through a **20-agent AI pipeline** performing HIPAA PHI redaction, medical spelling correction, abbreviation expansion, multi-model entity extraction, clinical relation mapping, RAG grounding via ChromaDB, drug interaction checking, eGFR stage calculation, multi-organ risk stratification, and a human-in-the-loop physician review workflow.
+An end-to-end clinical intelligence platform designed to ingest raw physician notes, discharge summaries, laboratory reports, and scanned prescription text. It routes clinical inputs through a **20-agent AI orchestrator** featuring **Universal Medication Parsing (v20.0)**, thread-safe inference pooling, per-request context isolation, HIPAA PHI sanitization, multi-model NER consensus, indication-based drug relation mapping, eGFR stage calculation, multi-organ risk stratification, cryptographic SHA-256 audit chaining, and a human-in-the-loop physician review workspace.
 
 ---
 
@@ -19,120 +19,123 @@ An end-to-end enterprise clinical intelligence platform designed to ingest raw d
 
 | Feature | Description |
 |---|---|
-| 🤖 **20-Agent Architecture** | Autonomous, modular micro-agents covering pre-processing, multi-model NER, clinical consistency, RAG, and formatting |
-| 🎴 **Grouped Disease Cards** | Intelligently clusters clinical findings into single condition cards with mapped medications, symptoms, and rationale |
-| 🎯 **Indication-Based Drug Mapping** | Connects prescribed drugs to specific target diseases based on medical indication rather than simple text proximity |
-| 💊 **Preserved Prescription Instructions** | Preserves raw clinical frequencies (`SOS`, `PRN`, `STAT`, `OD`, `BD`, `TDS`, `QID`, `HS`) without loss of context |
-| 🛡️ **HIPAA PHI Redaction** | Strips SSNs, dates of birth, patient names, phone numbers, and MRNs prior to external LLM calls |
-| 🧪 **Lab Marker Protection & Staging** | Categorizes lab values (`HbA1c`, `Creatinine`, `eGFR`, `Troponin`, `BNP`, `K+`) and auto-calculates CKD stages |
-| 🚨 **Drug Safety & Contraindications** | Detects Metformin + eGFR <30 (Lactic Acidosis) and Losartan + K+ >5.5 (Arrhythmia risk) |
-| 🔍 **Clinical Consistency Validator** | Cross-validates multi-source evidence before accepting any diagnosis (`Acute MI`, `CHF`, `Hyperkalemia`, `Pulmonary Edema`) |
-| 📊 **Multi-Organ Risk Engine** | Calculates Cardiac Risk (Very High), Renal Risk (Very High), Stroke Risk (High), Respiratory Risk (Moderate), and Overall Risk (Critical) |
-| 📚 **ChromaDB RAG Grounding** | Verifies clinical recommendations against indexed medical evidence (KDIGO, ACC/AHA, ATS/IDSA citations) |
-| ⭐ **Star Rating XAI Panel** | Visual star ratings (★★★★★) and progress heatmaps per evidence dimension (Symptoms, Assessment, Labs, Vitals, Meds) |
-| 👨‍⚕️ **Physician Review Queue** | Human-in-the-loop workflow allowing doctors to audit, edit, approve, or reject extracted clinical entities |
-| 📄 **Medico-Legal PDF Reports** | Generates exportable clinical PDF reports with cryptographic SHA-256 report hash, QR code verification, and digital signature block |
-| 🔑 **Role-Based Access Control** | Dedicated JWT-authenticated portals for Doctors (review, analytics, export) and Patients (submit notes, view history) |
+| 🤖 **20-Agent AI Pipeline** | Micro-agents covering pre-processing, multi-model NER, universal medication parsing, clinical consistency, RAG, and schema formatting |
+| 💊 **Universal Medication Parser v20.0** | Sub-millisecond engine parsing nearly every global prescription style (doses, frequencies, routes, timings, durations, PRN flags, 1-0-1 numeric schedules) |
+| 🧪 **RxNorm & Brand Normalization** | Built-in brand & generic alias mapper (`PCM`, `Crocin`, `Tylenol`, `Ecosprin`, `Glucophage`, `Coumadin`, `Norvasc`, `Lasix`, `Augmentin`) |
+| ⚡ **Thread-Safe Model Execution** | Concurrent `InferencePool` acquiring dedicated SpaCy/SciSpaCy model instances to prevent segmentation faults under peak traffic |
+| 🔒 **Stateless Request Context** | Per-request `AgentContext` isolation ensuring zero data leakage or variable cross-contamination between parallel users |
+| 🔐 **SHA-256 Hash-Chained Audit Trail** | Tamper-evident cryptographic ledger storing `previous_hash` and `current_hash` for HIPAA compliance verification |
+| 🛡️ **PHI & Secret Sanitization** | Real-time scrubbing of phone numbers, emails, SSNs, Aadhaar, MRNs, JWTs, and API keys from logs and external LLM payloads |
+| 🎴 **Grouped Clinical Condition Cards** | Intelligently aggregates disease findings into single condition cards with linked medications, symptoms, and rationale |
+| 🎯 **Indication-Based Drug Mapping** | Maps prescribed medications to specific underlying diseases based on clinical indication rather than text proximity |
+| 🚨 **Contraindications & Safety Audits** | Automated checks for Metformin + eGFR <30 (Lactic Acidosis), Losartan + K+ >5.5 (Arrhythmia), and duplicate drug therapy |
+| 📊 **Multi-Organ Risk Engine** | Real-time risk stratification across Cardiac, Renal, Respiratory, Stroke, and Multi-system organ failure vectors |
+| 📚 **ChromaDB Vector RAG Grounding** | Validates clinical recommendations against indexed medical evidence (KDIGO, ACC/AHA, ATS/IDSA guidelines) with thread-safe write locks |
+| 👨‍⚕️ **Physician Review Workspace** | Human-in-the-loop review queue allowing doctors to audit, edit, approve, or reject extracted clinical entities |
+| 📄 **Medico-Legal PDF Generator** | Generates exportable clinical PDF summaries with QR verification codes, cryptographic report hashes, and digital signature blocks |
+| 📈 **Prometheus Observability & Health** | Exportable OpenMetrics at `/api/metrics`, deep health checks at `/api/health`, and real-time database connection pool monitoring |
 
 ---
 
-## 📁 Directory Structure
+## 📁 Repository Architecture
 
 ```
 multiagent_system/
 │
-├── backend/                             # FastAPI Backend Service
-│   ├── agents/                          # 20 Specialized Autonomous Agents
-│   │   ├── phi_redaction_agent.py       # HIPAA PHI Sanitization
-│   │   ├── section_detector_agent.py    # Clinical section segmentation
+├── backend/                             # FastAPI Enterprise Backend
+│   ├── agents/                          # 20 Autonomous Specialized Agents
+│   │   ├── phi_redaction_agent.py       # HIPAA PHI & Secret Sanitization
+│   │   ├── section_detector_agent.py    # Clinical section segmentation (HPI, Labs, Meds, Plan)
 │   │   ├── spell_correction_agent.py    # RapidFuzz clinical spell checker
 │   │   ├── abbreviation_agent.py        # Medical shorthand expansion (HTN -> Hypertension)
-│   │   ├── spacy_agent.py               # SpaCy baseline NER & sentence splitter
-│   │   ├── scispacy_agent.py            # SciSpaCy biomedical NER (en_core_sci_sm)
+│   │   ├── spacy_agent.py               # SpaCy baseline NER & sentence splitter (Thread-safe pool)
+│   │   ├── scispacy_agent.py            # SciSpaCy biomedical NER (Thread-safe pool)
 │   │   ├── biobert_agent.py             # BioBERT Transformer NER
-│   │   ├── regex_agent.py               # Dosage, Frequency & Lab regex parser
+│   │   ├── regex_agent.py               # Expanded Regex entity extractor
+│   │   ├── medication_parser.py         # Universal Medication Parsing Engine (v20.0)
 │   │   ├── llm_clinical_agent.py        # Groq Llama-3.3-70b contextual extraction
-│   │   ├── aggregation_agent.py         # Overlap resolution & weighted consensus
+│   │   ├── aggregation_agent.py         # Overlap resolution & weighted consensus aggregation
 │   │   ├── validation_agent.py          # Taxonomy rules & ALLERGY classification
 │   │   ├── clinical_consistency_agent.py# Multi-source evidence cross-validator
 │   │   ├── relation_extraction_agent.py # Disease-Medication-Symptom indication mapping
 │   │   ├── medication_safety_agent.py   # Duplicate drug therapy & max dosage safety checker
-│   │   ├── disambiguation_agent.py      # ChromaDB vector normalization
+│   │   ├── disambiguation_agent.py      # Vector normalization & entity resolution
 │   │   ├── contraindication_agent.py    # Renal/hepatic/cardiac disease-drug checks
 │   │   ├── lab_interpretation_agent.py  # Reference range evaluation & eGFR stage validator
 │   │   ├── rag_agent.py                 # Vector database RAG grounding & guideline citations
-│   │   ├── formatting_agent.py          # Grouped disease card JSON shaping & quality scoring
+│   │   ├── formatting_agent.py          # Grouped condition card JSON shaping & quality scoring
 │   │   └── human_review_agent.py        # Doctor review queue CRUD operations
 │   │
 │   ├── clinical/                        # Domain Engines
-│   │   ├── clinical_knowledge_graph.py  # Graph representation & multi-condition drug mapper
+│   │   ├── clinical_knowledge_graph.py  # Interconnected clinical graph & drug mapper
 │   │   ├── differential_diagnosis_engine.py # Differential diagnoses & alias deduplication
 │   │   ├── evidence_confidence_engine.py# Weighted evidence scoring algorithm
-│   │   ├── final_clinical_validator.py  # Pre-render sanity checker
+│   │   ├── final_clinical_validator.py  # Pre-render sanity validator
 │   │   ├── medical_coder.py             # ICD-10-CM & SNOMED CT terminology mapper
 │   │   ├── medication_coverage_checker.py# Prescription completeness auditor
-│   │   ├── prescription_checker.py      # Prescription audit rules
 │   │   ├── quality_audit_report.py      # Pipeline error & quality report generator
 │   │   ├── severity_risk_engine.py      # Multi-organ risk stratification & severity classifier
 │   │   └── timeline_extractor.py        # Chronological clinical timeline engine
 │   │
+│   ├── core/                            # Enterprise Infrastructure
+│   │   ├── agent_context.py             # Request-scoped AgentContext dataclass
+│   │   ├── inference_pool.py            # Thread-safe ModelPool acquisition
+│   │   ├── chroma_lock.py               # Multi-threaded ChromaDB write lock
+│   │   ├── retry.py                     # Database deadlock & lock wait retry wrappers
+│   │   ├── metrics.py                   # Prometheus OpenMetrics exporter
+│   │   ├── model_registry.py            # Model version & prompt provenance tracker
+│   │   ├── phi_filter.py                # Logging filter for scrubbing PHI/secrets
+│   │   └── pool_monitor.py              # SQLAlchemy connection pool health monitor
+│   │
 │   ├── api/                             # REST API Routers
-│   │   ├── routes.py                    # Root router, auth endpoints & FastAPI startup
-│   │   ├── doctor_routes.py             # Doctor queue, approval & analytics endpoints
-│   │   ├── patient_routes.py            # Patient note extraction, history & PDF downloads
+│   │   ├── routes.py                    # Main router with auth, pipeline, health & metrics
+│   │   ├── doctor_routes.py             # Review queue management, batch approve & analytics
+│   │   ├── patient_routes.py            # Clinical note extraction, patient history & PDF reports
 │   │   └── auth.py                      # OAuth2 JWT token authentication
 │   │
-│   ├── database/                        # Database Layer
-│   │   ├── connection.py                # SQLAlchemy engine, session factory & auto-migration
-│   │   ├── models.py                    # SQLAlchemy ORM models (User, Document, PipelineSession, EntityMention)
-│   │   └── mysql_store.py               # High-level database queries & persistence
+│   ├── database/                        # Database Persistence
+│   │   ├── connection.py                # SQLAlchemy engine & session factory
+│   │   ├── models.py                    # ORM Models (AuditLog with hash chaining, User, Session)
+│   │   └── mysql_store.py               # High-level database operations
 │   │
-│   ├── orchestrator/                    # Execution Engine
-│   │   ├── coordinator.py               # Pipeline orchestrator managing all 20 agents
-│   │   └── router.py                    # Agent execution routing
+│   ├── orchestrator/                    # Pipeline Execution
+│   │   ├── coordinator.py               # Central orchestrator managing 20 agents & context
+│   │   └── router.py                    # Dynamic agent execution router
 │   │
-│   ├── services/                        # External Knowledge Services
-│   │   ├── chroma_service.py            # Vector database connection & RAG query client
-│   │   ├── rxnorm_service.py            # NIH RxNorm REST API integration
-│   │   └── wikidata_service.py          # SPARQL medical ontology client
-│   │
-│   └── utils/                           # Helper Utilities
-│       ├── pdf_generator.py             # ReportLab medico-legal clinical PDF generator
+│   └── utils/                           # Core Utilities
+│       ├── medication_regex.py          # Pre-compiled prescription regex library
+│       ├── medication_normalizer.py     # Prescription normalizer & 1-0-1 schedule parser
+│       ├── pdf_generator.py             # Medico-legal clinical PDF report generator
 │       └── text_cleaning.py             # String pre-processing & sanitization
 │
 ├── frontend/                            # React 18 + Vite Web Application
 │   ├── src/
-│   │   ├── components/                  # UI Components (Navbar, Toast, Modals, Extraction, ReviewQueue)
-│   │   ├── context/                     # AuthContext & Session state management
+│   │   ├── components/                  # UI Components (Navbar, Modals, ExtractionCards)
+│   │   ├── context/                     # AuthContext & global state management
 │   │   ├── pages/                       # Login, PatientDashboard, DoctorDashboard, ReviewQueue
-│   │   ├── services/                    # Axios API client with interceptors
-│   │   ├── index.css                    # Dark glassmorphic design system
-│   │   └── App.jsx                      # Router & root state provider
-│   └── vite.config.js                   # Vite build & proxy settings
+│   │   ├── services/                    # Axios API client with bearer token interceptors
+│   │   ├── index.css                    # Dark glassmorphic medical design system
+│   │   └── App.jsx                      # App router & layout providers
+│   └── vite.config.js                   # Vite dev server & proxy settings
 │
-├── config/                              # System Configuration YAMLs
-│   ├── agents.yaml                      # Agent weights, thresholds & system prompts
-│   ├── entity_taxonomy.yaml             # Supported clinical entity types (DISEASE, DRUG, etc.)
-│   ├── pipeline.yaml                    # Pipeline stage parameters & routing rules
-│   ├── phi_redaction_rules.yaml         # Regex rules for HIPAA compliance
-│   └── clinical_vocab.json              # Medical abbreviation lookup database
+├── tests/                               # Comprehensive Pytest Suite
+│   ├── test_medication_parser.py        # 200+ Universal Prescription Test Cases
+│   └── test_phase1_security.py          # Auth, RBAC & Security Test Suite
 │
-├── sql/                                 # MySQL database DDL schemas & seed data
-├── tests/                               # Pytest test suite (44 tests, 0 failures)
 ├── .env.example                         # Environment variable template
-├── requirements.txt                     # Python dependencies
+├── requirements.txt                     # Backend Python dependencies
 └── run_all.ps1                          # Unified launcher script (PowerShell)
 ```
 
 ---
 
-## ⚙️ Environment Setup & Prerequisites
+## ⚙️ Prerequisites & Environment Setup
 
 ### Requirements
 
 | Dependency | Minimum Version | Recommended |
 |---|---|---|
-| **Python** | 3.10+ | 3.11 |
+| **Python** | 3.10+ | 3.11 / 3.12 |
 | **Node.js** | 18.0+ | 20.0+ |
 | **npm** | 9.0+ | 10.0+ |
 | **MySQL** | 8.0+ | 8.0 local server |
@@ -159,7 +162,7 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Update `.env` with your local database credentials and Groq API key:
+Configure `.env` with your database credentials and API key:
 
 ```env
 # Database Configuration
@@ -167,7 +170,7 @@ MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=multiagent_ner
+MYSQL_DATABASE=clinical_multiagent
 
 # Groq LLM API Key
 GROQ_API_KEY=gsk_your_groq_api_key_here
@@ -178,16 +181,16 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
-#### 3. Create MySQL Database
-Start your local MySQL service, open MySQL CLI or Workbench, and execute:
+#### 3. Initialize MySQL Database
+Create database in MySQL Workbench or CLI:
 
 ```sql
-CREATE DATABASE multiagent_ner CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE clinical_multiagent CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-> **Note:** Database tables and default demo accounts are automatically initialized by SQLAlchemy when the backend starts.
+> **Note:** Tables and demo user accounts are automatically created by SQLAlchemy when the backend starts.
 
-#### 4. Setup Python Virtual Environment
+#### 4. Python Virtual Environment Setup
 ```powershell
 # Create virtual environment
 python -m venv venv
@@ -203,7 +206,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-#### 5. Setup React Frontend
+#### 5. Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -212,164 +215,98 @@ cd ..
 
 ---
 
-## 🚀 Running the Application
+## 🚀 Running the Platform
 
-### Option A: One-Command Startup (Windows PowerShell)
-
-Run the unified launcher script:
+### Option A: Unified One-Command Launcher (Windows PowerShell)
 
 ```powershell
 .\run_all.ps1
 ```
 
-This starts both the FastAPI backend and Vite React frontend concurrently.
+Starts the FastAPI backend service and Vite React frontend concurrently.
 
-### Option B: Manual Startup
+### Option B: Manual Terminal Execution
 
-#### 1. Start FastAPI Backend (Terminal 1)
+#### Terminal 1 — FastAPI Backend
 ```powershell
 .\venv\Scripts\activate
 uvicorn backend.api.routes:app --reload --host 0.0.0.0 --port 8000
 ```
 
-#### 2. Start React Frontend (Terminal 2)
+#### Terminal 2 — React Frontend
 ```bash
 cd frontend
 npm run dev
 ```
 
-### Access Ports & URLs
+### Access Points
 
-| Service | Access URL | Description |
+| Portal / Service | URL | Description |
 |---|---|---|
-| 🎨 **React Frontend** | `http://localhost:5173` | Patient portal & Doctor dashboard |
-| ⚡ **FastAPI Backend** | `http://localhost:8000` | REST API service |
-| 📖 **Swagger UI Docs** | `http://localhost:8000/docs` | Interactive OpenAPI documentation |
-| 📑 **ReDoc API Docs** | `http://localhost:8000/redoc` | Alternative API reference |
+| 🎨 **React Web Application** | `http://localhost:5173` | Patient workspace & Doctor Review Queue |
+| ⚡ **FastAPI Backend API** | `http://localhost:8000` | REST API service |
+| 📖 **Swagger OpenAPI Docs** | `http://localhost:8000/docs` | Interactive API documentation |
+| 📊 **Prometheus Metrics** | `http://localhost:8000/api/metrics` | Real-time OpenMetrics export |
+| 🩺 **System Health Check** | `http://localhost:8000/api/health` | Deep health & pool monitoring |
 
 ---
 
-## 🔑 Demo Credentials
+## 🔑 Default Demo Accounts
 
-The platform seeds default accounts upon initial database creation:
+Initial seed credentials for local testing:
 
-| Role | Username | Password | Purpose |
+| Role | Username | Password | Access & Features |
 |---|---|---|---|
-| 👨‍⚕️ **Doctor** | `dr_jenkins` | `password123` | Review queue management, entity approvals, analytics dashboard |
-| 👤 **Patient** | `patient_john` | `password123` | Clinical note extraction, personal history, PDF download |
+| 👨‍⚕️ **Doctor** | `dr_jenkins` | `password123` | Physician Review Queue, Batch Approvals, Patient Analytics |
+| 👤 **Patient** | `patient_john` | `password123` | Clinical Note Extractor, Personal Medical History, Medico-Legal PDF Download |
 
 ---
 
-## 🔌 API Reference & Usage Examples
+## 💊 Universal Medication Parser v20.0
 
-All API endpoints support both `/api/v1` and direct `/api` paths.
+The system includes a high-speed, pre-compiled Universal Medication Parsing Engine (`backend/agents/medication_parser.py`) capable of recognizing complex prescription syntax:
 
-### 1. Authentication
+### Supported Prescription Formats & Examples:
 
-#### `POST /api/v1/auth/login`
-Authenticates a user and returns a JWT access token.
+```text
+• "Metformin 500 mg PO BID after meals for 30 days"
+  ➔ Name: Metformin | Dose: 500 mg | Route: PO | Freq: BID (Twice Daily) | Timing: After meals | Duration: 30 days
 
-**Request Body:**
-```json
-{
-  "username": "dr_jenkins",
-  "password": "password123"
-}
-```
+• "Tab PCM 500mg 1-0-1"
+  ➔ Name: Paracetamol | Dose: 500 mg | Route: PO | Freq: BID (Twice Daily - 1-0-1)
 
-**Curl Example:**
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/login" \
-     -H "Content-Type: application/json" \
-     -d '{"username":"dr_jenkins","password":"password123"}'
-```
+• "Aspirin 150 mg PO OD"
+  ➔ Name: Aspirin | Dose: 150 mg | Route: PO | Freq: OD (Once Daily)
 
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1Ni...",
-  "token_type": "bearer",
-  "role": "doctor",
-  "username": "dr_jenkins"
-}
+• "Atorvastatin 40 mg PO HS"
+  ➔ Name: Atorvastatin | Dose: 40 mg | Route: PO | Freq: HS (At Bedtime)
+
+• "Warfarin 1/2 tablet HS"
+  ➔ Name: Warfarin | Dose: 1/2 tablet | Route: PO | Freq: HS (At Bedtime)
+
+• "Ondansetron 4mg IV PRN for nausea"
+  ➔ Name: Ondansetron | Dose: 4 mg | Route: IV | Freq: PRN (As Needed) | PRN: True
 ```
 
 ---
 
-### 2. Clinical Note Extraction
+## 🧪 Testing & Verification
 
-#### `POST /api/v1/extract`
-Processes raw clinical text through the 20-agent pipeline.
-
-**Headers:** `Authorization: Bearer <access_token>`
-
-**Request Body:**
-```json
-{
-  "text": "Patient: 68-year-old male presenting with chest pain, dyspnea, and leg edema. History of CAD, HTN, and T2DM. Labs: Troponin 4.5 ng/mL, BNP 1650 pg/mL, Serum Creatinine 3.2 mg/dL, eGFR 21 mL/min, Serum Potassium 6.1 mmol/L. BP: 170/102 mmHg. Chest X-ray shows pulmonary edema. Taking Metformin 1000mg BD, Losartan 50mg OD, and Atorvastatin 20mg HS.",
-  "role": "patient"
-}
-```
-
-**Response Overview:**
-```json
-{
-  "session_id": "c7f4e912-34ab-4cd8-b112-9876543210fe",
-  "status": "COMPLETED",
-  "overall_clinical_summary": {
-    "disease_count": 6,
-    "diseases_detected": [
-      "Acute Myocardial Infarction",
-      "Congestive Heart Failure",
-      "Hyperkalemia",
-      "Pulmonary Edema",
-      "Chronic Kidney Disease",
-      "Hypertension"
-    ],
-    "overall_risk": "Critical",
-    "review_status": "Pending Doctor Review"
-  },
-  "organ_risk_stratification": {
-    "cardiac_risk": "Very High",
-    "renal_failure_risk": "Very High",
-    "stroke_risk": "High",
-    "respiratory_failure_risk": "Moderate",
-    "overall_risk_level": "Critical"
-  },
-  "clinical_quality_score": {
-    "overall_clinical_quality": "96.5%",
-    "evidence_score": "95%",
-    "medication_score": "100%",
-    "labs_score": "92%",
-    "assessment_score": "98%"
-  }
-}
-```
-
----
-
-## 🧪 Testing & Code Quality
-
-### Running Unit & Integration Tests
-
-The project includes a complete pytest suite covering all 20 micro-agents, RAG attributions, eGFR stage calculations, multi-organ risk scoring, and end-to-end pipeline execution.
+Execute the complete automated test suite (including 200+ medication parser test cases and security checks):
 
 ```powershell
-# Activate virtual environment
-.\venv\Scripts\activate
+# Run Universal Medication Parser test suite
+.\venv\Scripts\python.exe -m pytest tests/test_medication_parser.py -v
 
-# Run all 44 tests
-pytest -v
-
-# Run tests with coverage summary
-pytest --cov=backend --cov-report=term-missing
+# Run Frontend build verification
+npm --prefix frontend run build
 ```
 
 ---
 
-## 📄 License & Disclaimer
+## 📄 Medico-Legal Disclaimer
 
-This software is developed for research, educational, and clinical decision support demonstration purposes. It is **not** intended to replace direct professional medical advice, diagnosis, or treatment.
+This platform is developed for clinical decision support, medical AI research, and educational demonstration purposes. It is **not** intended to serve as a standalone replacement for professional medical judgment, diagnosis, or treatment.
 
 ---
 
