@@ -32,6 +32,7 @@ from backend.agents.human_review_agent import HumanReviewAgent
 from backend.agents.spell_correction_agent import MedicalSpellCorrectionAgent
 from backend.agents.abbreviation_agent import MedicalAbbreviationAgent
 from backend.agents.section_detector_agent import SectionDetectorAgent
+from backend.agents.medication_parser import MedicationParserAgent
 
 from backend.orchestrator.router import Router
 from src.monitoring.logger import logger, set_log_context
@@ -215,6 +216,15 @@ class Coordinator:
                 logger.warning(f"[{session_id}] Validation failed (non-fatal): {e}")
                 failed_stages.append("VALIDATION")
                 metrics_collector.record_stage("VALIDATION", 0, False)
+
+            # ── Stage 5.5: Universal Medication Parsing ───────────────────────
+            try:
+                t0 = time.time()
+                parsed_prescriptions = MedicationParserAgent.parse_text(state.text)
+                state.metadata["parsed_prescriptions"] = parsed_prescriptions
+                metrics_collector.record_stage("MEDICATION_PARSER", time.time() - t0, True)
+            except Exception as e:
+                logger.warning(f"[{session_id}] Universal Medication Parser failed (non-fatal): {e}")
 
             # ── Stage 6: Relation Extraction ─────────────────────────────────
             try:

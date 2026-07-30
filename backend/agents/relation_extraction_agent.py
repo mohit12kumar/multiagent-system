@@ -317,6 +317,8 @@ class RelationExtractionAgent:
         medication_details: List[MedicationDetailModel] = []
         drug_to_med: Dict[str, MedicationDetailModel] = {}
 
+        parsed_prescriptions = getattr(state, "metadata", {}).get("parsed_prescriptions", [])
+
         for dr in drugs:
             window = full_text[max(0, dr.start_char - 20): min(len(full_text), dr.end_char + 80)]
             form_val   = infer_formulation(dr.text, window)
@@ -324,6 +326,18 @@ class RelationExtractionAgent:
             freq_val   = expand_frequency(self._find_after(dr, frequencies, full_text, self.default_frequency))
             dur_val    = self._find_after(dr, durations, full_text, None)
             route_val  = infer_route(dr.text, form_val, window)
+
+            # Check MedicationParserAgent results
+            matched_p = next((p for p in parsed_prescriptions if p["name"].lower() == dr.text.lower() or dr.text.lower() in p["name"].lower()), None)
+            if matched_p:
+                if matched_p.get("dose") and matched_p["dose"] != "Unspecified":
+                    dosage_val = matched_p["dose"]
+                if matched_p.get("normalized_frequency"):
+                    freq_val = matched_p["normalized_frequency"]
+                if matched_p.get("route") and matched_p["route"] != "PO":
+                    route_val = matched_p["route"]
+                if matched_p.get("duration") and matched_p["duration"] != "Not Specified":
+                    dur_val = matched_p["duration"]
 
             # Validate dosage & formulation clinically
             is_valid, warning = DosageValidationAgent.validate(dr.text, dosage_val, route_val, form_val)
