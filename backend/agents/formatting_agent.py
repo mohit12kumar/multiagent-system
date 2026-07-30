@@ -139,41 +139,65 @@ class FormattingAgent:
         def resolve_med_dosage_span(drug_name: str) -> str:
             drug_ents = [e for e in active_entities if e.type == "DRUG" and e.text.lower() == drug_name.lower()]
             dosage_ents = [e for e in active_entities if e.type == "DOSAGE"]
-            if not drug_ents or not dosage_ents or not state.text:
-                return "Not Specified"
-            best_dist = float("inf")
             best_dos = "Not Specified"
-            for d_e in drug_ents:
-                d_start = d_e.start_char
-                for dos_e in dosage_ents:
-                    dos_start = dos_e.start_char
-                    text_between = state.text[min(d_start, dos_start):max(d_start, dos_start)]
-                    if "." in text_between or "\n" in text_between:
-                        continue
-                    dist = abs(d_start - dos_start)
-                    if dist < best_dist and dist < 45:
-                        best_dist = dist
-                        best_dos = dos_e.text
+            if drug_ents and dosage_ents and state.text:
+                best_dist = float("inf")
+                for d_e in drug_ents:
+                    d_start = d_e.start_char
+                    for dos_e in dosage_ents:
+                        dos_start = dos_e.start_char
+                        text_between = state.text[min(d_start, dos_start):max(d_start, dos_start)]
+                        if "\n\n" in text_between or re.search(r'\.\s+[A-Z]', text_between):
+                            continue
+                        dist = abs(d_start - dos_start)
+                        if dist < best_dist and dist < 200:
+                            best_dist = dist
+                            best_dos = dos_e.text
+
+            # Direct line regex fallback if not resolved from entities
+            if (best_dos == "Not Specified" or not best_dos) and state.text:
+                drug_idx = state.text.lower().find(drug_name.lower())
+                if drug_idx != -1:
+                    line_start = state.text.rfind('\n', 0, drug_idx)
+                    line_start = 0 if line_start == -1 else line_start + 1
+                    line_end = state.text.find('\n', drug_idx)
+                    line_end = len(state.text) if line_end == -1 else line_end
+                    line_text = state.text[line_start:line_end]
+                    m = re.search(r'\b\d+(?:\.\d+)?\s*(?:mg|g|gm|mcg|ml|mL|IU|iu|units?|tablets?|tabs?|capsules?|puffs?)\b', line_text, re.IGNORECASE)
+                    if m:
+                        best_dos = m.group(0).strip()
             return best_dos
 
         def resolve_med_frequency_span(drug_name: str) -> str:
             drug_ents = [e for e in active_entities if e.type == "DRUG" and e.text.lower() == drug_name.lower()]
             freq_ents = [e for e in active_entities if e.type == "FREQUENCY"]
-            if not drug_ents or not freq_ents or not state.text:
-                return "Not Specified"
-            best_dist = float("inf")
             best_freq = "Not Specified"
-            for d_e in drug_ents:
-                d_start = d_e.start_char
-                for f_e in freq_ents:
-                    f_start = f_e.start_char
-                    text_between = state.text[min(d_start, f_start):max(d_start, f_start)]
-                    if "." in text_between or "\n" in text_between:
-                        continue
-                    dist = abs(d_start - f_start)
-                    if dist < best_dist and dist < 65:
-                        best_dist = dist
-                        best_freq = f_e.text
+            if drug_ents and freq_ents and state.text:
+                best_dist = float("inf")
+                for d_e in drug_ents:
+                    d_start = d_e.start_char
+                    for f_e in freq_ents:
+                        f_start = f_e.start_char
+                        text_between = state.text[min(d_start, f_start):max(d_start, f_start)]
+                        if "\n\n" in text_between or re.search(r'\.\s+[A-Z]', text_between):
+                            continue
+                        dist = abs(d_start - f_start)
+                        if dist < best_dist and dist < 200:
+                            best_dist = dist
+                            best_freq = f_e.text
+
+            # Direct line regex fallback if not resolved from entities
+            if (best_freq == "Not Specified" or not best_freq) and state.text:
+                drug_idx = state.text.lower().find(drug_name.lower())
+                if drug_idx != -1:
+                    line_start = state.text.rfind('\n', 0, drug_idx)
+                    line_start = 0 if line_start == -1 else line_start + 1
+                    line_end = state.text.find('\n', drug_idx)
+                    line_end = len(state.text) if line_end == -1 else line_end
+                    line_text = state.text[line_start:line_end]
+                    m = re.search(r'\b(?:1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos)\b', line_text, re.IGNORECASE)
+                    if m:
+                        best_freq = m.group(0).strip()
             return best_freq
 
         def resolve_med_route(drug_name: str) -> str:

@@ -11,13 +11,16 @@ class RegexAgent:
 
         self.patterns = {
             # ── Dosage ───────────────────────────────────────────────────
-            # Match drug dosages (mg, g, mcg, ml, IU, units) but NOT lab values (mg/dL)
+            # Match drug dosages (mg, g, gm, mcg, ml, IU, units, tabs) but NOT lab values (mg/dL)
             "DOSAGE": [
-                r'\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ug|ml|IU|units?|pills?|tablets?|capsules?|puff|puffs|drops)\b(?!\s*/\s*(?:dL|L|mL))'
+                r'\b\d+(?:\.\d+)?\s*(?:mg|g|gm|mcg|ug|ml|mL|IU|iu|units?|pills?|tablets?|tabs?|capsules?|caps?|puff|puffs|drops)\b(?!\s*/\s*(?:dL|L|mL))',
+                r'(?i)\b(?:1/2|1/4|half|one|two|three)\s+(?:tablet|tab|capsule|cap|puff|puffs|drops?)\b'
             ],
 
             # ── Frequency ────────────────────────────────────────────────
             "FREQUENCY": [
+                # Prescription shorthand notation: 1-0-1, 1-1-1, 1-0-0, 0-0-1, 0-1-0
+                r'\b[0-3]-(?:[0-3]-)?[0-3](?:-[0-3])?\b',
                 # Numeric forms: '1 time daily', '3 times a day'
                 r'(?i)\b(?:1 time|2 times|3 times|4 times|5 times|6 times)\s+(?:daily|a day|per day|weekly|monthly)\b',
                 # Word forms with spelled-out numbers
@@ -26,8 +29,8 @@ class RegexAgent:
                 r'(?i)\b(?:every\s+night|every\s+morning|every\s+evening|at\s+bedtime|at\s+night|at\s+breakfast|in\s+the\s+morning|in\s+the\s+evening)\b',
                 # Interval patterns: 'every 8 hours', 'every other day'
                 r'(?i)\bevery\s+(?:\d+\s+hours?|other\s+day|alternate\s+day)\b',
-                # Latin/short abbreviations (TDS, TID, BD, QID, PRN, SOS, etc.)
-                r'(?i)\b(?:once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|prn|sos|as needed|as required)\b'
+                # Latin/short abbreviations (TDS, TID, BD, QID, QDS, HS, PRN, SOS, etc.)
+                r'(?i)\b(?:once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|bbf|pc|ac|as needed|as required|at bedtime)\b'
             ],
 
             # ── Duration ─────────────────────────────────────────────────

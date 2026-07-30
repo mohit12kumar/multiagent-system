@@ -207,12 +207,21 @@ _FREQUENCY_EXPANSIONS: Dict[str, str] = {
     "qd": "Once Daily (QD)",
     "od": "Once Daily (OD)",
     "qid": "Four Times Daily (QID)",
+    "qds": "Four Times Daily (QDS)",
+    "hs": "At Bedtime (HS)",
+    "stat": "Immediately (STAT)",
     "prn": "As Needed (PRN)",
     "sos": "As Needed (SOS)",
+    "1-0-1": "Twice Daily (1-0-1)",
+    "1-1-1": "Three Times Daily (1-1-1)",
+    "1-0-0": "Once Daily Morning (1-0-0)",
+    "0-0-1": "Once Daily Night (0-0-1)",
+    "0-1-0": "Once Daily Afternoon (0-1-0)",
+    "1-1-1-1": "Four Times Daily (1-1-1-1)",
 }
 
 def expand_frequency(freq_str: str) -> str:
-    """Expand Latin frequency abbreviations to full clinical descriptions."""
+    """Expand Latin frequency abbreviations and 1-0-1 shorthand to full clinical descriptions."""
     if not freq_str:
         return "Once Daily"
     f_low = freq_str.strip().lower()
@@ -499,22 +508,44 @@ class RelationExtractionAgent:
         return None
 
     def _find_after(self, drug, candidates, full_text, default):
-        best, best_dist = None, 60
+        best, best_dist = None, 150
         for c in candidates:
             dist = c.start_char - drug.end_char
             if 0 <= dist < best_dist:
                 between = full_text[drug.end_char:c.start_char]
-                if '.' in between or ';' in between:
+                # Break only on true sentence boundaries (period followed by capital letter)
+                if re.search(r'\.\s+[A-Z]', between) or ';\n' in between or '\n\n' in between:
                     continue
                 if any(inh in drug.text.lower() for inh in ["salbutamol", "salbutmol", "albuterol", "fluticasone", "budesonide", "tiotropium"]):
                     if c.text.strip().lower().endswith("g") and not c.text.strip().lower().endswith("mcg"):
                         continue
                 best, best_dist = c.text, dist
-            elif -40 <= dist < 0:
+            elif -100 <= dist < 0:
                 between = full_text[c.end_char:drug.start_char]
-                if '.' not in between and ';' not in between:
-                    if best is None:
+                if not re.search(r'\.\s+[A-Z]', between) and '\n\n' not in between:
+                    if best is None or abs(dist) < best_dist:
                         best, best_dist = c.text, abs(dist)
+
+        # Fallback: if candidate list yielded nothing, scan full_text line containing drug
+        if not best and full_text and drug.text:
+            drug_idx = full_text.lower().find(drug.text.lower())
+            if drug_idx != -1:
+                line_start = full_text.rfind('\n', 0, drug_idx)
+                line_start = 0 if line_start == -1 else line_start + 1
+                line_end = full_text.find('\n', drug_idx)
+                line_end = len(full_text) if line_end == -1 else line_end
+                line_text = full_text[line_start:line_end]
+
+                # If default suggests dosage candidate search
+                if default == self.default_dosage:
+                    m = re.search(r'\b\d+(?:\.\d+)?\s*(?:mg|g|gm|mcg|ml|mL|IU|iu|units?|tablets?|tabs?|capsules?|puffs?)\b', line_text, re.IGNORECASE)
+                    if m:
+                        best = m.group(0).strip()
+                elif default == self.default_frequency:
+                    m = re.search(r'\b(?:1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos)\b', line_text, re.IGNORECASE)
+                    if m:
+                        best = m.group(0).strip()
+
         return best if best else default
 
     def _nearest_disease(self, entity, diseases, window):
