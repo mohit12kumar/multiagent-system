@@ -8,10 +8,15 @@ and Prometheus OpenMetrics export.
 
 import time
 import os
-import psutil
 import threading
 from collections import defaultdict, deque
 from typing import Dict, Any, List
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 class MetricsCollector:
     """
@@ -61,9 +66,17 @@ class MetricsCollector:
     def get_metrics_summary(self) -> Dict[str, Any]:
         with self._lock:
             uptime = round(time.time() - self.start_time, 2)
-            mem = psutil.virtual_memory()
-            proc = psutil.Process(os.getpid())
-            proc_mem = proc.memory_info().rss / (1024 * 1024)  # MB
+            if PSUTIL_AVAILABLE:
+                try:
+                    mem = psutil.virtual_memory()
+                    proc = psutil.Process(os.getpid())
+                    proc_mem = round(proc.memory_info().rss / (1024 * 1024), 2)
+                    mem_percent = mem.percent
+                    cpu_percent = psutil.cpu_percent(interval=None)
+                except Exception:
+                    proc_mem, mem_percent, cpu_percent = 0.0, 0.0, 0.0
+            else:
+                proc_mem, mem_percent, cpu_percent = 0.0, 0.0, 0.0
 
             pipeline_lats = list(self.latencies["pipeline"])
             avg_pipeline_lat = round(sum(pipeline_lats) / len(pipeline_lats), 3) if pipeline_lats else 0.0
@@ -86,9 +99,9 @@ class MetricsCollector:
 
             return {
                 "uptime_seconds": uptime,
-                "process_memory_mb": round(proc_mem, 2),
-                "system_memory_percent": mem.percent,
-                "cpu_utilization_percent": psutil.cpu_percent(interval=None),
+                "process_memory_mb": proc_mem,
+                "system_memory_percent": mem_percent,
+                "cpu_utilization_percent": cpu_percent,
                 "pipeline_metrics": {
                     "total_requests": self.counters["pipeline_requests_total"],
                     "successful_requests": self.counters["pipeline_requests_success"],

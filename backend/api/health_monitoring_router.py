@@ -3,13 +3,6 @@ import sys
 import time
 import platform
 from typing import Dict, Any
-
-import os
-import sys
-import time
-import platform
-import psutil
-from typing import Dict, Any
 from backend.core.metrics import metrics_collector
 
 class HealthMonitoringRouter:
