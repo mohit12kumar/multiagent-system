@@ -195,8 +195,10 @@ app.add_exception_handler(ClinicalSystemError, clinical_error_handler)
 app.add_exception_handler(Exception, unhandled_error_handler)
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-# Include once with /api/v1 prefix; keep bare aliases only for critical endpoints
+# Include routers under both /api and /api/v1 prefixes so frontend requests match seamlessly
+app.include_router(doctor_router, prefix="/api")
 app.include_router(doctor_router, prefix="/api/v1")
+app.include_router(patient_router, prefix="/api")
 app.include_router(patient_router, prefix="/api/v1")
 
 

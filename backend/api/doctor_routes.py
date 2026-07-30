@@ -17,7 +17,7 @@ from backend.services.audit_service import (
 from backend.core.exceptions import ConcurrentUpdateError
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/doctor", tags=["Doctor Dashboard & Review"])
+router = APIRouter(prefix="/doctor", tags=["Doctor Dashboard & Review"])
 
 
 class ReviewActionRequest(BaseModel):

@@ -13,7 +13,7 @@ from backend.utils.pdf_generator import generate_clinical_report_pdf
 from backend.core.validators import validate_clinical_note
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/patient", tags=["Patient Portal"])
+router = APIRouter(prefix="/patient", tags=["Patient Portal"])
 
 
 def get_coordinator() -> Coordinator:
