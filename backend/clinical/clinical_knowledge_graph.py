@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from typing import Dict, Any, List
 from backend.clinical.medical_coder import MedicalCoder
@@ -145,7 +146,51 @@ class ClinicalKnowledgeGraph:
 
         if matched_rule:
             return False
-        return False
+    @classmethod
+    def is_medication_relevant_to_disease(cls, drug_name: str, disease_name: str) -> bool:
+        drug = drug_name.lower().strip()
+        dis = cls.normalize_term(disease_name).lower().strip()
+
+        # Hypertension drugs
+        if any(kw in dis for kw in ["hypertension", "bp", "blood pressure", "htn"]):
+            if any(d in drug for d in ["amlodipine", "losartan", "lisinopril", "ramipril", "telmisartan", "nifedipine", "diltiazem", "verapamil", "atenolol", "metoprolol", "carvedilol", "hydrochlorothiazide", "indapamide", "chlorthalidone", "spironolactone"]):
+                return True
+
+        # Diabetes drugs
+        if any(kw in dis for kw in ["diabetes", "dm", "glycemic", "hyperglycemia"]):
+            if any(d in drug for d in ["metformin", "insulin", "glimepiride", "gliclazide", "sitagliptin", "empagliflozin", "dapagliflozin", "vildagliptin", "teneligliptin", "pioglitazone", "glucophage"]):
+                return True
+
+        # Lipid / Cardiac drugs
+        if any(kw in dis for kw in ["hyperlipidemia", "stemi", "cad", "coronary", "infarction", "angina"]):
+            if any(d in drug for d in ["atorvastatin", "rosuvastatin", "simvastatin", "pravastatin", "aspirin", "clopidogrel", "ticagrelor", "ecosprin", "lipitor"]):
+                return True
+
+        # Restricted drugs map
+        restricted_map = {
+            "metformin": ["diabetes"],
+            "glimepiride": ["diabetes"],
+            "insulin": ["diabetes"],
+            "empagliflozin": ["diabetes"],
+            "sitagliptin": ["diabetes"],
+            "amlodipine": ["hypertension"],
+            "losartan": ["hypertension"],
+            "lisinopril": ["hypertension"],
+            "telmisartan": ["hypertension"],
+            "ramipril": ["hypertension"],
+            "atorvastatin": ["hyperlipidemia", "stemi", "cad", "coronary", "infarction"],
+            "rosuvastatin": ["hyperlipidemia", "stemi", "cad", "coronary", "infarction"],
+            "aspirin": ["hyperlipidemia", "stemi", "cad", "coronary", "infarction", "stroke", "thrombosis", "cardiac", "hypertension"],
+            "ecosprin": ["hyperlipidemia", "stemi", "cad", "coronary", "infarction", "stroke", "thrombosis", "cardiac", "hypertension"],
+            "salbutamol": ["asthma", "copd", "bronchospasm", "respiratory", "breathlessness", "sob"],
+            "vitamin d3": ["ckd", "kidney", "deficiency", "osteoporosis", "bone", "renal"],
+            "vit d3": ["ckd", "kidney", "deficiency", "osteoporosis", "bone", "renal"],
+        }
+        for r_drug, target_diseases in restricted_map.items():
+            if r_drug in drug:
+                return any(td in dis for td in target_diseases)
+
+        return True
 
     @classmethod
     def build_graph(
@@ -206,14 +251,17 @@ class ClinicalKnowledgeGraph:
             rel_meds = []
             for m in medications:
                 m_name = (m.get("name") or m.get("medication_name") or "").strip()
-                m_dis = (m.get("disease_name") or m.get("supporting_disease") or "").lower() if isinstance(m, dict) else ""
+                m_dis = (m.get("indication") or m.get("disease_name") or m.get("supporting_disease") or "").lower() if isinstance(m, dict) else ""
                 if m_dis:
-                    if d_norm in m_dis or m_dis in d_norm:
+                    m_words = set(re.findall(r'\w+', m_dis)) - {"type", "stage", "of", "and", "or", "for", "with", "disease", "mellitus"}
+                    d_words = set(re.findall(r'\w+', d_norm)) - {"type", "stage", "of", "and", "or", "for", "with", "disease", "mellitus"}
+                    if d_norm in m_dis or m_dis in d_norm or (m_words and m_words & d_words):
                         if m_name and m_name not in [rm.get("name") for rm in rel_meds]:
                             rel_meds.append(m)
                 else:
-                    if m_name and m_name not in [rm.get("name") for rm in rel_meds]:
-                        rel_meds.append(m)
+                    if cls.is_medication_relevant_to_disease(m_name, d):
+                        if m_name and m_name not in [rm.get("name") for rm in rel_meds]:
+                            rel_meds.append(m)
 
             # Dynamic lab isolation per disease using configuration-driven rules
             evidence_labs = []

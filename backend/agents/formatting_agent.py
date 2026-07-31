@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import requests
 import datetime
@@ -41,10 +42,34 @@ class HybridPatientSummary(dict):
         return iter(self._list)
 
 
-def build_patient_friendly_summary(diseases: List[str], medications: List[str], labs: List[Dict[str, Any]]) -> str:
+def build_patient_friendly_summary(diseases: List[str], medications: Any, labs: List[Dict[str, Any]]) -> str:
     """Generate a clear, non-technical plain English summary for patients."""
     dis_str = ", ".join(diseases) if diseases else "your documented health conditions"
-    med_str = ", ".join(medications) if medications else "your prescribed medications"
+
+    med_items = []
+    if isinstance(medications, list):
+        for m in medications:
+            if isinstance(m, dict):
+                m_name = m.get("name", "Medication")
+                m_dose = m.get("dosage") or m.get("dose", "")
+                m_freq = m.get("frequency", "")
+                m_dur = m.get("duration", "")
+                details = []
+                if m_dose and m_dose not in ("Not Specified", "N/A"):
+                    details.append(m_dose)
+                if m_freq and m_freq not in ("Not Specified", "N/A"):
+                    details.append(m_freq)
+                if m_dur and m_dur not in ("Not Specified", "N/A", "Duration Not Specified"):
+                    details.append(f"{m_dur}" if m_dur.lower().startswith("for") else f"for {m_dur}")
+
+                if details:
+                    med_items.append(f"{m_name} ({', '.join(details)})")
+                else:
+                    med_items.append(m_name)
+            else:
+                med_items.append(str(m))
+
+    med_str = ", ".join(med_items) if med_items else "your prescribed medications"
 
     abnormal_notes = []
     for lab in labs:
@@ -154,16 +179,16 @@ class FormattingAgent:
                             best_dist = dist
                             best_dos = dos_e.text
 
-            # Direct line regex fallback if not resolved from entities
+            # Direct line/sentence regex fallback if not resolved from entities
             if (best_dos == "Not Specified" or not best_dos) and state.text:
                 drug_idx = state.text.lower().find(drug_name.lower())
                 if drug_idx != -1:
-                    line_start = state.text.rfind('\n', 0, drug_idx)
-                    line_start = 0 if line_start == -1 else line_start + 1
-                    line_end = state.text.find('\n', drug_idx)
-                    line_end = len(state.text) if line_end == -1 else line_end
-                    line_text = state.text[line_start:line_end]
-                    m = re.search(r'\b\d+(?:\.\d+)?\s*(?:mg|g|gm|mcg|ml|mL|IU|iu|units?|tablets?|tabs?|capsules?|puffs?)\b', line_text, re.IGNORECASE)
+                    sent_start = max(state.text.rfind('. ', 0, drug_idx), state.text.rfind('\n', 0, drug_idx))
+                    sent_start = 0 if sent_start == -1 else sent_start + (2 if state.text[sent_start:sent_start+2] == '. ' else 1)
+                    sent_end = state.text.find('. ', drug_idx)
+                    sent_end = len(state.text) if sent_end == -1 else sent_end
+                    sent_text = state.text[sent_start:sent_end]
+                    m = re.search(r'\b\d+(?:\.\d+)?\s*(?:mg|g|gm|mcg|ml|mL|IU|iu|units?|tablets?|tabs?|capsules?|puffs?)\b', sent_text, re.IGNORECASE)
                     if m:
                         best_dos = m.group(0).strip()
             return best_dos
@@ -209,24 +234,37 @@ class FormattingAgent:
                 return "Oral"
             return "Not Specified"
 
+        parsed_prescriptions = getattr(state, "metadata", {}).get("parsed_prescriptions", [])
         raw_med_dicts = []
         if state.medication_relations:
             for mr in state.medication_relations:
                 m_name = getattr(mr, "name", None) or getattr(mr, "medication_name", "Medication")
-                rel_dos = getattr(mr, "dosage", None)
+                matched_p = next((p for p in parsed_prescriptions if p["name"].lower() == m_name.lower() or m_name.lower() in p["name"].lower()), None)
+                rel_dos = (matched_p.get("dose") if matched_p and matched_p.get("dose") != "Unspecified" else None) or getattr(mr, "dosage", None)
                 if not rel_dos or rel_dos in ["N/A", "Unknown", "Unspecified"]:
                     rel_dos = resolve_med_dosage_span(m_name)
-                rel_freq = getattr(mr, "frequency", None)
+                rel_freq = (matched_p.get("normalized_frequency") or matched_p.get("frequency") if matched_p else None) or getattr(mr, "frequency", None)
                 if not rel_freq or rel_freq in ["N/A", "Unknown", "Unspecified", "Not Specified"]:
                     rel_freq = resolve_med_frequency_span(m_name)
-                rel_route = resolve_med_route(m_name)
+                rel_dur = (matched_p.get("duration") if matched_p and matched_p.get("duration") != "Not Specified" else None) or getattr(mr, "duration", "Not Specified")
+                rel_route = (matched_p.get("route") if matched_p else None) or resolve_med_route(m_name)
                 raw_med_dicts.append({
                     "name": m_name,
                     "disease_name": getattr(mr, "disease_name", None),
                     "dosage": rel_dos,
                     "frequency": rel_freq,
-                    "duration": getattr(mr, "duration", "Not Specified"),
+                    "duration": rel_dur,
                     "route": rel_route
+                })
+        elif parsed_prescriptions:
+            for p in parsed_prescriptions:
+                raw_med_dicts.append({
+                    "name": p["name"],
+                    "disease_name": None,
+                    "dosage": p.get("dose", "As prescribed"),
+                    "frequency": p.get("normalized_frequency") or p.get("frequency", "Once Daily"),
+                    "duration": p.get("duration", "Not Specified"),
+                    "route": p.get("route", "PO")
                 })
         else:
             for drug_name in medications:
@@ -295,7 +333,7 @@ class FormattingAgent:
             })
 
         # Plain language summary
-        plain_summary = build_patient_friendly_summary(diseases, medications, abnormal_labs)
+        plain_summary = build_patient_friendly_summary(diseases, raw_med_dicts or medications, abnormal_labs)
 
         patient_summary_default = {
             "name": "Patient",

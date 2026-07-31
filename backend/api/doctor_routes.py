@@ -87,64 +87,50 @@ def get_doctor_review_queue(
     db: Session = Depends(get_db),
     current_user: Dict[str, Any] = Depends(require_doctor)
 ):
-    """Return all review queue items. Pass ?status_filter=PENDING to filter."""
-    from backend.database.models import ReviewQueue as RQM, PatientHistory as PHM
-    q = db.query(RQM)
+    """Return review queue items grouped per session so 1 session = 1 review queue card."""
+    from backend.database.models import ReviewQueue as RQM, PatientHistory as PHM, PipelineSession as PSM
+    q = db.query(RQM).filter(RQM.is_deleted == False)
     if status_filter:
         q = q.filter(RQM.status == status_filter.upper())
     items = q.order_by(RQM.created_at.desc()).all()
-    results = []
+
+    # Deduplicate per session_id so 1 clinical session = 1 review queue card
+    seen_sessions = set()
+    deduped_items = []
     for item in items:
-        md = None
-        if item.entity_mention:
-            em = item.entity_mention
-            md = {
-                "type": "entity_mention",
-                "text": em.text,
-                "entity_type": em.type,
-                "confidence": em.confidence,
-                "source_agents": em.source_agents,
-            }
-        elif item.medication_relation:
-            mr = item.medication_relation
-            md = {
-                "type": "medication_relation",
-                "disease": mr.disease_name,
-                "medication": mr.medication_name,
-                "correct": mr.correct,
-                "confidence": mr.confidence,
-                "dosage": mr.dosage,
-                "frequency": mr.frequency,
-                "duration": mr.duration,
-                "validation_status": mr.validation_status,
-            }
-        else:
-            sess = item.session
-            doc_c = ""
-            ps = []
-            puid = None
-            pname = "Patient"
-            if sess:
-                if sess.document:
-                    doc_c = sess.document.content or ""
-                ph = db.query(PHM).filter(PHM.session_id == sess.id).first()
-                if ph:
-                    ps = ph.summary_json or []
-                    puid = ph.user_id
-                    if ph.user:
-                        pname = ph.user.full_name or ph.user.username
-            md = {
-                "type": "patient_submission",
-                "raw_note": doc_c,
-                "patient_user_id": puid,
-                "patient_name": pname,
-                "patient_summary": ps,
-            }
+        if item.session_id not in seen_sessions:
+            seen_sessions.add(item.session_id)
+            deduped_items.append(item)
+
+    results = []
+    for item in deduped_items:
+        sess = item.session
+        doc_c = ""
+        ps = []
+        puid = None
+        pname = f"Session {item.session_id[:8]}"
+        if sess:
+            if sess.document:
+                doc_c = sess.document.content or ""
+            ph = db.query(PHM).filter(PHM.session_id == sess.id).first()
+            if ph:
+                ps = ph.summary_json or []
+                puid = ph.user_id
+                if ph.user:
+                    pname = ph.user.full_name or ph.user.username
+
+        md = {
+            "type": "patient_submission",
+            "raw_note": doc_c,
+            "patient_user_id": puid,
+            "patient_name": pname,
+            "patient_summary": ps,
+        }
         results.append({
             "id": item.id,
             "session_id": item.session_id,
             "status": item.status,
-            "reason": item.reason,
+            "reason": item.reason or "Clinical Note Validation",
             "created_at": item.created_at.isoformat() + "Z" if item.created_at else None,
             "details": md,
         })

@@ -67,10 +67,13 @@ _FREQ_MAP: Dict[str, Tuple[str, str]] = {
     "qod": ("QOD", "Every Other Day"),
     "alternate day": ("QOD", "Every Other Day"),
     "every other day": ("QOD", "Every Other Day"),
-    "weekly": ("QWK", "Weekly"),
-    "monthly": ("QMO", "Monthly"),
+    "weekly": ("Weekly", "Once Weekly"),
+    "once weekly": ("Weekly", "Once Weekly"),
+    "monthly": ("Monthly", "Once Monthly"),
+    "once monthly": ("Monthly", "Once Monthly"),
     "hs": ("HS", "At Bedtime"),
     "at bedtime": ("HS", "At Bedtime"),
+    "bedtime": ("HS", "At Bedtime"),
     "night": ("HS", "At Bedtime"),
     "stat": ("STAT", "Immediately"),
     "prn": ("PRN", "As Needed"),
@@ -100,15 +103,19 @@ _TIMING_MAP: Dict[str, str] = {
     "with food": "With food",
     "empty stomach": "Empty stomach",
     "morning": "Morning",
+    "in the morning": "Morning",
     "evening": "Evening",
+    "in the evening": "Evening",
     "night": "Night",
-    "bedtime": "Bedtime (HS)",
-    "hs": "Bedtime (HS)",
+    "in the night": "Night",
+    "bedtime": "Bedtime",
+    "at bedtime": "Bedtime",
+    "hs": "Bedtime",
 }
 
 class MedicationNormalizer:
     """
-    Normalizes medication attributes.
+    Normalizes clinical prescription attributes using KnowledgeLoader dynamic configuration files.
     """
 
     @classmethod
@@ -145,6 +152,13 @@ class MedicationNormalizer:
         if not raw_route:
             return "PO"
         r_low = raw_route.strip().lower()
+        try:
+            from backend.knowledge.knowledge_loader import KnowledgeLoader
+            routes = KnowledgeLoader().get_route_dict()
+            if r_low in routes:
+                return routes[r_low]
+        except Exception:
+            pass
         return _ROUTE_MAP.get(r_low, raw_route.strip().upper())
 
     @classmethod
@@ -159,16 +173,29 @@ class MedicationNormalizer:
             num_res = cls.parse_numeric_schedule(f_low)
             return {"code": num_res["normalized"], "description": num_res["description"]}
 
-        # Check direct lookup map
+        # Check dynamic KnowledgeLoader frequency dictionary
+        try:
+            from backend.knowledge.knowledge_loader import KnowledgeLoader
+            freqs = KnowledgeLoader().get_frequency_dict()
+            if f_low in freqs:
+                item = freqs[f_low]
+                return {"code": item["code"], "description": item["normalized"]}
+        except Exception:
+            pass
+
+        # Fallback to direct lookup map
         if f_low in _FREQ_MAP:
             code, desc = _FREQ_MAP[f_low]
             return {"code": code, "description": desc}
 
-        # Check hourly patterns (e.g., q8h, every 8 hours)
+        # Check hourly patterns (e.g., q6h, q8h, q6h PRN, every 6 hours)
         m = re.search(r'(?:every\s+(?P<num>\d+)\s*hours?|q(?P<qnum>\d+)h)', f_low)
         if m:
             n = m.group("num") or m.group("qnum")
-            return {"code": f"Q{n}H", "description": f"Every {n} Hours"}
+            code = f"q{n}h"
+            if "prn" in f_low or "sos" in f_low:
+                code += " PRN"
+            return {"code": code, "description": f"Every {n} Hours As Needed" if "prn" in code else f"Every {n} Hours"}
 
         return {"code": raw_freq.strip().upper(), "description": raw_freq.strip()}
 
@@ -177,6 +204,13 @@ class MedicationNormalizer:
         if not raw_timing:
             return "Unspecified"
         t_low = raw_timing.strip().lower()
+        try:
+            from backend.knowledge.knowledge_loader import KnowledgeLoader
+            timings = KnowledgeLoader().get_timing_dict()
+            if t_low in timings:
+                return timings[t_low]
+        except Exception:
+            pass
         return _TIMING_MAP.get(t_low, raw_timing.strip().title())
 
     @classmethod
@@ -189,3 +223,53 @@ class MedicationNormalizer:
         # Normalize microgram symbol
         clean = clean.replace("μg", "mcg").replace("ug", "mcg")
         return clean
+
+    @classmethod
+    def normalize_duration(cls, raw_duration: str) -> Dict[str, Any]:
+        """
+        Normalizes raw duration text into standard representation and total days count.
+        e.g., 'for 5 days' -> {'text': 'For 5 days', 'days': 5}
+              'x7 days' -> {'text': 'For 7 days', 'days': 7}
+              '2 weeks' -> {'text': 'For 2 weeks (14 days)', 'days': 14}
+              '1 month' -> {'text': 'For 1 month (30 days)', 'days': 30}
+        """
+        if not raw_duration or raw_duration.strip().lower() in ("not specified", "n/a", "none"):
+            return {"text": "Not Specified", "days": None}
+
+        clean = raw_duration.strip()
+        low = clean.lower()
+
+        word_to_num = {
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+            "eleven": 11, "twelve": 12
+        }
+
+        # Check days
+        m_day = re.search(r'(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*days?', low)
+        if m_day:
+            val_str = m_day.group(1)
+            days = int(val_str) if val_str.isdigit() else word_to_num.get(val_str, 1)
+            return {"text": f"For {days} days", "days": days}
+
+        # Check weeks
+        m_week = re.search(r'(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*weeks?', low)
+        if m_week:
+            val_str = m_week.group(1)
+            weeks = int(val_str) if val_str.isdigit() else word_to_num.get(val_str, 1)
+            days = weeks * 7
+            return {"text": f"For {weeks} week{'s' if weeks > 1 else ''} ({days} days)", "days": days}
+
+        # Check months
+        m_month = re.search(r'(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*months?', low)
+        if m_month:
+            val_str = m_month.group(1)
+            months = int(val_str) if val_str.isdigit() else word_to_num.get(val_str, 1)
+            days = months * 30
+            return {"text": f"For {months} month{'s' if months > 1 else ''} ({days} days)", "days": days}
+
+        if any(kw in low for kw in ["continue", "lifelong", "long-term", "until finished"]):
+            return {"text": clean.title(), "days": None}
+
+        return {"text": clean, "days": None}
+

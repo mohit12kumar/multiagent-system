@@ -132,3 +132,71 @@ def test_200_prescription_cases():
             break
 
     assert count >= 200
+
+
+def test_duration_days_normalization():
+    cases = [
+        ("Amoxicillin 500mg PO TDS for 5 days", 5, "For 5 days"),
+        ("Augmentin 625mg PO BID x7 days", 7, "For 7 days"),
+        ("Azithromycin 500mg PO OD for 2 weeks", 14, "For 2 weeks (14 days)"),
+        ("Omeprazole 20mg PO OD for 1 month", 30, "For 1 month (30 days)"),
+    ]
+    for note, exp_days, exp_text in cases:
+        res = MedicationParserAgent.parse_text(note)
+        assert len(res) >= 1
+        m = res[0]
+        assert m["duration_days"] == exp_days
+        assert m["duration"] == exp_text
+
+
+def test_enterprise_6_medications_extraction():
+    note = """
+    Patient diagnosed with hypertension and diabetes.
+
+    Medications:
+
+    Metformin 500 mg PO BID after meals for 30 days
+    Amlodipine 5 mg PO OD in the morning
+    Atorvastatin 40 mg PO HS
+    Vitamin D3 60000 IU once weekly
+    Paracetamol 650 mg SOS fever
+    Salbutamol inhaler 2 puffs q6h PRN breathlessness
+    """
+    res = MedicationParserAgent.parse_text(note)
+    assert len(res) == 6
+
+    med_map = {m["name"].lower(): m for m in res}
+    assert "metformin" in med_map
+    assert "amlodipine" in med_map
+    assert "atorvastatin" in med_map
+    assert "vitamin d3" in med_map
+    assert "paracetamol" in med_map
+    assert "salbutamol" in med_map
+
+    # Check Atorvastatin
+    at = med_map["atorvastatin"]
+    assert at["dose"] == "40 mg"
+    assert at["frequency"] == "HS"
+    assert at["route"] == "PO"
+    assert "Bedtime" in at["timing"]
+
+    # Check Vitamin D3
+    v3 = med_map["vitamin d3"]
+    assert v3["dose"] == "60000 IU"
+    assert v3["frequency"] == "Weekly"
+
+    # Check Paracetamol
+    pcm = med_map["paracetamol"]
+    assert pcm["dose"] == "650 mg"
+    assert pcm["frequency"] == "SOS"
+    assert pcm["indication"] == "Fever"
+
+    # Check Salbutamol
+    sal = med_map["salbutamol"]
+    assert sal["dose"] == "2 puffs"
+    assert sal["route"] == "Inhalation"
+    assert sal["frequency"] == "q6h"
+    assert sal["prn"] is True
+    assert sal["indication"] == "Breathlessness"
+
+

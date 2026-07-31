@@ -84,8 +84,16 @@ export const ReviewQueuePage = () => {
   const fetchQueue = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      // Fetch ALL items — backend now supports optional status_filter param
-      const q = await getReviewQueueApi();
+      // Fetch ALL items — deduplicate by session_id so 1 clinical session = 1 queue item
+      const rawQueue = await getReviewQueueApi();
+      const seenSessions = new Set<string>();
+      const q: ReviewQueueItem[] = [];
+      for (const item of rawQueue) {
+        if (!seenSessions.has(item.session_id)) {
+          seenSessions.add(item.session_id);
+          q.push(item);
+        }
+      }
       setQueue(q);
       // Auto-select first item if nothing selected yet, or re-select after refresh
       setSelectedId(prev => {
@@ -252,9 +260,9 @@ export const ReviewQueuePage = () => {
     const knownDrugs = [
       'ceftriaxone', 'azithromycin', 'paracetamol', 'amoxicillin', 'ciprofloxacin',
       'metformin', 'amlodipine', 'lisinopril', 'losartan', 'atorvastatin',
-      'furosemide', 'pantoprazole', 'omeprazole', 'albuterol', 'prednisone',
+      'furosemide', 'pantoprazole', 'omeprazole', 'albuterol', 'salbutamol', 'prednisone',
       'dexamethasone', 'augmentin', 'doxycycline', 'metronidazole', 'aspirin',
-      'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin'
+      'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin', 'vitamin d3'
     ];
     const rLow = raw.toLowerCase();
     for (const d of knownDrugs) {
@@ -265,8 +273,10 @@ export const ReviewQueuePage = () => {
 
         const dIdx = rLow.indexOf(d);
         if (dIdx !== -1) {
-          const lStart = Math.max(0, raw.lastIndexOf('\n', dIdx));
-          const lEnd = raw.indexOf('\n', dIdx) === -1 ? raw.length : raw.indexOf('\n', dIdx);
+          const lastNl = raw.lastIndexOf('\n', dIdx);
+          const nextNl = raw.indexOf('\n', dIdx);
+          const lStart = lastNl === -1 ? Math.max(0, dIdx - 20) : lastNl + 1;
+          const lEnd = nextNl === -1 ? Math.min(raw.length, dIdx + d.length + 80) : nextNl;
           const line = raw.slice(lStart, lEnd);
 
           const doseMatch = line.match(/\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)\b/i);
@@ -276,7 +286,7 @@ export const ReviewQueuePage = () => {
           if (freqMatch) mFreq = freqMatch[0].toUpperCase();
         }
 
-        meds.push({ name, dosage: mDose, frequency: mFreq, reason: diseases[0] || 'Treatment' });
+        meds.push({ name, dosage: mDose, frequency: mFreq, reason: 'General Prescribed Therapy' });
       }
     }
   }

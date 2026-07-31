@@ -440,8 +440,8 @@ class MySQLStore:
         )
         self.db.add(log)
 
-        # Update parent PipelineSession when all pending items are resolved
-        remaining_pending = (
+        # Resolve peer pending items for the same session
+        peer_pending = (
             self.db.query(ReviewQueue)
             .filter(
                 ReviewQueue.session_id == item.session_id,
@@ -449,16 +449,22 @@ class MySQLStore:
                 ReviewQueue.is_deleted == False,
                 ReviewQueue.id != item.id,
             )
-            .count()
+            .all()
         )
-        if remaining_pending == 0:
-            session = (
-                self.db.query(PipelineSession)
-                .filter(PipelineSession.id == item.session_id)
-                .first()
-            )
-            if session:
-                session.status = "COMPLETED"
+        for peer in peer_pending:
+            peer.status = action
+            peer.reviewer = reviewer
+            if new_value:
+                peer.new_value = new_value
+
+        # Update parent PipelineSession
+        session = (
+            self.db.query(PipelineSession)
+            .filter(PipelineSession.id == item.session_id)
+            .first()
+        )
+        if session:
+            session.status = "COMPLETED"
 
         self.db.commit()
         logger.info(

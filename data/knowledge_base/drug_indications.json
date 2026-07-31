@@ -1,0 +1,18 @@
+{
+  "indications": {
+    "metformin": "Diabetes Mellitus Type 2",
+    "amlodipine": "Essential Hypertension",
+    "lisinopril": "Essential Hypertension",
+    "losartan": "Essential Hypertension",
+    "atorvastatin": "Hyperlipidemia",
+    "rosuvastatin": "Hyperlipidemia",
+    "aspirin": "Coronary Artery Disease",
+    "clopidogrel": "Coronary Artery Disease",
+    "paracetamol": "Fever / Analgesia",
+    "salbutamol": "Bronchospasm / Asthma",
+    "vitamin d3": "Vitamin D Deficiency",
+    "furosemide": "Edema / Congestive Heart Failure",
+    "empagliflozin": "Diabetes Mellitus Type 2",
+    "sitagliptin": "Diabetes Mellitus Type 2"
+  }
+}

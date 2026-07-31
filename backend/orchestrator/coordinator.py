@@ -47,7 +47,8 @@ class Coordinator:
     garbage collection, metrics tracking, and ModelRegistry provenance.
     """
 
-    def __init__(self):
+    def __init__(self, db_session: Optional[Session] = None):
+        self.db_session = db_session
         self.chroma_service = ChromaService()
 
         # Instantiate all agents (model weights loaded here, once)
@@ -74,13 +75,14 @@ class Coordinator:
     def run_pipeline(
         self,
         document_content: str,
-        db: Session,
+        db: Optional[Session] = None,
         user_id: Optional[str] = None,
         doc_metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Execute the full clinical NLP pipeline for one request.
         """
+        db = db or self.db_session
         start_time = time.time()
         doc_id = str(uuid.uuid4())
         session_id = str(uuid.uuid4())

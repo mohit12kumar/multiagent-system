@@ -75,10 +75,10 @@ class ClinicalContextClassifier:
         if actual_pos == -1:
             return False
 
-        window_before = text_low[max(0, actual_pos - 60): actual_pos]
-        line_start = max(text_low.rfind("\n", 0, actual_pos), text_low.rfind(".", 0, actual_pos))
-        line_start = 0 if line_start == -1 else line_start + 1
-        line_snippet = text_low[line_start: actual_pos + len(ent_low)]
+        sent_boundary = max(text_low.rfind("\n", 0, actual_pos), text_low.rfind(".", 0, actual_pos))
+        sent_boundary = 0 if sent_boundary == -1 else sent_boundary + 1
+        window_before = text_low[max(sent_boundary, actual_pos - 60): actual_pos]
+        line_snippet = text_low[sent_boundary: actual_pos + len(ent_low)]
 
         combined = window_before + " " + line_snippet
         for term in cls.NEGATION_TERMS:

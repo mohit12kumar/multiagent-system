@@ -1,0 +1,48 @@
+{
+  "word_numbers": {
+    "one": 1.0,
+    "two": 2.0,
+    "three": 3.0,
+    "four": 4.0,
+    "five": 5.0,
+    "six": 6.0,
+    "seven": 7.0,
+    "eight": 8.0,
+    "nine": 9.0,
+    "ten": 10.0,
+    "half": 0.5,
+    "quarter": 0.25,
+    "hundred": 100.0,
+    "five hundred": 500.0,
+    "two hundred": 200.0,
+    "two hundred fifty": 250.0
+  },
+  "fractions": {
+    "1/2": 0.5,
+    "½": 0.5,
+    "1/4": 0.25,
+    "¼": 0.25,
+    "3/4": 0.75,
+    "¾": 0.75,
+    "half": 0.5,
+    "quarter": 0.25
+  },
+  "roman_numerals": {
+    "i": 1,
+    "ii": 2,
+    "iii": 3,
+    "iv": 4,
+    "v": 5,
+    "vi": 6,
+    "vii": 7,
+    "viii": 8,
+    "ix": 9,
+    "x": 10
+  },
+  "units": [
+    "mg", "mcg", "g", "gram", "grams", "iu", "ml", "unit", "units",
+    "tablet", "tablets", "tab", "tabs", "capsule", "capsules", "cap", "caps",
+    "puff", "puffs", "drop", "drops", "patch", "patches", "ampoule", "ampoules",
+    "vial", "vials", "spray", "sprays", "sachet", "sachets"
+  ]
+}

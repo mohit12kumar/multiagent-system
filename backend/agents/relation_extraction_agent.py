@@ -359,6 +359,32 @@ class RelationExtractionAgent:
             drug_to_med[dr.text.lower()] = med
             medication_details.append(med)
 
+        # Fallback Pass: Incorporate any medication parsed by MedicationParserAgent if missed by NER
+        for p in parsed_prescriptions:
+            p_name = p.get("name")
+            if p_name and p_name.lower() not in drug_to_med:
+                p_dose = p.get("dose", "As prescribed")
+                p_freq = p.get("normalized_frequency") or p.get("frequency", "Once Daily")
+                p_dur = p.get("duration", "Duration Not Specified")
+                p_route = p.get("route", "PO")
+                is_valid, warning = DosageValidationAgent.validate(p_name, p_dose, p_route, "Tablet")
+                med = MedicationDetailModel(
+                    name=p_name,
+                    disease_name=None,
+                    correct=is_valid,
+                    confidence=p.get("confidence", 0.95),
+                    dosage=p_dose,
+                    dosage_unit="mg" if "mg" in p_dose.lower() else "mcg" if "mcg" in p_dose.lower() else "puffs" if "puff" in p_dose.lower() else "unit",
+                    frequency=p_freq,
+                    duration=p_dur,
+                    route=p_route,
+                    formulation="Tablet",
+                    clinical_warning=warning,
+                    validation_status="Valid Prescription" if is_valid else "Clinical Warning",
+                )
+                drug_to_med[p_name.lower()] = med
+                medication_details.append(med)
+
         assigned_drugs: Set[str] = set()
 
         # Pass 0: Section-aware linking from ASSESSMENT / PLAN

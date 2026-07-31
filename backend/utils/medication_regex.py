@@ -81,6 +81,7 @@ TIMING_PATTERN = re.compile(
     r'(?i)\b(?:before\s+meals?|after\s+meals?|before\s+breakfast|after\s+breakfast|'
     r'before\s+lunch|after\s+lunch|before\s+dinner|after\s+dinner|'
     r'with\s+meals?|with\s+food|empty\s+stomach|'
+    r'in\s+the\s+morning|in\s+the\s+evening|in\s+the\s+night|'
     r'morning|evening|night|bedtime|hs|ac|pc)\b'
 )
 
@@ -96,4 +97,10 @@ DURATION_PATTERN = re.compile(
 # ── PRN / SOS PATTERNS ────────────────────────────────────────────────────────
 PRN_PATTERN = re.compile(
     r'(?i)\b(?:sos|prn|if\s+needed|when\s+required|as\s+required|as\s+needed)\b'
+)
+
+# ── INDICATION PATTERNS ───────────────────────────────────────────────────────
+INDICATION_PATTERN = re.compile(
+    r'(?i)\b(?:for|sos|prn|if|when|against)?\s*'
+    r'\b(?P<indication>fever|breathlessness|shortness\s+of\s+breath|dyspnea|pain|headache|cough|nausea|vomiting|asthma|wheezing|chest\s+pain|cramps|diarrhea|insomnia|anxiety)\b'
 )

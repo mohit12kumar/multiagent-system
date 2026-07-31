@@ -1,0 +1,29 @@
+{
+  "timings": {
+    "ac": "Before meals (AC)",
+    "before meals": "Before meals (AC)",
+    "before meal": "Before meals (AC)",
+    "before breakfast": "Before breakfast",
+    "before lunch": "Before lunch",
+    "before dinner": "Before dinner",
+    "pc": "After meals (PC)",
+    "after meals": "After meals (PC)",
+    "after meal": "After meals (PC)",
+    "after breakfast": "After breakfast",
+    "after lunch": "After lunch",
+    "after dinner": "After dinner",
+    "empty stomach": "Empty stomach",
+    "at bedtime": "Bedtime",
+    "bedtime": "Bedtime",
+    "hs": "Bedtime",
+    "morning": "Morning",
+    "in the morning": "Morning",
+    "evening": "Evening",
+    "in the evening": "Evening",
+    "night": "Night",
+    "at night": "Night",
+    "with food": "With food",
+    "with meals": "With meals",
+    "immediately": "Immediately"
+  }
+}

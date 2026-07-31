@@ -34,6 +34,13 @@ class KnowledgeLoader:
         self._medications: Dict[str, Dict[str, Any]] = {}
         self._labs: Dict[str, Dict[str, Any]] = {}
         self._guidelines: Dict[str, Dict[str, Any]] = {}
+        self._frequencies: Dict[str, Any] = {}
+        self._routes: Dict[str, str] = {}
+        self._timings: Dict[str, str] = {}
+        self._dose_units: Dict[str, Any] = {}
+        self._drug_aliases: Dict[str, Any] = {}
+        self._drug_indications: Dict[str, str] = {}
+        self._brand_generic: Dict[str, str] = {}
         
         self._loaded = False
         self._initialized = True
@@ -48,66 +55,127 @@ class KnowledgeLoader:
             self._load_all_configurations()
             self._loaded = True
 
-    def _load_json_file(self, filename: str) -> List[Dict[str, Any]]:
+    def _load_json_file(self, filename: str) -> Any:
         filepath = os.path.join(self.base_dir, filename)
         if not os.path.exists(filepath):
             logger.warning(f"Knowledge file not found at {filepath}")
-            return []
+            return {} if filename.endswith(".json") else []
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, dict):
                     key = filename.replace(".json", "")
-                    return data.get(key) or data.get("laboratories") or data.get("diseases") or data.get("medications") or data.get("guidelines") or []
-                return data if isinstance(data, list) else []
+                    return data.get(key) or data.get("laboratories") or data.get("diseases") or data.get("medications") or data.get("guidelines") or data
+                return data
         except Exception as e:
             logger.error(f"Failed to load JSON knowledge file {filepath}: {e}")
-            return []
+            return {}
 
     def _load_all_configurations(self):
         # 1. Load Diseases
         disease_list = self._load_json_file("diseases.json")
-        for dis in disease_list:
-            name_key = dis.get("disease_name", "").strip().lower()
-            if name_key:
-                self._diseases[name_key] = dis
-            icd10_key = dis.get("icd10", "").strip().lower()
-            if icd10_key:
-                self._diseases[icd10_key] = dis
+        if isinstance(disease_list, list):
+            for dis in disease_list:
+                name_key = dis.get("disease_name", "").strip().lower()
+                if name_key:
+                    self._diseases[name_key] = dis
+                icd10_key = dis.get("icd10", "").strip().lower()
+                if icd10_key:
+                    self._diseases[icd10_key] = dis
 
         # 2. Load Medications
         med_list = self._load_json_file("medications.json")
-        for med in med_list:
-            gen_key = med.get("generic_name", "").strip().lower()
-            if gen_key:
-                self._medications[gen_key] = med
-            rxn_key = med.get("rxnorm_code", "").strip()
-            if rxn_key:
-                self._medications[rxn_key] = med
-            for brand in med.get("brand_names", []):
-                self._medications[brand.strip().lower()] = med
+        if isinstance(med_list, list):
+            for med in med_list:
+                gen_key = med.get("generic_name", "").strip().lower()
+                if gen_key:
+                    self._medications[gen_key] = med
+                rxn_key = med.get("rxnorm_code", "").strip()
+                if rxn_key:
+                    self._medications[rxn_key] = med
+                for brand in med.get("brand_names", []):
+                    self._medications[brand.strip().lower()] = med
 
         # 3. Load Labs
         lab_list = self._load_json_file("labs.json")
-        for lab in lab_list:
-            test_key = lab.get("test_name", "").strip().lower()
-            canon_key = lab.get("canonical_name", "").strip().lower()
-            loinc_key = lab.get("loinc_code", "").strip()
-            if test_key:
-                self._labs[test_key] = lab
-            if canon_key:
-                self._labs[canon_key] = lab
-            if loinc_key:
-                self._labs[loinc_key] = lab
+        if isinstance(lab_list, list):
+            for lab in lab_list:
+                test_key = lab.get("test_name", "").strip().lower()
+                canon_key = lab.get("canonical_name", "").strip().lower()
+                loinc_key = lab.get("loinc_code", "").strip()
+                if test_key:
+                    self._labs[test_key] = lab
+                if canon_key:
+                    self._labs[canon_key] = lab
+                if loinc_key:
+                    self._labs[loinc_key] = lab
 
         # 4. Load Guidelines
         gl_list = self._load_json_file("guidelines.json")
-        for gl in gl_list:
-            gl_id = gl.get("id", "").strip().lower()
-            if gl_id:
-                self._guidelines[gl_id] = gl
+        if isinstance(gl_list, list):
+            for gl in gl_list:
+                gl_id = gl.get("id", "").strip().lower()
+                if gl_id:
+                    self._guidelines[gl_id] = gl
 
-        logger.info(f"KnowledgeLoader successfully loaded {len(disease_list)} diseases, {len(med_list)} medications, {len(lab_list)} labs, {len(gl_list)} guidelines.")
+        # 5. Load Frequencies, Routes, Timings, Dose Units, Aliases, Indications
+        freq_data = self._load_json_file("clinical_frequency.json")
+        if isinstance(freq_data, dict):
+            self._frequencies = freq_data.get("frequencies", freq_data)
+
+        route_data = self._load_json_file("route_dictionary.json")
+        if isinstance(route_data, dict):
+            self._routes = route_data.get("routes", route_data)
+
+        timing_data = self._load_json_file("timing_dictionary.json")
+        if isinstance(timing_data, dict):
+            self._timings = timing_data.get("timings", timing_data)
+
+        dose_data = self._load_json_file("dose_units.json")
+        if isinstance(dose_data, dict):
+            self._dose_units = dose_data
+
+        alias_data = self._load_json_file("drug_aliases.json")
+        if isinstance(alias_data, dict):
+            self._drug_aliases = alias_data.get("drug_aliases", alias_data)
+
+        ind_data = self._load_json_file("drug_indications.json")
+        if isinstance(ind_data, dict):
+            self._drug_indications = ind_data.get("indications", ind_data)
+
+        brand_data = self._load_json_file("brand_generic.json")
+        if isinstance(brand_data, dict):
+            self._brand_generic = brand_data.get("brand_to_generic", brand_data)
+
+        logger.info(f"KnowledgeLoader successfully loaded diseases, medications, labs, guidelines, and enterprise clinical dictionaries.")
+
+    def get_frequency_dict(self) -> Dict[str, Any]:
+        self._ensure_loaded()
+        return self._frequencies
+
+    def get_route_dict(self) -> Dict[str, str]:
+        self._ensure_loaded()
+        return self._routes
+
+    def get_timing_dict(self) -> Dict[str, str]:
+        self._ensure_loaded()
+        return self._timings
+
+    def get_dose_units_dict(self) -> Dict[str, Any]:
+        self._ensure_loaded()
+        return self._dose_units
+
+    def get_drug_aliases_dict(self) -> Dict[str, Any]:
+        self._ensure_loaded()
+        return self._drug_aliases
+
+    def get_drug_indications_dict(self) -> Dict[str, str]:
+        self._ensure_loaded()
+        return self._drug_indications
+
+    def get_brand_generic_dict(self) -> Dict[str, str]:
+        self._ensure_loaded()
+        return self._brand_generic
 
     def get_disease(self, term: str) -> Optional[Dict[str, Any]]:
         self._ensure_loaded()

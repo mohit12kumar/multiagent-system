@@ -1,0 +1,21 @@
+{
+  "brand_to_generic": {
+    "glucophage": "Metformin",
+    "norvasc": "Amlodipine",
+    "zestril": "Lisinopril",
+    "cozaar": "Losartan",
+    "lipitor": "Atorvastatin",
+    "crestor": "Rosuvastatin",
+    "ecosprin": "Aspirin",
+    "disprin": "Aspirin",
+    "plavix": "Clopidogrel",
+    "crocin": "Paracetamol",
+    "calpol": "Paracetamol",
+    "panadol": "Paracetamol",
+    "tylenol": "Paracetamol",
+    "ventolin": "Salbutamol",
+    "lasix": "Furosemide",
+    "jardiance": "Empagliflozin",
+    "januvia": "Sitagliptin"
+  }
+}
