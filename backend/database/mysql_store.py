@@ -520,3 +520,59 @@ class MySQLStore:
             f"[MySQLStore] Bulk approved {count} pending reviews | reviewer={reviewer}"
         )
         return count
+
+    def save_pipeline_results(
+        self,
+        session_id: str,
+        doc_id: Optional[str] = None,
+        entity_mentions: Optional[List[Dict[str, Any]]] = None,
+        disease_relations: Optional[List[Any]] = None,
+        medication_relations: Optional[List[Any]] = None,
+        patient_summary: Optional[Any] = None,
+        user_id: Optional[str] = None,
+        entities: Optional[List[Dict[str, Any]]] = None,
+        medications: Optional[List[Dict[str, Any]]] = None,
+        relations: Optional[List[Dict[str, Any]]] = None,
+        review_items: Optional[List[Dict[str, Any]]] = None,
+        audit_log: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Saves all multi-agent extraction pipeline outputs atomically in a single ACID transaction.
+        Supports both coordinator kwargs and legacy agent kwargs.
+        """
+        eff_entities = entity_mentions if entity_mentions is not None else (entities or [])
+        eff_meds = medication_relations if medication_relations is not None else (medications or [])
+        eff_diseases = disease_relations or []
+        eff_user_id = user_id or "anonymous_patient"
+
+        from backend.core.retry import with_db_retry
+        def _do_save():
+            try:
+                if doc_id:
+                    self.save_entity_mentions(session_id, doc_id, eff_entities)
+                elif eff_entities:
+                    self.save_entity_mentions(session_id, session_id, eff_entities)
+
+                if eff_diseases:
+                    self.save_disease_relations(session_id, eff_diseases)
+
+                if eff_meds:
+                    self.save_medication_relations(session_id, eff_meds)
+
+                if patient_summary:
+                    self.save_patient_history(eff_user_id, session_id, patient_summary)
+
+                # Always ensure a session-level PENDING ReviewQueue item is saved
+                self.save_session_review_entry(session_id, user_id=eff_user_id)
+
+                self.db.commit()
+                logger.info(f"[MySQLStore] Atomic pipeline results saved | session={session_id}")
+            except Exception as e:
+                self.db.rollback()
+                logger.error(
+                    f"[MySQLStore] Atomic save failed, rolled back | session={session_id} | error={e}",
+                    exc_info=True
+                )
+                raise e
+
+        with_db_retry(_do_save, label=f"Save Pipeline Results ({session_id})")

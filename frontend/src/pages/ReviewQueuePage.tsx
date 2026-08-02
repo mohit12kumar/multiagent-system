@@ -33,20 +33,97 @@ const parseVitals = (raw: string) => ({
   'BMI':  raw.match(/bmi\s*([\d.]+)/i)?.[1]         ?? null,
 });
 
+const getMedicationIndication = (drugName: string, fallbackDisease?: string): string => {
+  if (!drugName) return 'Prescribed Therapy';
+  const d = drugName.toLowerCase();
+  if (d.includes('metformin') || d.includes('glucophage') || d.includes('insulin')) return 'Type 2 Diabetes Mellitus';
+  if (d.includes('amlodipine') || d.includes('norvasc') || d.includes('lisinopril') || d.includes('losartan') || d.includes('valsartan')) return 'Hypertension';
+  if (d.includes('ceftriaxone') || d.includes('azithromycin') || d.includes('amoxicillin') || d.includes('ciprofloxacin') || d.includes('augmentin')) return 'Community Acquired Pneumonia';
+  if (d.includes('atorvastatin') || d.includes('lipitor') || d.includes('simvastatin')) return 'Hyperlipidemia';
+  if (d.includes('paracetamol') || d.includes('pcm') || d.includes('ibuprofen') || d.includes('diclofenac') || d.includes('aspirin') || d.includes('ecosprin')) return 'Analgesia / Anti-inflammatory';
+  if (d.includes('salbutamol') || d.includes('ventolin') || d.includes('albuterol') || d.includes('ipratropium')) return 'COPD / Asthma';
+  if (fallbackDisease && !/chronic kidney disease/i.test(fallbackDisease) && !/ckd/i.test(fallbackDisease)) return fallbackDisease;
+  return 'Prescribed Therapy';
+};
+
+const enrichMed = (m: any, rawNote: string, disName?: string) => {
+  if (!m) return null;
+  const mName = typeof m === 'string' ? m : renderStr(m?.name || m?.medication || m);
+  if (!mName || mName.trim().length === 0) return null;
+
+  let dosage = typeof m === 'object' ? (m.dosage || m.dose || '') : '';
+  let frequency = typeof m === 'object' ? (m.frequency || m.freq || '') : '';
+  let duration = typeof m === 'object' ? (m.duration || m.duration_days || m.days || '') : '';
+  let route = typeof m === 'object' ? (m.route || '') : '';
+  let timing = typeof m === 'object' ? (m.timing || m.instructions || m.timing_notes || '') : '';
+
+  // Clean invalid placeholder strings
+  if (['As prescribed', 'Not Specified', 'N/A', 'Unknown'].includes(dosage)) dosage = '';
+  if (['Not Specified', 'N/A', 'Unknown'].includes(frequency)) frequency = '';
+  if (['Not Specified', 'N/A', 'Unknown'].includes(duration)) duration = '';
+  if (['Not Specified', 'N/A', 'Unknown'].includes(route)) route = '';
+  if (['Not Specified', 'N/A', 'Unknown'].includes(timing)) timing = '';
+
+  // Fallback to searching raw note snippet if any parameter is missing
+  if (rawNote && (!dosage || !frequency || !duration || !route || !timing)) {
+    const rLow = rawNote.toLowerCase();
+    const dIdx = rLow.indexOf(mName.toLowerCase());
+    if (dIdx !== -1) {
+      const lStart = Math.max(0, dIdx - 30);
+      const lEnd = Math.min(rawNote.length, dIdx + mName.length + 150);
+      const line = rawNote.slice(lStart, lEnd);
+
+      if (!dosage) {
+        const dm = line.match(/\b(?:\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)|half\s+tablet|\d+\s+puffs?)\b/i);
+        if (dm) dosage = dm[0];
+      }
+      if (!frequency) {
+        const fm = line.match(/\b(?:every\s+\d+\s*hours?|every\s+\d+\s*h|1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|every four hours|at bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
+        if (fm) frequency = fm[0].toUpperCase();
+      }
+      if (!duration) {
+        const durM = line.match(/\b(?:for\s+\d+\s*days?|for\s+\d+\s*weeks?|\d+\s*days?|\d+\s*weeks?)\b/i);
+        if (durM) duration = durM[0];
+      }
+      if (!route) {
+        const rm = line.match(/\b(?:IV|PO|oral|inhalation|via inhalation|subcutaneous|SC|IM|topical|intravenous)\b/i);
+        if (rm) route = rm[0].toUpperCase();
+      }
+      if (!timing) {
+        const tm = line.match(/\b(?:after meals?|before meals?|before breakfast|after breakfast|after lunch|after dinner|every morning|nightly|at bedtime|PRN\s+[a-z]+|with food|after food)\b/i);
+        if (tm) timing = tm[0];
+      }
+    }
+  }
+
+  return {
+    name: mName,
+    dosage: dosage || undefined,
+    frequency: frequency || undefined,
+    duration: duration || undefined,
+    route: route || undefined,
+    timing: timing || undefined,
+    reason: getMedicationIndication(mName, disName)
+  };
+};
+
 const parseLabs = (raw: string) => {
-  const pats: [string, RegExp, string, string, number][] = [
-    ['Troponin-I', /troponin[^0-9]*([\d.]+)/i,  'ng/mL', '0.0–0.04', 0.04],
-    ['BNP',        /bnp[^0-9]*([\d.]+)/i,        'pg/mL', '<100',     100],
-    ['HbA1c',      /hba1c[^0-9]*([\d.]+)/i,      '%',     '4.0–5.6',  5.6],
-    ['Creatinine', /creatinine[^0-9]*([\d.]+)/i,  'mg/dL', '0.7–1.3', 1.3],
-    ['eGFR',       /egfr[^0-9]*([\d.]+)/i,        'mL/min','>60',      60],
-    ['WBC',        /wbc[^0-9]*([\d.]+)/i,         '×10³/µL','4.5–11', 11],
-    ['K⁺',         /potassium[^0-9]*([\d.]+)/i,   'mEq/L', '3.5–5.0', 5],
-    ['Na⁺',        /sodium[^0-9]*([\d.]+)/i,      'mEq/L', '135–145', 145],
+  const pats: [string, RegExp, string, string, number, string][] = [
+    ['Troponin-I', /troponin[^0-9]*([\d.]+)/i,  'ng/mL', '0.0–0.04', 0.04, 'high'],
+    ['BNP',        /bnp[^0-9]*([\d.]+)/i,        'pg/mL', '<100',     100,  'high'],
+    ['HbA1c',      /hba1c[^0-9]*([\d.]+)/i,      '%',     '4.0–5.6',  5.6,  'high'],
+    ['Creatinine', /creatinine[^0-9]*([\d.]+)/i,  'mg/dL', '0.7–1.3', 1.3,  'high'],
+    ['eGFR',       /egfr[^0-9]*([\d.]+)/i,        'mL/min','>60',      60,   'low'],
+    ['WBC',        /wbc[^0-9]*([\d.]+)/i,         '×10³/µL','4.5–11', 11,   'high'],
+    ['K⁺',         /potassium[^0-9]*([\d.]+)/i,   'mEq/L', '3.5–5.0', 5.0,  'high'],
+    ['Na⁺',        /sodium[^0-9]*([\d.]+)/i,      'mEq/L', '135–145', 145,  'high'],
   ];
-  return pats.flatMap(([n, re, u, ref, th]) => {
+  return pats.flatMap(([n, re, u, ref, th, dir]) => {
     const m = raw.match(re);
-    return m ? [{ name: n, val: m[1], unit: u, ref, critical: parseFloat(m[1]) > th }] : [];
+    if (!m) return [];
+    const val = parseFloat(m[1]);
+    const isCritical = dir === 'low' ? val < th : val > th;
+    return [{ name: n, val: m[1], unit: u, ref, critical: isCritical }];
   });
 };
 
@@ -86,6 +163,11 @@ export const ReviewQueuePage = () => {
     try {
       // Fetch ALL items — deduplicate by session_id so 1 clinical session = 1 queue item
       const rawQueue = await getReviewQueueApi();
+      rawQueue.sort((a, b) => {
+        if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+        if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+        return 0;
+      });
       const seenSessions = new Set<string>();
       const q: ReviewQueueItem[] = [];
       for (const item of rawQueue) {
@@ -179,6 +261,10 @@ export const ReviewQueuePage = () => {
   const raw = typeof det.raw_note === 'string' ? det.raw_note : '';
 
   let summary: any[] = [];
+  let extraDiseases: string[] = [];
+  let extraMeds: any[] = [];
+  let extraSymptoms: string[] = [];
+
   try {
     let sRaw: any = det.patient_summary;
     if (typeof sRaw === 'string') {
@@ -190,16 +276,28 @@ export const ReviewQueuePage = () => {
       const obj = sRaw as Record<string, any>;
       if (Array.isArray(obj.structured_summary)) summary = obj.structured_summary;
       else if (Array.isArray(obj.summary)) summary = obj.summary;
+      else if (Array.isArray(obj.entities)) summary = obj.entities;
+
+      if (Array.isArray(obj.diseases)) {
+        extraDiseases = obj.diseases.map(renderStr).filter(Boolean);
+      }
+      if (Array.isArray(obj.symptoms)) {
+        extraSymptoms = obj.symptoms.map(renderStr).filter(Boolean);
+      }
+      if (Array.isArray(obj.medications)) {
+        extraMeds = obj.medications.map((m: any) => enrichMed(m, raw)).filter(Boolean);
+      }
     }
   } catch {
     summary = [];
   }
 
-  const diseases: string[] = Array.isArray(summary)
+  const diseasesFromSummary: string[] = Array.isArray(summary)
     ? summary.map(s => renderStr(s?.disease ?? s)).filter(d => d.length > 0)
     : [];
+  const diseases: string[] = Array.from(new Set([...diseasesFromSummary, ...extraDiseases]));
 
-  const symptoms: string[] = Array.isArray(summary)
+  const symptomsFromSummary: string[] = Array.isArray(summary)
     ? summary.flatMap(s => {
         if (!s) return [];
         if (typeof s === 'string') return [s];
@@ -208,6 +306,7 @@ export const ReviewQueuePage = () => {
         return [];
       })
     : [];
+  const symptoms: string[] = Array.from(new Set([...symptomsFromSummary, ...extraSymptoms]));
 
   let meds: any[] = Array.isArray(summary)
     ? summary
@@ -215,28 +314,22 @@ export const ReviewQueuePage = () => {
           if (!s) return [];
           const disName = renderStr(s.disease);
           if (Array.isArray(s.medications) && s.medications.length > 0) {
-            return s.medications.map((m: any) => {
-              const mName = typeof m === 'string' ? m : renderStr(m.name || m);
-              const rawDose = typeof m === 'object' ? (m.dosage || '') : '';
-              const rawFreq = typeof m === 'object' ? (m.frequency || '') : '';
-              const mDose = rawDose && !['As prescribed', 'Not Specified', 'N/A', 'Unknown'].includes(rawDose) ? rawDose : undefined;
-              const mFreq = rawFreq && !['Not Specified', 'N/A', 'Unknown'].includes(rawFreq) ? rawFreq : undefined;
-              return { name: mName, dosage: mDose, frequency: mFreq, reason: disName };
-            });
+            return s.medications.map((m: any) => enrichMed(m, raw, disName));
           }
           if (s.medication && typeof s.medication === 'object') {
-            const m = s.medication;
-            const rawDose = m.dosage || '';
-            const rawFreq = m.frequency || '';
-            const mDose = rawDose && !['As prescribed', 'Not Specified', 'N/A', 'Unknown'].includes(rawDose) ? rawDose : undefined;
-            const mFreq = rawFreq && !['Not Specified', 'N/A', 'Unknown'].includes(rawFreq) ? rawFreq : undefined;
-            return [{ ...m, name: renderStr(m.name || m), dosage: mDose, frequency: mFreq, reason: disName }];
+            return [enrichMed(s.medication, raw, disName)];
           }
-          if (s.medication) return [{ name: renderStr(s.medication), reason: disName }];
+          if (s.medication) {
+            return [enrichMed(s.medication, raw, disName)];
+          }
           return [];
         })
-        .filter(m => m && typeof m.name === 'string' && m.name.length > 0)
+        .filter(Boolean)
     : [];
+
+  if (meds.length === 0 && extraMeds.length > 0) {
+    meds = extraMeds;
+  }
 
   // Fallback 1: Extract from det.medications or det.patient_summary array
   if (meds.length === 0) {
@@ -244,56 +337,156 @@ export const ReviewQueuePage = () => {
       ? (det as any).medications
       : ((det as any)?.patient_summary && typeof (det as any).patient_summary === 'object' && Array.isArray((det as any).patient_summary.medications) ? (det as any).patient_summary.medications : []);
     if (rawMedsList.length > 0) {
-      meds = rawMedsList.map((m: any) => {
-        const mName = typeof m === 'string' ? m : renderStr(m?.name || m);
-        const rawDose = typeof m === 'object' ? (m.dosage || '') : '';
-        const rawFreq = typeof m === 'object' ? (m.frequency || '') : '';
-        const mDose = rawDose && !['As prescribed', 'Not Specified', 'N/A', 'Unknown'].includes(rawDose) ? rawDose : undefined;
-        const mFreq = rawFreq && !['Not Specified', 'N/A', 'Unknown'].includes(rawFreq) ? rawFreq : undefined;
-        return { name: mName, dosage: mDose, frequency: mFreq, reason: diseases[0] || 'Treatment' };
-      }).filter((m: any) => m.name.length > 0);
+      meds = rawMedsList.map((m: any) => enrichMed(m, raw, diseases[0])).filter(Boolean);
     }
   }
 
-  // Fallback 2: Extract directly from note text using known pharmacology list and line-level dosage regex
-  if (meds.length === 0 && raw) {
-    const knownDrugs = [
-      'ceftriaxone', 'azithromycin', 'paracetamol', 'amoxicillin', 'ciprofloxacin',
-      'metformin', 'amlodipine', 'lisinopril', 'losartan', 'atorvastatin',
-      'furosemide', 'pantoprazole', 'omeprazole', 'albuterol', 'salbutamol', 'prednisone',
-      'dexamethasone', 'augmentin', 'doxycycline', 'metronidazole', 'aspirin',
-      'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin', 'vitamin d3'
-    ];
-    const rLow = raw.toLowerCase();
-    for (const d of knownDrugs) {
-      if (rLow.includes(d)) {
-        const name = d.charAt(0).toUpperCase() + d.slice(1);
-        let mDose: string | undefined = undefined;
-        let mFreq: string | undefined = undefined;
+  // Merge raw note medications with structured pipeline extractions so ALL medications are displayed
+  if (raw) {
+    const medSectionMatch = raw.match(/Medications?:\s*([\s\S]*?)(?:\n\n|\n[A-Z][a-z]+:|\nLabs:|\nImpression:|\nAllergy:|$)/i);
+    if (medSectionMatch && medSectionMatch[1]) {
+      const lines = medSectionMatch[1].split('\n').map(l => l.trim()).filter(l => l.length > 2);
+      const existingNames = new Set(meds.map(m => (typeof m.name === 'string' ? m.name.toLowerCase().trim() : '')));
+      
+      for (const line of lines) {
+        const cleanLine = line.replace(/^(?:Tab|Inj|Neb|Cap|Syrup|Syr|Sol|Patch)\.?\s+/i, '');
+        const nameMatch = cleanLine.match(/^([A-Za-z0-9\s\-]+?)(?:\s+\d+|\s+1-0-1|\s+BID|\s+TDS|\s+OD|\s+q\d+h|\s+every|\s+twice|\s+once|\s+three|\s+HS|\s+AC|\s+PRN|\s+SOS|\s+IV|\s+PO|$)/i);
+        const name = nameMatch && nameMatch[1].trim().length > 1 ? nameMatch[1].trim() : cleanLine;
+        const nameLow = name.toLowerCase().trim();
 
-        const dIdx = rLow.indexOf(d);
-        if (dIdx !== -1) {
-          const lastNl = raw.lastIndexOf('\n', dIdx);
-          const nextNl = raw.indexOf('\n', dIdx);
-          const lStart = lastNl === -1 ? Math.max(0, dIdx - 20) : lastNl + 1;
-          const lEnd = nextNl === -1 ? Math.min(raw.length, dIdx + d.length + 80) : nextNl;
-          const line = raw.slice(lStart, lEnd);
+        if (!existingNames.has(nameLow)) {
+          existingNames.add(nameLow);
+          const doseMatch = line.match(/\b(?:\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)|half\s+tablet|\d+\s+puffs?)\b/i);
+          const freqMatch = line.match(/\b(?:every\s+\d+\s*hours?|every\s+\d+\s*h|1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|every four hours|at bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
+          const durationMatch = line.match(/\b(?:for\s+\d+\s*days?|for\s+\d+\s*weeks?|\d+\s*days?|\d+\s*weeks?)\b/i);
+          const routeMatch = line.match(/\b(?:IV|PO|oral|inhalation|via inhalation|subcutaneous|SC|IM|topical|intravenous)\b/i);
+          const timingMatch = line.match(/\b(?:after meals?|before meals?|before breakfast|after breakfast|after lunch|after dinner|every morning|nightly|at bedtime|PRN\s+[a-z]+|with food|after food)\b/i);
 
-          const doseMatch = line.match(/\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)\b/i);
-          if (doseMatch) mDose = doseMatch[0];
-
-          const freqMatch = line.match(/\b(?:1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od)\b/i);
-          if (freqMatch) mFreq = freqMatch[0].toUpperCase();
+          meds.push({
+            name: name || cleanLine,
+            dosage: doseMatch ? doseMatch[0] : undefined,
+            frequency: freqMatch ? freqMatch[0].toUpperCase() : undefined,
+            duration: durationMatch ? durationMatch[0] : undefined,
+            route: routeMatch ? routeMatch[0].toUpperCase() : undefined,
+            timing: timingMatch ? timingMatch[0] : undefined,
+            reason: getMedicationIndication(name || cleanLine)
+          });
         }
+      }
+    }
 
-        meds.push({ name, dosage: mDose, frequency: mFreq, reason: 'General Prescribed Therapy' });
+    if (meds.length === 0) {
+      const knownDrugs = [
+        'ceftriaxone', 'azithromycin', 'paracetamol', 'amoxicillin', 'ciprofloxacin',
+        'metformin', 'amlodipine', 'lisinopril', 'losartan', 'atorvastatin',
+        'furosemide', 'pantoprazole', 'omeprazole', 'albuterol', 'salbutamol', 'prednisone',
+        'dexamethasone', 'augmentin', 'doxycycline', 'metronidazole', 'aspirin',
+        'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin', 'vitamin d3',
+        'glucophage', 'ecosprin', 'norvasc', 'lipitor', 'diclofenac', 'ibuprofen', 'pcm', 'ventolin'
+      ];
+      const rLow = raw.toLowerCase();
+      for (const d of knownDrugs) {
+        if (rLow.includes(d)) {
+          const name = d.charAt(0).toUpperCase() + d.slice(1);
+          let mDose: string | undefined = undefined;
+          let mFreq: string | undefined = undefined;
+          let mDuration: string | undefined = undefined;
+          let mRoute: string | undefined = undefined;
+          let mTiming: string | undefined = undefined;
+
+          const dIdx = rLow.indexOf(d);
+          if (dIdx !== -1) {
+            const lastNl = raw.lastIndexOf('\n', dIdx);
+            const nextNl = raw.indexOf('\n', dIdx);
+            const lStart = lastNl === -1 ? Math.max(0, dIdx - 30) : lastNl + 1;
+            const lEnd = nextNl === -1 ? Math.min(raw.length, dIdx + d.length + 150) : nextNl;
+            const line = raw.slice(lStart, lEnd);
+
+            const doseMatch = line.match(/\b(?:\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)|half\s+tablet|\d+\s+puffs?)\b/i);
+            if (doseMatch) mDose = doseMatch[0];
+
+            const freqMatch = line.match(/\b(?:every\s+\d+\s*hours?|every\s+\d+\s*h|1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|every four hours|at bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
+            if (freqMatch) mFreq = freqMatch[0].toUpperCase();
+
+            const durationMatch = line.match(/\b(?:for\s+\d+\s*days?|for\s+\d+\s*weeks?|\d+\s*days?|\d+\s*weeks?)\b/i);
+            if (durationMatch) mDuration = durationMatch[0];
+
+            const routeMatch = line.match(/\b(?:IV|PO|oral|inhalation|via inhalation|subcutaneous|SC|IM|topical|intravenous)\b/i);
+            if (routeMatch) mRoute = routeMatch[0].toUpperCase();
+
+            const timingMatch = line.match(/\b(?:after meals?|before meals?|before breakfast|after breakfast|after lunch|after dinner|every morning|nightly|at bedtime|PRN\s+[a-z]+|with food|after food)\b/i);
+            if (timingMatch) mTiming = timingMatch[0];
+          }
+
+          meds.push({
+            name,
+            dosage: mDose,
+            frequency: mFreq,
+            duration: mDuration,
+            route: mRoute,
+            timing: mTiming,
+            reason: getMedicationIndication(name, diseases[0])
+          });
+        }
       }
     }
   }
 
+  const parseAllergies = (rawText: string): string[] => {
+    if (!rawText) return [];
+    const rLow = rawText.toLowerCase();
+
+    // 1. Check NKDA
+    if (rLow.includes('nkda') || rLow.includes('no known drug allergy') || rLow.includes('no known drug allergies')) {
+      return ['NKDA — No Known Drug Allergies'];
+    }
+
+    // 2. Parse section under "Allergy:" or "Allergies:"
+    const match = rawText.match(/(?:Allergy|Allergies):\s*([^\n\r]+(?:\n(?![A-Z][a-z]+:)[^\n\r]+)*)/i);
+    if (match && match[1]) {
+      const items = match[1]
+        .split(/[,;\n]/)
+        .map(a => a.replace(/^[-*•\s]+/, '').trim())
+        .filter(a => a.length > 1 && !/^(?:none|nil|nkda|no known|n\/a)$/i.test(a));
+      if (items.length > 0) return items;
+    }
+
+    // 3. Fallback: Search common drug allergen keywords
+    const commonAllergens = ['penicillin', 'sulfa', 'sulfonamide', 'codeine', 'aspirin', 'latex', 'peanuts', 'contrast', 'nsaid', 'amoxicillin', 'cephalosporin'];
+    const detected: string[] = [];
+    for (const alg of commonAllergens) {
+      if (rLow.includes(alg)) {
+        detected.push(alg.charAt(0).toUpperCase() + alg.slice(1));
+      }
+    }
+    return detected;
+  };
+
+  let structuredLabs: any[] = [];
+  if (det.patient_summary && typeof det.patient_summary === 'object') {
+    const pObj = det.patient_summary as Record<string, any>;
+    if (Array.isArray(pObj.lab_interpretations) && pObj.lab_interpretations.length > 0) {
+      structuredLabs = pObj.lab_interpretations.map((l: any) => ({
+        name: l.lab_name || l.name || 'Lab Test',
+        val: String(l.measured_value ?? l.value ?? l.val ?? ''),
+        unit: l.unit || '',
+        ref: l.reference_range || l.ref || 'Normal',
+        critical: /critical|elevated|abnormal|high|low/i.test(l.severity || l.interpretation || '')
+      }));
+    } else if (Array.isArray(pObj.labs) && pObj.labs.length > 0) {
+      structuredLabs = pObj.labs.map((l: any) => ({
+        name: l.name || l.lab_name || 'Lab Test',
+        val: String(l.val ?? l.value ?? ''),
+        unit: l.unit || '',
+        ref: l.ref || l.reference_range || 'Normal',
+        critical: Boolean(l.critical)
+      }));
+    }
+  }
+
   const vitals = parseVitals(raw);
-  const labs = parseLabs(raw);
-  const allergies = (raw.toLowerCase().includes('nkda') || raw.toLowerCase().includes('no known drug')) ? ['NKDA — No Known Drug Allergies'] : [];
+  const labs = structuredLabs.length > 0 ? structuredLabs : parseLabs(raw);
+  const allergies = parseAllergies(raw);
   const histMatch = raw.match(/(?:history of|known case of)\s+([^,.]+)/i);
   const history = histMatch ? [histMatch[1].trim()] : [];
   const imaging = raw.toLowerCase().includes('ecg')
@@ -408,6 +601,11 @@ export const ReviewQueuePage = () => {
                       {parseAge(raw)    && <span className="text-xs text-[var(--text-muted)]">Age: <b className="text-[var(--text-primary)]">{parseAge(raw)}</b></span>}
                       {parseGender(raw) && <span className="text-xs text-[var(--text-muted)]">Sex: <b className="text-[var(--text-primary)]">{parseGender(raw)}</b></span>}
                       <span className={`badge ${statusStyle(cur.status)}`}>{cur.status}</span>
+                      {allergies.length > 0 && (
+                        <span className="badge badge-danger text-xs font-bold flex items-center gap-1" style={{ background: 'var(--danger-dim)', color: '#FF8CA0', border: '1px solid rgba(255,69,96,0.3)' }}>
+                          <Shield className="w-3 h-3 text-[var(--danger)]" /> ALLERGY: {allergies.join(', ')}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -468,15 +666,20 @@ export const ReviewQueuePage = () => {
 
                   {activeTab === 'Medications' && (meds.length > 0
                     ? meds.map((m, i) => (
-                        <div key={i} className="rounded-xl px-4 py-3" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Pill className="w-4 h-4" style={{ color: 'var(--teal)' }} />
-                            <span className="text-sm font-bold" style={{ color: 'var(--teal)' }}>{m.name}</span>
+                        <div key={i} className="rounded-xl px-4 py-3 space-y-1.5" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.18)' }}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Pill className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--teal)' }} />
+                            <span className="text-sm font-black text-[var(--teal)]">{m.name}</span>
+                            {m.route && <span className="badge badge-muted text-[8px] uppercase">{m.route}</span>}
+                            {m.duration && <span className="badge badge-teal text-[8px]">{m.duration}</span>}
                             {!m.dosage && <span className="badge badge-warning text-[8px]">MISSING DOSE</span>}
                           </div>
-                          <div className="text-xs text-[var(--text-muted)] ml-6">
-                            Dose: <b className="text-[var(--text-primary)]">{m.dosage ?? 'N/A'}</b> · Freq: <b className="text-[var(--text-primary)]">{m.frequency ?? 'N/A'}</b>
-                            {m.reason && <> · For: <b className="text-[var(--text-primary)]">{m.reason}</b></>}
+                          <div className="text-xs text-[var(--text-muted)] flex flex-wrap gap-x-3 gap-y-1 ml-6">
+                            <span>Dose: <b className="text-[var(--text-primary)]">{m.dosage ?? 'N/A'}</b></span>
+                            <span>Freq: <b className="text-[var(--text-primary)]">{m.frequency ?? 'N/A'}</b></span>
+                            {m.duration && <span>Duration: <b className="text-[var(--teal)]">{m.duration}</b></span>}
+                            {m.timing && <span>Timing: <b className="text-[#FFD060]">{m.timing}</b></span>}
+                            {m.reason && <span>For: <b className="text-[var(--text-primary)]">{m.reason}</b></span>}
                           </div>
                         </div>
                       ))

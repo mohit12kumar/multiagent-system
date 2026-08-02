@@ -44,6 +44,13 @@ class KnowledgeLoader:
         
         self._loaded = False
         self._initialized = True
+
+        # Knowledge Governance Controls
+        self._approval_status: str = "APPROVED"  # DRAFT, APPROVED, DEPRECATED
+        self._current_version: str = "v1.0.0"
+        self._version_snapshots: Dict[str, Dict[str, Any]] = {}
+        self._audit_log: List[Dict[str, Any]] = []
+
         logger.info(f"KnowledgeLoader initialized with base_dir: {self.base_dir}")
 
     def _ensure_loaded(self):
@@ -234,3 +241,75 @@ class KnowledgeLoader:
                 if icd10_key:
                     self._diseases[icd10_key] = disease_data
             logger.info(f"Dynamically registered new disease concept: {disease_data.get('disease_name')}")
+
+    # ── Knowledge Governance & Rollback Engine ────────────────────────────────
+
+    def set_approval_status(self, status: str, approver: str = "System Admin"):
+        """Sets approval status (DRAFT, APPROVED, DEPRECATED) with audit logging."""
+        valid_statuses = {"DRAFT", "APPROVED", "DEPRECATED"}
+        status_upper = status.upper()
+        if status_upper not in valid_statuses:
+            raise ValueError(f"Invalid status '{status}'. Must be one of {valid_statuses}")
+        
+        with self._lock:
+            old_status = self._approval_status
+            self._approval_status = status_upper
+            self._audit_log.append({
+                "action": "STATUS_CHANGE",
+                "old_status": old_status,
+                "new_status": status_upper,
+                "actor": approver
+            })
+            logger.info(f"KnowledgeLoader approval status changed from {old_status} to {status_upper} by {approver}")
+
+    def get_approval_status(self) -> str:
+        return self._approval_status
+
+    def create_version_snapshot(self, version_id: str, author: str = "System Admin") -> str:
+        """Takes a snapshot of current knowledge dictionary states for instant rollback."""
+        self._ensure_loaded()
+        with self._lock:
+            snapshot = {
+                "version_id": version_id,
+                "author": author,
+                "diseases": dict(self._diseases),
+                "medications": dict(self._medications),
+                "labs": dict(self._labs),
+                "guidelines": dict(self._guidelines),
+                "status": self._approval_status
+            }
+            self._version_snapshots[version_id] = snapshot
+            self._audit_log.append({
+                "action": "CREATE_SNAPSHOT",
+                "version_id": version_id,
+                "author": author
+            })
+            logger.info(f"Created KnowledgeLoader version snapshot '{version_id}'")
+            return version_id
+
+    def rollback_to_version(self, version_id: str, actor: str = "System Admin") -> bool:
+        """Rolls back knowledge state to a previously captured version snapshot."""
+        with self._lock:
+            if version_id not in self._version_snapshots:
+                logger.error(f"Cannot rollback: Snapshot version '{version_id}' not found")
+                return False
+            
+            snap = self._version_snapshots[version_id]
+            self._diseases = dict(snap["diseases"])
+            self._medications = dict(snap["medications"])
+            self._labs = dict(snap["labs"])
+            self._guidelines = dict(snap["guidelines"])
+            self._approval_status = snap["status"]
+            self._current_version = version_id
+
+            self._audit_log.append({
+                "action": "ROLLBACK",
+                "target_version": version_id,
+                "actor": actor
+            })
+            logger.info(f"Successfully rolled back KnowledgeLoader to version '{version_id}'")
+            return True
+
+    def get_audit_log(self) -> List[Dict[str, Any]]:
+        return list(self._audit_log)
+

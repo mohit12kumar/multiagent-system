@@ -143,16 +143,20 @@ class LabInterpretationAgent:
                         interp, arrow, severity, disease = "Normal", "→", "Normal", None
 
                     # Special CKD staging for eGFR
-                    if kw == "egfr" and val < 60:
+                    if kw == "egfr":
                         if val < 15:
-                            interp, severity, disease = "CKD Stage V (Kidney Failure)", "Critical", "Chronic Kidney Disease"
-                        elif val < 30:
-                            interp, severity, disease = "CKD Stage IV (Severe)", "Critical", "Chronic Kidney Disease"
-                        elif val < 45:
-                            interp, severity, disease = "CKD Stage IIIb (Moderate)", "Critically Elevated", "Chronic Kidney Disease"
-                        elif val < 60:
-                            interp, severity, disease = "CKD Stage IIIa (Mild-Moderate)", "Elevated", "Chronic Kidney Disease"
-                        arrow = "↓"
+                            interp, severity, disease = "CKD Stage 5 (<15% kidney function - Failure)", "Critical", "Chronic Kidney Disease"
+                        elif val <= 29:
+                            interp, severity, disease = "CKD Stage 4 (15-29% kidney function - Severe)", "Critical", "Chronic Kidney Disease"
+                        elif val <= 44:
+                            interp, severity, disease = "CKD Stage 3b (30-44% kidney function - Moderate-to-Severe)", "Critically Elevated", "Chronic Kidney Disease"
+                        elif val <= 59:
+                            interp, severity, disease = "CKD Stage 3a (45-59% kidney function - Mild-to-Moderate)", "Elevated", "Chronic Kidney Disease"
+                        elif val <= 89:
+                            interp, severity, disease = "CKD Stage 2 (60-89% kidney function - Mild)", "Low-Normal", "Chronic Kidney Disease"
+                        else:
+                            interp, severity, disease = "CKD Stage 1 (90-100% normal kidney function)", "Normal", "Chronic Kidney Disease"
+                        arrow = "↓" if val < 60 else "→"
 
                     interpretations.append({
                         "lab": lab_name,

@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, model_validator
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable
 
 from backend.database.connection import engine, Base, get_db, SessionLocal
 from backend.database.mysql_store import MySQLStore
@@ -40,11 +40,17 @@ _shared_coordinator: Optional[Coordinator] = None
 
 def get_coordinator() -> Coordinator:
     """FastAPI dependency — returns the stateless application-wide coordinator."""
+    global _shared_coordinator
     if _shared_coordinator is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service is initialising, please retry in a moment."
-        )
+        logger.info("[Routes] _shared_coordinator is None, instantiating fallback Coordinator...")
+        try:
+            _shared_coordinator = Coordinator()
+        except Exception as e:
+            logger.error(f"[Routes] Failed to instantiate fallback Coordinator: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Service is initialising, please retry in a moment."
+            )
     return _shared_coordinator
 
 
@@ -183,12 +189,99 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
 )
 
+from starlette.middleware.base import BaseHTTPMiddleware
+import json
+import re
+
+def sanitize_raw_json(raw_json_str: str) -> str:
+    """
+    State-machine JSON Sanitizer:
+    Strips non-printable control characters and escapes unescaped raw newlines (\n),
+    carriage returns (\r), and tabs (\t) inside JSON string values.
+    """
+    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F]', '', raw_json_str)
+    res = []
+    in_string = False
+    escaped = False
+    for char in text:
+        if char == '"' and not escaped:
+            in_string = not in_string
+            res.append(char)
+        elif in_string:
+            if char == '\n':
+                res.append('\\n')
+            elif char == '\r':
+                res.append('\\r')
+            elif char == '\t':
+                res.append('\\t')
+            else:
+                res.append(char)
+        else:
+            res.append(char)
+
+        if char == '\\' and not escaped:
+            escaped = True
+        else:
+            escaped = False
+
+    return "".join(res)
+
+
+class JSONControlCharacterSanitizerMiddleware(BaseHTTPMiddleware):
+    """
+    Enterprise API Middleware — Sanitizes incoming JSON request payloads containing
+    unescaped control characters (such as raw linebreaks \n inside string quotes in Swagger UI / cURL)
+    to prevent FastAPI 422 JSON decode errors.
+    """
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if request.method in ("POST", "PUT", "PATCH") and "application/json" in request.headers.get("content-type", "").lower():
+            try:
+                body_bytes = await request.body()
+                if body_bytes:
+                    raw_text = body_bytes.decode("utf-8", errors="replace")
+                    try:
+                        json.loads(raw_text)
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        fixed_text = sanitize_raw_json(raw_text)
+                        new_bytes = fixed_text.encode("utf-8")
+                        request._body = new_bytes
+                        request._stream_consumed = True
+                        logger.info(f"[SanitizerMiddleware] Sanitized raw control characters in request body ({len(body_bytes)} -> {len(new_bytes)} bytes)")
+            except Exception as e:
+                logger.warning(f"[SanitizerMiddleware] Non-fatal request body sanitization skipped: {e}")
+
+        return await call_next(request)
+
+
 # ── Security middleware stack ──────────────────────────────────────────────────
 # Order matters: outer middleware wraps inner middleware.
 # RequestID must be first so all subsequent layers can read request.state.request_id.
+app.add_middleware(JSONControlCharacterSanitizerMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestIDMiddleware)
+
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Catch Pydantic/FastAPI JSON validation errors.
+    If the client/Swagger UI sent unescaped control characters (raw linebreaks inside quotes),
+    provide clear feedback or fallback parsing.
+    """
+    errors = exc.errors()
+    for err in errors:
+        if err.get("type") == "json_invalid" and "control character" in str(err.get("ctx", {}).get("error", "")).lower():
+            logger.warning(f"[Routes] Unescaped JSON control character detected in request body from {request.client.host if request.client else 'unknown'}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "detail": "JSON contains unescaped control characters (raw newlines). If using Swagger UI or cURL, please format multiline strings using '\\n' instead of raw Enter key linebreaks, or submit notes directly via the Patient Web UI."
+                }
+            )
+    return JSONResponse(status_code=422, content={"detail": errors})
+
 
 # ── Global exception handlers ─────────────────────────────────────────────────
 app.add_exception_handler(ClinicalSystemError, clinical_error_handler)
@@ -398,31 +491,71 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 
 @app.post("/api/auth/refresh")
-def refresh_access_token(request: Request, db: Session = Depends(get_db)):
+async def refresh_access_token(request: Request, db: Session = Depends(get_db)):
     """
     Exchange a valid refresh token for a new access token.
-    Refresh token must be sent in the Authorization: Bearer <token> header.
+    Supports refresh_token via:
+    1. Authorization: Bearer <refresh_token> header
+    2. JSON body {"refresh_token": "..."}
+    3. Query parameter ?refresh_token=...
     """
+    refresh_token = None
     auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Refresh token required.")
-    refresh_token = auth_header[7:]
+    if auth_header.startswith("Bearer "):
+        refresh_token = auth_header[7:].strip()
+
+    if not refresh_token:
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                refresh_token = body.get("refresh_token")
+        except Exception:
+            pass
+
+    if not refresh_token:
+        refresh_token = request.query_params.get("refresh_token")
+
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token required (provide in Authorization header, JSON body, or query param)."
+        )
 
     try:
         payload = _jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
     except _jwt.PyJWTError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid refresh token: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid or expired refresh token: {e}"
+        )
 
     if payload.get("type") != "refresh":
-        raise HTTPException(status_code=401, detail="Provided token is not a refresh token.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Provided token is not a valid refresh token."
+        )
 
     user_id  = payload.get("sub")
     username = payload.get("username")
     role     = payload.get("role", "patient")
 
-    new_access = create_access_token({"sub": user_id, "username": username, "role": role})
-    logger.info(f"[Auth] Access token refreshed for user '{username}'")
-    return {"access_token": new_access, "token_type": "bearer"}
+    # Verify user exists and is active in DB
+    from backend.database.models import User
+    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found or deactivated."
+        )
+
+    new_access = create_access_token({"sub": user.id, "username": user.username, "role": user.role})
+    new_refresh = create_refresh_token(user.id, user.username, user.role)
+    logger.info(f"[Auth] Access token refreshed successfully for user '{username}'")
+    return {
+        "access_token": new_access,
+        "refresh_token": new_refresh,
+        "token_type": "bearer"
+    }
 
 
 @app.post("/api/auth/logout")
@@ -590,10 +723,33 @@ def export_direct_session_pdf(
             }
         })
 
+    from backend.database.models import PatientHistory
+
+    raw_note = session.document.content if (session and session.document) else ""
+    patient_name = "Patient"
+    if session and session.document and session.document.user:
+        patient_name = session.document.user.full_name or session.document.user.username
+
+    ph = db.query(PatientHistory).filter(PatientHistory.session_id == session_id).first()
+    ph_summary = ph.summary_json if ph else None
+
     json_data = {
         "session_id": session_id,
         "status": session.status,
-        "patient_summary": {"structured_summary": patient_summary},
+        "raw_note": raw_note,
+        "patient_name": patient_name,
+        "disease_relations": [{"disease_name": dr.disease_name, "symptom_name": dr.symptom_name} for dr in dis_rels],
+        "medication_relations": [
+            {
+                "medication_name": mr.medication_name,
+                "disease_name": mr.disease_name,
+                "dosage": mr.dosage,
+                "frequency": mr.frequency,
+                "duration": mr.duration,
+                "correct": mr.correct
+            } for mr in med_rels
+        ],
+        "patient_summary": ph_summary or {"structured_summary": patient_summary},
         "doctor_report": "Clinical Intelligence Summary Report",
     }
     pdf_bytes = generate_clinical_report_pdf(json_data)

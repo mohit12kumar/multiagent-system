@@ -92,7 +92,16 @@ def get_doctor_review_queue(
     q = db.query(RQM).filter(RQM.is_deleted == False)
     if status_filter:
         q = q.filter(RQM.status == status_filter.upper())
-    items = q.order_by(RQM.created_at.desc()).all()
+    raw_items = q.order_by(RQM.created_at.desc()).all()
+    # Prioritize PENDING items and session-level items so patient submissions appear in doctor review queue
+    items = sorted(
+        raw_items,
+        key=lambda x: (
+            0 if x.status == "PENDING" else 1,
+            0 if (x.entity_mention_id is None and x.medication_relation_id is None) else 1,
+            -(x.created_at.timestamp() if x.created_at else 0)
+        )
+    )
 
     # Deduplicate per session_id so 1 clinical session = 1 review queue card
     seen_sessions = set()
@@ -115,9 +124,21 @@ def get_doctor_review_queue(
             ph = db.query(PHM).filter(PHM.session_id == sess.id).first()
             if ph:
                 ps = ph.summary_json or []
+                if isinstance(ps, str):
+                    try:
+                        import json as _json
+                        ps = _json.loads(ps)
+                    except Exception:
+                        pass
                 puid = ph.user_id
-                if ph.user:
-                    pname = ph.user.full_name or ph.user.username
+                if ph.user and ph.user.full_name:
+                    pname = ph.user.full_name
+
+        if doc_c:
+            import re as _re
+            m = _re.search(r'Patient(?:\s+Name)?:\s*([A-Za-z\s\.\'-]+?)(?:\s+Age|\s+Gender|\s+\d+|$|\n|\r)', doc_c, _re.IGNORECASE)
+            if m and len(m.group(1).strip()) > 2:
+                pname = m.group(1).strip()
 
         md = {
             "type": "patient_submission",
@@ -252,12 +273,40 @@ def export_session_json(
     mentions = db.query(EntityMention).filter(EntityMention.session_id == session_id).all()
     med_rels = db.query(MedicationRelation).filter(MedicationRelation.session_id == session_id).all()
 
+    disease_rels = db.query(DiseaseRelation).filter(DiseaseRelation.session_id == session_id).all()
+    disease_rel_list = [
+        {"disease_name": dr.disease_name, "symptom_name": dr.symptom_name} for dr in disease_rels
+    ]
+
+    med_rel_list = [
+        {
+            "medication_name": mr.medication_name,
+            "disease_name": mr.disease_name,
+            "correct": mr.correct,
+            "confidence": mr.confidence,
+            "dosage": mr.dosage,
+            "frequency": mr.frequency,
+            "duration": mr.duration,
+            "route": mr.route or "PO (Oral)"
+        } for mr in med_rels
+    ]
+
+    entity_list = [
+        {
+            "text": m.text,
+            "type": m.type,
+            "start_char": m.start_char,
+            "end_char": m.end_char,
+            "confidence": m.confidence
+        } for m in mentions
+    ]
+
     patient_summary = []
+    # Include all diseases, even those without matching medication relations
+    seen_diseases = set()
     for mr in med_rels:
-        symptom_records = db.query(DiseaseRelation).filter(
-            DiseaseRelation.session_id == session_id,
-            DiseaseRelation.disease_name == mr.disease_name
-        ).all()
+        seen_diseases.add(mr.disease_name)
+        symptom_records = [dr for dr in disease_rels if dr.disease_name == mr.disease_name]
         symptoms_list = [r.symptom_name for r in symptom_records]
 
         patient_summary.append({
@@ -273,6 +322,15 @@ def export_session_json(
             }
         })
 
+    for dr in disease_rels:
+        if dr.disease_name not in seen_diseases:
+            seen_diseases.add(dr.disease_name)
+            patient_summary.append({
+                "disease": dr.disease_name,
+                "symptoms": [dr.symptom_name] if dr.symptom_name else ["General symptoms"],
+                "medication": None
+            })
+
     rq = db.query(ReviewQueue).filter(
         ReviewQueue.session_id == session_id,
         ReviewQueue.entity_mention_id == None,
@@ -284,12 +342,36 @@ def export_session_json(
     else:
         rev_status = "APPROVED" if session.status == "COMPLETED" else "PENDING_REVIEW"
 
+    ph = db.query(PatientHistory).filter(PatientHistory.session_id == session_id).first()
+    ph_summary = None
+    if ph and ph.summary_json:
+        ph_summary = ph.summary_json
+        if isinstance(ph_summary, str):
+            try:
+                import json as _json
+                ph_summary = _json.loads(ph_summary)
+            except Exception:
+                pass
+
+    raw_note = session.document.content if (session and session.document) else ""
+
+    patient_name = "Patient"
+    if session and session.document and session.document.user:
+        patient_name = session.document.user.full_name or session.document.user.username
+    elif ph and ph.user:
+        patient_name = ph.user.full_name or ph.user.username
+
     return {
         "session_id": session_id,
         "status": session.status,
         "review_status": rev_status,
         "created_at": session.created_at.isoformat() + "Z" if session.created_at else None,
-        "patient_summary": patient_summary
+        "raw_note": raw_note,
+        "patient_name": patient_name,
+        "disease_relations": disease_rel_list,
+        "medication_relations": med_rel_list,
+        "entities": entity_list,
+        "patient_summary": ph_summary or {"structured_summary": patient_summary}
     }
 
 
@@ -338,45 +420,7 @@ def export_session_pdf_alias(
             if not doc or doc.user_id != user_id:
                 raise HTTPException(status_code=403, detail="Access forbidden: You can only download reports for your own sessions.")
 
-        mentions   = db.query(EntityMention).filter(EntityMention.session_id == session_id).all()
-        med_rels   = db.query(MedicationRelation).filter(MedicationRelation.session_id == session_id).all()
-        dis_rels   = db.query(DiseaseRelation).filter(DiseaseRelation.session_id == session_id).all()
-
-        patient_summary = []
-        for mr in med_rels:
-            symptom_records = [r for r in dis_rels if r.disease_name == mr.disease_name]
-            symptoms_list   = [r.symptom_name for r in symptom_records]
-            patient_summary.append({
-                "disease": mr.disease_name,
-                "symptoms": symptoms_list or ["General symptoms"],
-                "medication": {
-                    "name": mr.medication_name,
-                    "correct": mr.correct,
-                    "confidence": mr.confidence,
-                    "dosage": mr.dosage,
-                    "frequency": mr.frequency,
-                    "duration": mr.duration,
-                }
-            })
-
-        rq = db.query(ReviewQueue).filter(
-            ReviewQueue.session_id == session_id,
-            ReviewQueue.entity_mention_id == None,
-            ReviewQueue.medication_relation_id == None
-        ).first()
-
-        if rq:
-            rev_status = "APPROVED" if rq.status in ("RESOLVED", "APPROVED") else ("REJECTED" if rq.status == "REJECTED" else "PENDING_REVIEW")
-        else:
-            rev_status = "APPROVED" if session.status == "COMPLETED" else "PENDING_REVIEW"
-
-        json_data = {
-            "session_id": session_id,
-            "status": session.status,
-            "review_status": rev_status,
-            "patient_summary": {"structured_summary": patient_summary},
-            "doctor_report": "",
-        }
+        json_data = export_session_json(session_id=session_id, db=db, current_user=current_user)
         pdf_bytes = generate_clinical_report_pdf(json_data)
         logger.info(f"PDF alias generated for session {session_id}, size={len(pdf_bytes)} bytes")
         return Response(

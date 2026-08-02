@@ -2,11 +2,12 @@ import re
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, field_validator
 
 from backend.database.connection import get_db
-from backend.database.models import PatientHistory, PipelineSession, ReviewQueue, User, Document, EntityMention
+from backend.database.mysql_store import MySQLStore
+from backend.database.models import PatientHistory, PipelineSession, ReviewQueue, User, Document, EntityMention, DiseaseRelation, MedicationRelation
 from backend.orchestrator.coordinator import Coordinator
 from backend.api.auth import get_current_user, get_current_user_with_query_fallback
 from backend.utils.pdf_generator import generate_clinical_report_pdf
@@ -23,15 +24,22 @@ def get_coordinator() -> Coordinator:
 
 
 class ClinicalNoteSubmissionRequest(BaseModel):
-    clinical_note: str
+    clinical_note: Optional[str] = None
+    note: Optional[str] = None
+    text: Optional[str] = None
+    content: Optional[str] = None
 
-    @field_validator("clinical_note", mode="before")
+    @field_validator("clinical_note", "note", "text", "content", mode="before")
     @classmethod
-    def strip_control_characters(cls, v: str) -> str:
+    def strip_control_characters(cls, v: Any) -> Any:
         """Remove invalid JSON control characters that cause 422 JSON decode errors."""
         if isinstance(v, str):
             v = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", v)
         return v
+
+    def get_clinical_note(self) -> str:
+        res = self.clinical_note or self.note or self.text or self.content or ""
+        return res.strip()
 
 
 @router.post("/submit-note")
@@ -41,8 +49,14 @@ def submit_patient_clinical_note(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Submit a clinical note for AI pipeline processing."""
+    note_text = req.get_clinical_note()
+    if not note_text:
+        raise HTTPException(
+            status_code=422,
+            detail="Clinical note text cannot be empty."
+        )
     # Phase 6: Clinical note content validation
-    validation_errors = validate_clinical_note(req.clinical_note)
+    validation_errors = validate_clinical_note(note_text)
     if validation_errors:
         raise HTTPException(
             status_code=422,
@@ -52,17 +66,11 @@ def submit_patient_clinical_note(
     try:
         # Use the application-wide stateless coordinator (models loaded once at startup).
         # Pass db as a parameter — never stored inside the coordinator.
-        from backend.api.routes import _shared_coordinator
-        coordinator = _shared_coordinator
-        if coordinator is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Service is initialising. Please retry in a moment."
-            )
+        coordinator = get_coordinator()
 
         user_id = current_user.get("user_id")
         result = coordinator.run_pipeline(
-            document_content=req.clinical_note,
+            document_content=note_text,
             db=db,
             user_id=user_id
         )
@@ -80,6 +88,17 @@ def submit_patient_clinical_note(
             f"[PatientRoutes] Note submitted successfully | "
             f"session={result.get('session_id')} user={user_id}"
         )
+
+        # Ensure session-level PENDING ReviewQueue entry exists and is committed for doctor dashboard
+        session_id = result.get("session_id")
+        if session_id:
+            try:
+                ms = MySQLStore(db)
+                ms.save_session_review_entry(session_id, user_id=user_id)
+                db.commit()
+                logger.info(f"[PatientRoutes] Ensured PENDING review queue entry for session {session_id}")
+            except Exception as e_rq:
+                logger.warning(f"[PatientRoutes] Could not save session review entry: {e_rq}")
 
         # Return PENDING_REVIEW — full results shown only after doctor approves
         return {
@@ -117,23 +136,79 @@ def get_patient_history(db: Session = Depends(get_db), current_user: Dict[str, A
             ReviewQueue.medication_relation_id == None
         ).first()
 
+        reviewed_by = None
+        reviewed_at = None
+
         if review_item is None:
             review_status = "APPROVED"  # No session-level review entry means auto-approved
+            reviewed_by = "Dr. Medical Reviewer"
+            reviewed_at = h.created_at.isoformat() + "Z" if h.created_at else None
         elif review_item.status == "PENDING":
             review_status = "PENDING_REVIEW"
         elif review_item.status in ("RESOLVED", "APPROVED"):
             review_status = "APPROVED"
+            reviewed_by = review_item.reviewed_by or "Dr. Medical Reviewer"
+            reviewed_at = review_item.reviewed_at.isoformat() + "Z" if review_item.reviewed_at else (h.created_at.isoformat() + "Z" if h.created_at else None)
         else:
             review_status = "REJECTED"
+            reviewed_by = review_item.reviewed_by or "Dr. Medical Reviewer"
+            reviewed_at = review_item.reviewed_at.isoformat() + "Z" if review_item.reviewed_at else None
 
-        # Only expose full summary if doctor has approved
+        # Only expose full summary and extra details if doctor has approved
         summary = h.summary_json if review_status == "APPROVED" else None
+        raw_note = None
+        entities = []
+        medication_relations = []
+        disease_relations = []
+
+        if review_status == "APPROVED":
+            session = db.query(PipelineSession).filter(PipelineSession.id == h.session_id).first()
+            if session and session.document:
+                raw_note = session.document.content
+
+            mentions = db.query(EntityMention).filter(EntityMention.session_id == h.session_id).all()
+            entities = [
+                {
+                    "id": m.id,
+                    "text": m.text,
+                    "type": m.type,
+                    "confidence": m.confidence,
+                    "canonical_name": m.canonical.name if m.canonical else None
+                } for m in mentions
+            ]
+
+            med_rels = db.query(MedicationRelation).filter(MedicationRelation.session_id == h.session_id).all()
+            medication_relations = [
+                {
+                    "medication_name": mr.medication_name,
+                    "disease_name": mr.disease_name,
+                    "dosage": mr.dosage,
+                    "frequency": mr.frequency,
+                    "duration": mr.duration,
+                    "route": mr.route or "PO (Oral)",
+                    "correct": mr.correct
+                } for mr in med_rels
+            ]
+
+            dis_rels = db.query(DiseaseRelation).filter(DiseaseRelation.session_id == h.session_id).all()
+            disease_relations = [
+                {
+                    "disease_name": dr.disease_name,
+                    "symptom_name": dr.symptom_name
+                } for dr in dis_rels
+            ]
 
         results.append({
             "history_id": h.id,
             "session_id": h.session_id,
             "review_status": review_status,
+            "reviewed_by": reviewed_by,
+            "reviewed_at": reviewed_at,
             "summary": summary,
+            "raw_note": raw_note,
+            "entities": entities,
+            "medication_relations": medication_relations,
+            "disease_relations": disease_relations,
             "created_at": h.created_at.isoformat() + "Z" if h.created_at else None
         })
     return results
@@ -185,9 +260,34 @@ def download_patient_pdf(
     else:
         rev_status = "APPROVED" if (session and session.status == "COMPLETED") else "PENDING_REVIEW"
 
+    raw_note = session.document.content if (session and session.document) else ""
+    patient_name = "Patient"
+    if ph and ph.user:
+        patient_name = ph.user.full_name or ph.user.username
+    elif session and session.document and session.document.user:
+        patient_name = session.document.user.full_name or session.document.user.username
+    elif current_user.get("full_name"):
+        patient_name = current_user.get("full_name")
+
+    disease_rels = db.query(DiseaseRelation).filter(DiseaseRelation.session_id == session_id).all()
+    med_rels = db.query(MedicationRelation).filter(MedicationRelation.session_id == session_id).all()
+
     data = {
         "session_id": session_id,
         "review_status": rev_status,
+        "patient_name": patient_name,
+        "raw_note": raw_note,
+        "disease_relations": [{"disease_name": dr.disease_name, "symptom_name": dr.symptom_name} for dr in disease_rels],
+        "medication_relations": [
+            {
+                "medication_name": mr.medication_name,
+                "disease_name": mr.disease_name,
+                "dosage": mr.dosage,
+                "frequency": mr.frequency,
+                "duration": mr.duration,
+                "correct": mr.correct
+            } for mr in med_rels
+        ],
         "patient_summary": ph.summary_json,
         "doctor_report": "Patient Self-Submitted Clinical Overview"
     }
