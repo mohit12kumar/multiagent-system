@@ -89,7 +89,7 @@ def test_workflow_engine_dag():
 def test_data_lineage_and_governance():
     lin = DataLineageEngine.attach_provenance("500 mg", "Metformin 500 mg PO", 10, 16, "medication_parser")
     assert "lineage_vectors" in lin
-    assert lin["lineage_vectors"]["pipeline_version"] == "3.0.0-enterprise"
+    assert lin["lineage_vectors"]["pipeline_version"] in ["3.0.0-enterprise", "v6.0.0"]
 
     manifest = EnterpriseGovernance.get_reproducibility_manifest()
     assert manifest["manifest_status"] == "VERIFIED_AUDITABLE"

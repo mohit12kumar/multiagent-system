@@ -178,5 +178,13 @@ class HallucinationDetector:
         }
         res = instance.detect_hallucinations(patient_text, data, {"gender": patient_gender})
         valid_meds = [m for m in medications if m.get("name", "").lower() not in [h["entity"] for h in res["hallucinations"]]]
-        rejections = res["contradictions"] + res["hallucinations"]
+        rejections = []
+        for item in res["contradictions"] + res["hallucinations"]:
+            r_dict = dict(item)
+            rule_type = r_dict.get("rule_type") or r_dict.get("fact_type") or r_dict.get("type", "UNKNOWN")
+            if rule_type == "ROUTE_INCOMPATIBILITY":
+                r_dict["type"] = "IMPOSSIBLE_ROUTE_HALLUCINATION"
+            else:
+                r_dict["type"] = rule_type
+            rejections.append(r_dict)
         return valid_meds, rejections

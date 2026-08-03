@@ -181,6 +181,8 @@ class WorkflowEngine:
                     for dep in node.depends_on:
                         if dep in node_results:
                             combined_input[dep] = node_results[dep]
+                            if isinstance(node_results[dep], dict):
+                                combined_input.update(node_results[dep])
 
                     # Idempotency Hash Check
                     exec_hash = node.compute_execution_hash(combined_input)
