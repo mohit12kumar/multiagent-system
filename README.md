@@ -15,20 +15,19 @@
 
 ---
 
-An end-to-end enterprise clinical intelligence platform designed to ingest raw physician notes, discharge summaries, laboratory reports, and prescription text. The platform features a **20-Agent AI Pipeline**, **Domain Intelligence Engines**, a **FHIR R4 Export Engine**, and an **Autonomous LangGraph Medical Research Sub-Agent** equipped with PubMed search, local RAG knowledge base integration, speech-to-text (STT), and text-to-speech (TTS).
-
----
-
 ## 🌟 Key Capabilities & Highlights
 
 | Feature | Description |
 |---|---|
-| 🤖 **20-Agent AI Pipeline** | Specialized agents spanning PHI redaction, sentence segmentation, multi-model NER, universal medication parsing, clinical consistency, RAG grounding, and JSON formatting |
+| 🤖 **20-Agent AI Pipeline** | Specialized agents spanning PHI redaction, section detection, multi-model NER, universal medication parsing, clinical consistency, RAG grounding, and JSON formatting |
 | 🔬 **LangGraph Medical Research Sub-Agent** | Autonomous literature synthesis agent integrating live PubMed search, MedQuAD vector RAG knowledge base, voice query STT (Whisper), and audio summary TTS |
-| 💊 **Universal Medication Parser v20.0** | Sub-millisecond engine parsing global prescription formats (doses, frequencies, routes, timings, durations, PRN flags, 1-0-1 numeric schedules) |
+| 💊 **Universal Medication Parser v20.0** | Sub-millisecond engine parsing global prescription formats (doses, frequencies, routes, timings, durations, PRN flags, 1-0-1 numeric schedules, Nebulization) |
+| 🔤 **Human-Readable Medical Abbreviation Expansions** | Auto-expands clinical abbreviations into plain text: `OD (Once Daily)`, `BID (Twice Daily)`, `HS (At Bedtime / Night)`, `TDS (Three Times Daily)`, `QID (Four Times Daily)`, `PRN (As Needed)`, `AC (Before Meals)`, `PC (After Meals)` |
+| 🩺 **Multi-Condition Medical History Parser** | Intelligently splits composite past history blocks (e.g. `Type 2 Diabetes Mellitus Essential Hypertension Hyperlipidemia Chronic Kidney Disease Stage III`) into distinct individual condition entries |
 | 🏥 **FHIR R4 Interoperability Engine** | Seamless conversion of extracted clinical entities into standardized HL7 FHIR R4 bundles (Patient, Encounter, Condition, MedicationRequest, Observation) |
 | 🔒 **Cryptographic SHA-256 Audit Chaining** | Tamper-evident ledger storing hash-chained logs (`previous_hash` & `current_hash`) for HIPAA compliance and medico-legal auditability |
 | 🛡️ **PHI & Secret Sanitization** | Real-time scrubbing of phone numbers, emails, SSNs, Aadhaar, MRNs, JWTs, and API keys from logs and LLM payloads |
+| 🟢 **NKDA Visual Verification Engine** | Highlights `NKDA — No Known Drug Allergies` in green badges (`#6EFFD4`, border `rgba(0,227,150,0.3)`) for immediate clinical safety verification |
 | 🚨 **Contraindications & Safety Audits** | Automated safety rules (Metformin + eGFR <30 for Lactic Acidosis, Losartan + K+ >5.5 for Arrhythmia, duplicate drug therapy detection) |
 | 📊 **Multi-Organ Risk Engine** | Real-time predictive risk stratification across Cardiac, Renal, Respiratory, Stroke, and Multi-System Organ Failure (MSOF) vectors |
 | 🧪 **RxNorm & Brand Normalization** | Built-in mapper for brand-to-generic drug aliases (`PCM`, `Crocin`, `Tylenol`, `Ecosprin`, `Glucophage`, `Coumadin`, `Norvasc`, `Lasix`, `Augmentin`) |
@@ -37,7 +36,6 @@ An end-to-end enterprise clinical intelligence platform designed to ingest raw p
 | 👨‍⚕️ **Physician Review Workspace** | Doctor review queue allowing clinicians to audit, edit, approve, reject, or batch-process extracted entity mentions |
 | 📄 **Medico-Legal PDF Generator** | Generates exportable clinical PDF reports with QR verification codes, cryptographic report hashes, and digital signature blocks |
 | 📈 **Prometheus Observability & Health** | Exportable OpenMetrics at `/api/metrics`, deep health checks at `/api/health`, and real-time database connection pool monitoring |
-| 🧪 **3,500 Cases Benchmark Suite** | Automated evaluation suite (`evaluation_3500_cases_report.md`) verifying NER precision, recall, and end-to-end extraction accuracy |
 
 ---
 
@@ -85,7 +83,7 @@ multiagent_system/
 │   │   ├── spacy_agent.py               # SpaCy baseline NER & sentence splitter (Thread-safe pool)
 │   │   ├── scispacy_agent.py            # SciSpaCy biomedical NER (Thread-safe pool)
 │   │   ├── biobert_agent.py             # BioBERT Transformer NER
-│   │   ├── regex_agent.py               # Expanded Regex entity extractor
+│   │   ├── regex_agent.py               # Expanded Regex entity extractor (Diseases, Drugs, Symptoms)
 │   │   ├── medication_parser.py         # Universal Medication Parsing Engine (v20.0)
 │   │   ├── llm_clinical_agent.py        # Groq Llama-3.3-70b contextual extraction
 │   │   ├── aggregation_agent.py         # Overlap resolution & weighted consensus aggregation
@@ -112,68 +110,34 @@ multiagent_system/
 │   │   ├── disease_engine.py            # Disease severity evaluation engine
 │   │   └── evidence_engine.py           # Weighted evidence scoring algorithm
 │   │
-│   ├── disease_plugins/                 # Specialized Disease Assessment Plugins
-│   │   ├── base_plugin.py               # Plugin interface definition
-│   │   ├── ckd_plugin.py                # Chronic Kidney Disease stager & KDIGO rules
-│   │   └── stemi_plugin.py              # STEMI & Acute Coronary Syndrome validator
+│   ├── utils/                           # Prescription Engine & PDF Utilities
+│   │   ├── medication_regex.py          # Prescription regex library (1-0-1, q6h, timing terms)
+│   │   ├── medication_normalizer.py     # Prescription normalizer & Nebulization route mapper
+│   │   ├── pdf_generator.py             # Medico-legal clinical PDF report generator
+│   │   └── text_cleaning.py             # String pre-processing & sanitization
 │   │
-│   ├── interop/                         # Interoperability Protocols
-│   │   └── fhir_mapper.py               # FHIR R4 JSON Serializer (Patient, Condition, etc.)
-│   │
-│   ├── core/                            # Infrastructure Core
-│   │   ├── agent_context.py             # Request-scoped AgentContext dataclass
-│   │   ├── inference_pool.py            # Thread-safe SpaCy/SciSpaCy model pool
-│   │   ├── chroma_lock.py               # Multi-threaded ChromaDB write lock
-│   │   ├── retry.py                     # Database deadlock retry wrappers
-│   │   ├── metrics.py                   # Prometheus OpenMetrics exporter
-│   │   └── pool_monitor.py              # Connection pool monitor
-│   │
-│   ├── api/                             # REST API Routers
-│   │   ├── routes.py                    # Main router with auth, pipeline, health & metrics
-│   │   ├── doctor_routes.py             # Review queue management & doctor analytics
-│   │   ├── patient_routes.py            # Patient clinical notes & PDF report download
-│   │   └── auth.py                      # OAuth2 JWT authentication
-│   │
-│   ├── database/                        # Database Layer
-│   │   ├── connection.py                # SQLAlchemy engine & session factory
-│   │   ├── models.py                    # ORM Models (AuditLog with hash chaining, User, ReviewQueue)
-│   │   └── mysql_store.py               # High-level database operations
-│   │
-│   └── utils/                           # Core Utilities
-│       ├── medication_regex.py          # Pre-compiled prescription regex library
-│       ├── medication_normalizer.py     # Prescription normalizer & 1-0-1 schedule parser
-│       ├── pdf_generator.py             # Medico-legal clinical PDF report generator
-│       └── text_cleaning.py             # String pre-processing & sanitization
+│   └── database/                        # Database Layer
+│       ├── connection.py                # SQLAlchemy engine & session factory
+│       ├── models.py                    # ORM Models (AuditLog with hash chaining, User, ReviewQueue)
+│       └── mysql_store.py               # High-level database operations
 │
 ├── medical-research-agent/              # Autonomous LangGraph Research Agent Subsystem
 │   ├── agents/                          # LangGraph state machine node handlers
-│   │   └── nodes.py                     # Supervisor, Planner, Researcher, Synthesizer, Verifier
-│   ├── tools/                           # Research Tooling
-│   │   ├── pubmed_tool.py               # NCBI PubMed live API client
-│   │   └── kb_tool.py                   # MedQuAD vector RAG search tool
+│   ├── tools/                           # Research Tooling (PubMed API & MedQuAD RAG)
 │   ├── graph.py                         # LangGraph state machine definition
 │   ├── server.py                        # Standalone FastAPI server with JWT, STT & TTS
-│   ├── main.py                          # CLI & runner script
-│   ├── ingest.py                        # MedQuAD dataset ingestion script
-│   ├── state.py                         # Shared research state dataclass
-│   └── requirements.txt                 # Research agent Python dependencies
+│   └── ingest.py                        # MedQuAD dataset ingestion script
 │
 ├── frontend/                            # React 18 + Vite Web Application
 │   ├── src/
 │   │   ├── components/                  # UI Components (Navbar, ExtractionCards, ResearchModal)
-│   │   ├── context/                     # AuthContext & session management
-│   │   ├── pages/                       # Login, PatientDashboard, DoctorDashboard, ReviewQueue
-│   │   ├── services/                    # Axios API client with bearer token interceptors
-│   │   ├── index.css                    # Dark glassmorphic medical design system
-│   │   └── App.jsx                      # Main app router & provider layout
+│   │   ├── pages/                       # Login, PatientDashboard, DoctorDashboard, ReviewQueuePage
+│   │   └── index.css                    # Dark glassmorphic medical design system
 │   └── vite.config.js                   # Vite dev server & proxy settings
 │
-├── evaluation/                          # Benchmark Evaluation Suite
-│   ├── evaluation_3500_cases_report.md  # 3,500 clinical test cases performance evaluation
-│   └── evaluation_100_cases_summary.json# Detailed JSON summary report
-│
 ├── tests/                               # Comprehensive Automated Test Suite
-│   ├── test_medication_parser.py        # 200+ Universal Prescription Test Cases
+│   ├── test_medication_parser.py        # Universal Prescription Test Suite (10/10 Passed)
+│   ├── test_multiagent_system.py        # End-to-End Pipeline Integration Test Suite (2/2 Passed)
 │   └── test_phase1_security.py          # Auth, RBAC & Security Test Suite
 │
 ├── .env.example                         # Environment variable template
@@ -242,17 +206,26 @@ Located in `medical-research-agent/`, this standalone multi-agent research subsy
 The high-speed medication parsing engine (`backend/agents/medication_parser.py`) converts unstructured prescriptions into normalized clinical data structures:
 
 ```text
-• "Metformin 500 mg PO BID after meals for 30 days"
-  ➔ Name: Metformin | Dose: 500 mg | Route: PO | Freq: BID (Twice Daily) | Timing: After meals | Duration: 30 days
+• "Ceftriaxone 1 g IV every 24 hours for 5 days"
+  ➔ Name: Ceftriaxone | Dose: 1 g | Route: IV | Freq: OD (Once Daily) | Duration: For 5 days
 
-• "Tab PCM 500mg 1-0-1"
-  ➔ Name: Paracetamol | Dose: 500 mg | Route: PO | Freq: BID (1-0-1 schedule)
+• "Azithromycin 500 mg PO OD for 5 days"
+  ➔ Name: Azithromycin | Dose: 500 mg | Route: PO | Freq: OD (Once Daily) | Duration: For 5 days
 
-• "Aspirin 150 mg PO OD"
-  ➔ Name: Aspirin | Dose: 150 mg | Route: PO | Freq: OD (Once Daily)
+• "Paracetamol 650 mg PO every 6 hours as needed for Fever"
+  ➔ Name: Paracetamol | Dose: 650 mg | Route: PO | Freq: QID (Four Times Daily) | PRN: True | Indication: Fever
 
-• "Ondansetron 4mg IV PRN for severe nausea"
-  ➔ Name: Ondansetron | Dose: 4 mg | Route: IV | Freq: PRN | PRN Flag: True
+• "Salbutamol inhaler 2 puffs every 6 hours PRN breathlessness"
+  ➔ Name: Salbutamol | Dose: 2 puffs | Route: Inhalation | Freq: QID (Four Times Daily) | PRN: True | Indication: Breathlessness
+
+• "Budesonide 0.5 mg nebulization BD"
+  ➔ Name: Budesonide | Dose: 0.5 mg | Route: Nebulization | Freq: BID (Twice Daily)
+
+• "Metformin 500 mg PO BID after meals"
+  ➔ Name: Metformin | Dose: 500 mg | Route: PO | Freq: BID (Twice Daily) | Timing: After meals (PC)
+
+• "Atorvastatin 40 mg PO HS"
+  ➔ Name: Atorvastatin | Dose: 40 mg | Route: PO | Freq: HS (At Bedtime / Night) | Timing: Bedtime (HS)
 ```
 
 ---
@@ -308,11 +281,6 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
-Also configure `medical-research-agent/.env`:
-```powershell
-copy medical-research-agent\.env.example medical-research-agent\.env
-```
-
 #### 3. Initialize MySQL Database
 ```sql
 CREATE DATABASE clinical_multiagent CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -324,20 +292,13 @@ CREATE DATABASE clinical_multiagent CHARACTER SET utf8mb4 COLLATE utf8mb4_unicod
 python -m venv venv
 .\venv\Scripts\activate
 
-# Install main backend dependencies
+# Install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
-
-# Install research agent dependencies
 pip install -r medical-research-agent/requirements.txt
 ```
 
-#### 5. Seed MedQuAD Vector Database (Optional for Research Agent)
-```powershell
-python medical-research-agent/ingest.py
-```
-
-#### 6. Frontend Setup
+#### 5. Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -393,8 +354,6 @@ npm run dev
 
 ## 🔑 Default Demo Accounts
 
-Default database seed credentials for quick testing:
-
 | Role | Username | Password | Privileges & Workspaces |
 |---|---|---|---|
 | 👨‍⚕️ **Doctor** | `dr_jenkins` | `password123` | Doctor Review Queue, Entity Approval/Editing, Patient Analytics |
@@ -404,14 +363,12 @@ Default database seed credentials for quick testing:
 
 ## 🧪 Testing & Verification
 
-Execute the complete automated test suite (including 200+ medication parser tests, security checks, and frontend build verification):
-
 ```powershell
-# Run Universal Medication Parser test suite
+# Run Universal Medication Parser test suite (10/10 Passed)
 .\venv\Scripts\python.exe -m pytest tests/test_medication_parser.py -v
 
-# Run Security & Auth test suite
-.\venv\Scripts\python.exe -m pytest tests/test_phase1_security.py -v
+# Run End-to-End Multi-Agent System test suite (2/2 Passed)
+.\venv\Scripts\python.exe -m pytest tests/test_multiagent_system.py -v
 
 # Run Frontend production build check
 npm --prefix frontend run build
