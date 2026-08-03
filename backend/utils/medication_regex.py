@@ -40,21 +40,23 @@ DOSE_PATTERNS: List[Pattern] = [
 # Period: Weekly, Monthly, Alternate day, Every other day
 
 NUMERIC_SCHEDULE_PATTERN = re.compile(
-    r'\b(?P<m>[0-9/]+)-(?P<a>[0-9/]+)-(?P<e>[0-9/]+)(?:-(?P<n>[0-9/]+))?\b'
+    r'\b(?P<m>[0-9/]+)\s*-\s*(?P<a>[0-9/]+)\s*-\s*(?P<e>[0-9/]+)(?:\s*-\s*(?P<n>[0-9/]+))?\b'
 )
 
 HOURLY_PATTERN = re.compile(
-    r'(?i)\b(?:every\s+(?P<num>\d+)\s*hours?|q(?P<qnum>\d+)h)\b'
+    r'(?i)\b(?:every\s+(?P<num>\d+)\s*(?:hours?|hrs?|h)|q(?P<qnum>\d+)(?:h|hrs?))\b'
 )
 
 FREQUENCY_PATTERNS: List[Pattern] = [
-    # Numeric schedules: 1-0-1, 1-1-1, 0-0-1, 1-0-0, 2-2-2, 1/2-0-1/2
+    # Numeric schedules: 1-0-1, 1 - 0 - 1, 1-1-1, 0-0-1, 1-0-0, 2-2-2, 1/2-0-1/2
     NUMERIC_SCHEDULE_PATTERN,
-    # Hourly intervals: q4h, q6h, q8h, q12h, every 8 hours
+    # Hourly intervals: q4h, q6h, q8h, q12h, every 8 hours, every 6 hrs
     HOURLY_PATTERN,
     # Latin & standard doctor abbreviations
     re.compile(
         r'(?i)\b(?:once\s+daily|twice\s+daily|three\s+times\s+daily|four\s+times\s+daily|'
+        r'once\s+a\s+day|twice\s+a\s+day|three\s+times\s+a\s+day|four\s+times\s+a\s+day|'
+        r'\d+\s+times?\s+(?:daily|a\s+day)|'
         r'thrice\s+daily|every\s+day|daily|alternate\s+day|every\s+other\s+day|weekly|monthly|'
         r'morning\s+and\s+evening|morning|evening|night|bedtime|'
         r'bid|bd|tid|tds|qid|qds|qd|qod|od|hs|stat|prn|sos|as\s+needed|as\s+required|when\s+required|if\s+needed)\b'
@@ -78,11 +80,12 @@ ROUTE_PATTERN = re.compile(
 # Before dinner, After dinner, Morning, Evening, Night, HS, Bedtime, AC, PC
 
 TIMING_PATTERN = re.compile(
-    r'(?i)\b(?:before\s+meals?|after\s+meals?|before\s+breakfast|after\s+breakfast|'
+    r'(?i)\b(?:before\s+(?:meals?|food)|after\s+(?:meals?|food)|before\s+breakfast|after\s+breakfast|'
     r'before\s+lunch|after\s+lunch|before\s+dinner|after\s+dinner|'
-    r'with\s+meals?|with\s+food|empty\s+stomach|'
-    r'in\s+the\s+morning|in\s+the\s+evening|in\s+the\s+night|'
-    r'morning|evening|night|bedtime|hs|ac|pc)\b'
+    r'pre[- ]meal|post[- ]meal|'
+    r'with\s+meals?|with\s+food|(?:on\s+(?:an\s+)?)?empty\s+stomach|'
+    r'in\s+the\s+morning|in\s+the\s+evening|in\s+the\s+night|at\s+night|'
+    r'morning|evening|night|bedtime|nightly|hs|ac|pc)\b'
 )
 
 # ── DURATION PATTERNS ─────────────────────────────────────────────────────────

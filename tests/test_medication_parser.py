@@ -200,3 +200,21 @@ def test_enterprise_6_medications_extraction():
     assert sal["indication"] == "Breathlessness"
 
 
+def test_frequency_and_timing_variations():
+    variations = [
+        ("Tab Paracetamol 500mg 1 - 0 - 1 after food", "BID", "After meals (PC)"),
+        ("Amlodipine 5mg once a day in the morning", "OD", "Morning"),
+        ("Metformin 500mg twice a day before meals", "BID", "Before meals (AC)"),
+        ("Pantoprazole 40mg 1 time daily on empty stomach", "OD", "Empty stomach"),
+        ("Atorvastatin 10mg 1-0-0 at night", "OD", "Night"),
+        ("Ciprofloxacin 500mg q12h after food", "q12h", "After meals (PC)"),
+    ]
+    for note, exp_freq, exp_timing in variations:
+        res = MedicationParserAgent.parse_text(note)
+        assert len(res) >= 1, f"Failed to parse: {note}"
+        m = res[0]
+        assert m["frequency"] == exp_freq, f"Expected freq {exp_freq}, got {m['frequency']} in {note}"
+        assert exp_timing.lower() in m["timing"].lower(), f"Expected timing {exp_timing}, got {m['timing']} in {note}"
+
+
+

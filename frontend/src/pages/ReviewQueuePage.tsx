@@ -46,6 +46,81 @@ const getMedicationIndication = (drugName: string, fallbackDisease?: string): st
   return 'Prescribed Therapy';
 };
 
+const formatFrequencyDetail = (freq?: string): string | undefined => {
+  if (!freq) return undefined;
+  const f = freq.trim();
+  const fLow = f.toLowerCase();
+
+  const map: Record<string, string> = {
+    'od': 'OD (Once Daily)',
+    'once daily': 'Once Daily (OD)',
+    'once a day': 'Once Daily (OD)',
+    '1 time daily': 'Once Daily (OD)',
+    'bid': 'BID (Twice Daily)',
+    'bd': 'BID (Twice Daily)',
+    'twice daily': 'Twice Daily (BID)',
+    'twice a day': 'Twice Daily (BID)',
+    '2 times daily': 'Twice Daily (BID)',
+    'tds': 'TDS (Three Times Daily)',
+    'tid': 'TID (Three Times Daily)',
+    'thrice daily': 'Three Times Daily (TDS)',
+    'three times daily': 'Three Times Daily (TDS)',
+    'three times a day': 'Three Times Daily (TDS)',
+    'qid': 'QID (Four Times Daily)',
+    'qds': 'QDS (Four Times Daily)',
+    'four times daily': 'Four Times Daily (QID)',
+    'four times a day': 'Four Times Daily (QID)',
+    'hs': 'HS (At Bedtime / Night)',
+    'at bedtime': 'At Bedtime (HS)',
+    'bedtime': 'At Bedtime (HS)',
+    'nightly': 'At Bedtime (HS)',
+    'stat': 'STAT (Immediately)',
+    'prn': 'PRN (As Needed / SOS)',
+    'sos': 'SOS (As Needed / PRN)',
+    'q4h': 'q4h (Every 4 Hours)',
+    'q6h': 'q6h (Every 6 Hours)',
+    'q8h': 'q8h (Every 8 Hours)',
+    'q12h': 'q12h (Every 12 Hours)',
+    'weekly': 'Weekly (Once Weekly)',
+    'monthly': 'Monthly (Once Monthly)',
+  };
+
+  if (map[fLow]) return map[fLow];
+  if (/1\s*-\s*0\s*-\s*1/i.test(f)) return '1-0-1 (BID / Twice Daily)';
+  if (/1\s*-\s*1\s*-\s*1/i.test(f)) return '1-1-1 (TDS / Three Times Daily)';
+  if (/1\s*-\s*0\s*-\s*0/i.test(f)) return '1-0-0 (OD / Once Daily Morning)';
+  if (/0\s*-\s*0\s*-\s*1/i.test(f)) return '0-0-1 (HS / Once Daily Night)';
+
+  return f;
+};
+
+const formatTimingDetail = (timing?: string): string | undefined => {
+  if (!timing) return undefined;
+  const t = timing.trim();
+  const tLow = t.toLowerCase();
+
+  const map: Record<string, string> = {
+    'ac': 'AC (Before Meals)',
+    'before meals': 'Before Meals (AC)',
+    'before meal': 'Before Meals (AC)',
+    'before food': 'Before Meals (AC)',
+    'pc': 'PC (After Meals)',
+    'after meals': 'After Meals (PC)',
+    'after meal': 'After Meals (PC)',
+    'after food': 'After Meals (PC)',
+    'hs': 'HS (At Bedtime)',
+    'at bedtime': 'At Bedtime (HS)',
+    'bedtime': 'At Bedtime (HS)',
+    'empty stomach': 'On Empty Stomach',
+    'on empty stomach': 'On Empty Stomach',
+    'morning': 'In the Morning',
+    'evening': 'In the Evening',
+    'night': 'At Night',
+  };
+
+  return map[tLow] || t;
+};
+
 const enrichMed = (m: any, rawNote: string, disName?: string) => {
   if (!m) return null;
   const mName = typeof m === 'string' ? m : renderStr(m?.name || m?.medication || m);
@@ -64,13 +139,17 @@ const enrichMed = (m: any, rawNote: string, disName?: string) => {
   if (['Not Specified', 'N/A', 'Unknown'].includes(route)) route = '';
   if (['Not Specified', 'N/A', 'Unknown'].includes(timing)) timing = '';
 
-  // Fallback to searching raw note snippet if any parameter is missing
+  // Fallback to searching raw note snippet strictly restricted to current line/sentence boundary
   if (rawNote && (!dosage || !frequency || !duration || !route || !timing)) {
     const rLow = rawNote.toLowerCase();
     const dIdx = rLow.indexOf(mName.toLowerCase());
     if (dIdx !== -1) {
-      const lStart = Math.max(0, dIdx - 30);
-      const lEnd = Math.min(rawNote.length, dIdx + mName.length + 150);
+      const lineStart = Math.max(rawNote.lastIndexOf('\n', dIdx), rawNote.lastIndexOf('. ', dIdx));
+      const lStart = lineStart === -1 ? 0 : lineStart + (rawNote[lineStart] === '.' ? 2 : 1);
+      const lineEnd = rawNote.indexOf('\n', dIdx);
+      const sentEnd = rawNote.indexOf('. ', dIdx);
+      const ends = [lineEnd, sentEnd].filter(p => p !== -1);
+      const lEnd = ends.length > 0 ? Math.min(...ends) : rawNote.length;
       const line = rawNote.slice(lStart, lEnd);
 
       if (!dosage) {
@@ -78,7 +157,7 @@ const enrichMed = (m: any, rawNote: string, disName?: string) => {
         if (dm) dosage = dm[0];
       }
       if (!frequency) {
-        const fm = line.match(/\b(?:every\s+\d+\s*hours?|every\s+\d+\s*h|1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|every four hours|at bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
+        const fm = line.match(/\b(?:every\s+\d+\s*(?:hours?|hrs?|h)|q\d+h?|1\s*-\s*0\s*-\s*1|1\s*-\s*1\s*-\s*1|1\s*-\s*0\s*-\s*0|0\s*-\s*0\s*-\s*1|0\s*-\s*1\s*-\s*0|once\s+daily|twice\s+daily|thrice\s+daily|three\s+times\s+daily|four\s+times\s+daily|once\s+a\s+day|twice\s+a\s+day|three\s+times\s+a\s+day|four\s+times\s+a\s+day|\d+\s+times?\s+(?:daily|a\s+day)|every\s+four\s+hours|at\s+bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
         if (fm) frequency = fm[0].toUpperCase();
       }
       if (!duration) {
@@ -90,7 +169,7 @@ const enrichMed = (m: any, rawNote: string, disName?: string) => {
         if (rm) route = rm[0].toUpperCase();
       }
       if (!timing) {
-        const tm = line.match(/\b(?:after meals?|before meals?|before breakfast|after breakfast|after lunch|after dinner|every morning|nightly|at bedtime|PRN\s+[a-z]+|with food|after food)\b/i);
+        const tm = line.match(/\b(?:after\s+food|before\s+food|after\s+meals?|before\s+meals?|with\s+food|with\s+meals?|empty\s+stomach|on\s+empty\s+stomach|before\s+breakfast|after\s+breakfast|after\s+lunch|after\s+dinner|before\s+dinner|every\s+morning|in\s+the\s+morning|in\s+the\s+evening|at\s+night|nightly|at\s+bedtime|PRN\s+[a-z]+|AC|PC|HS)\b/i);
         if (tm) timing = tm[0];
       }
     }
@@ -256,6 +335,25 @@ export const ReviewQueuePage = () => {
     }
   };
 
+function deduplicateCaseInsensitive(items: string[]): string[] {
+  const seen = new Map<string, string>();
+  for (const item of items) {
+    if (!item || typeof item !== 'string') continue;
+    const clean = item.trim();
+    if (!clean) continue;
+    const key = clean.toLowerCase();
+    if (!seen.has(key)) {
+      seen.set(key, clean);
+    } else {
+      const existing = seen.get(key)!;
+      if (clean !== clean.toLowerCase() && clean !== clean.toUpperCase() && existing === existing.toLowerCase()) {
+        seen.set(key, clean);
+      }
+    }
+  }
+  return Array.from(seen.values());
+}
+
   const cur = queue.find(q => q.id === selectedId);
   const det = cur?.details ?? {};
   const raw = typeof det.raw_note === 'string' ? det.raw_note : '';
@@ -282,7 +380,7 @@ export const ReviewQueuePage = () => {
         extraDiseases = obj.diseases.map(renderStr).filter(Boolean);
       }
       if (Array.isArray(obj.symptoms)) {
-        extraSymptoms = obj.symptoms.map(renderStr).filter(Boolean);
+        extraSymptoms.push(...obj.symptoms.map(renderStr).filter(Boolean));
       }
       if (Array.isArray(obj.medications)) {
         extraMeds = obj.medications.map((m: any) => enrichMed(m, raw)).filter(Boolean);
@@ -292,10 +390,30 @@ export const ReviewQueuePage = () => {
     summary = [];
   }
 
+  if (Array.isArray((det as any)?.symptoms)) {
+    extraSymptoms.push(...(det as any).symptoms.map(renderStr).filter(Boolean));
+  }
+
+  const rawTextSymptoms: string[] = [];
+  if (raw) {
+    const matches = raw.matchAll(/(?:Chief Complaints?|Presenting Complaints?|Symptoms?|Complaints?)\s*:?\s*(.*?)(?=\s*(?:Past Medical History|PMH|Vital Signs|Laboratory|Diagnosis|Medications|Advice|Labs|Impression|Allergies|History)|$)/gi);
+    for (const m of matches) {
+      if (m[1]) {
+        const parts = m[1].split(/[,;\n•]|(?:\s+and\s+)|\bfor\s+\d+/i).map(p => p.replace(/^(?:presenting with|complaining of|history of)\s+/i, '').trim());
+        for (const p of parts) {
+          const clean = p.replace(/[\.\s]+$/, '').trim();
+          if (clean.length > 2 && !/^(?:\d+\s*)?(?:days?|weeks?|months?)$/i.test(clean)) {
+            rawTextSymptoms.push(clean);
+          }
+        }
+      }
+    }
+  }
+
   const diseasesFromSummary: string[] = Array.isArray(summary)
     ? summary.map(s => renderStr(s?.disease ?? s)).filter(d => d.length > 0)
     : [];
-  const diseases: string[] = Array.from(new Set([...diseasesFromSummary, ...extraDiseases]));
+  const diseases: string[] = deduplicateCaseInsensitive([...diseasesFromSummary, ...extraDiseases]);
 
   const symptomsFromSummary: string[] = Array.isArray(summary)
     ? summary.flatMap(s => {
@@ -306,7 +424,7 @@ export const ReviewQueuePage = () => {
         return [];
       })
     : [];
-  const symptoms: string[] = Array.from(new Set([...symptomsFromSummary, ...extraSymptoms]));
+  const symptoms: string[] = deduplicateCaseInsensitive([...symptomsFromSummary, ...extraSymptoms, ...rawTextSymptoms]);
 
   let meds: any[] = Array.isArray(summary)
     ? summary
@@ -327,17 +445,23 @@ export const ReviewQueuePage = () => {
         .filter(Boolean)
     : [];
 
-  if (meds.length === 0 && extraMeds.length > 0) {
-    meds = extraMeds;
+  // Merge extraMeds, det.medications, and det.patient_summary.medications so ALL medications are displayed
+  const additionalMedsList: any[] = [];
+  if (Array.isArray(extraMeds)) additionalMedsList.push(...extraMeds);
+  if (Array.isArray((det as any)?.medications)) {
+    additionalMedsList.push(...(det as any).medications.map((m: any) => enrichMed(m, raw, diseases[0])));
+  }
+  if ((det as any)?.patient_summary && typeof (det as any).patient_summary === 'object' && Array.isArray((det as any).patient_summary.medications)) {
+    additionalMedsList.push(...(det as any).patient_summary.medications.map((m: any) => enrichMed(m, raw, diseases[0])));
   }
 
-  // Fallback 1: Extract from det.medications or det.patient_summary array
-  if (meds.length === 0) {
-    const rawMedsList: any[] = Array.isArray((det as any)?.medications)
-      ? (det as any).medications
-      : ((det as any)?.patient_summary && typeof (det as any).patient_summary === 'object' && Array.isArray((det as any).patient_summary.medications) ? (det as any).patient_summary.medications : []);
-    if (rawMedsList.length > 0) {
-      meds = rawMedsList.map((m: any) => enrichMed(m, raw, diseases[0])).filter(Boolean);
+  const existingMedNames = new Set(meds.map(m => (typeof m.name === 'string' ? m.name.toLowerCase().trim() : '')));
+  for (const addMed of additionalMedsList) {
+    if (!addMed || !addMed.name) continue;
+    const nameLow = String(addMed.name).toLowerCase().trim();
+    if (!existingMedNames.has(nameLow)) {
+      existingMedNames.add(nameLow);
+      meds.push(addMed);
     }
   }
 
@@ -346,21 +470,20 @@ export const ReviewQueuePage = () => {
     const medSectionMatch = raw.match(/Medications?:\s*([\s\S]*?)(?:\n\n|\n[A-Z][a-z]+:|\nLabs:|\nImpression:|\nAllergy:|$)/i);
     if (medSectionMatch && medSectionMatch[1]) {
       const lines = medSectionMatch[1].split('\n').map(l => l.trim()).filter(l => l.length > 2);
-      const existingNames = new Set(meds.map(m => (typeof m.name === 'string' ? m.name.toLowerCase().trim() : '')));
-      
+
       for (const line of lines) {
         const cleanLine = line.replace(/^(?:Tab|Inj|Neb|Cap|Syrup|Syr|Sol|Patch)\.?\s+/i, '');
         const nameMatch = cleanLine.match(/^([A-Za-z0-9\s\-]+?)(?:\s+\d+|\s+1-0-1|\s+BID|\s+TDS|\s+OD|\s+q\d+h|\s+every|\s+twice|\s+once|\s+three|\s+HS|\s+AC|\s+PRN|\s+SOS|\s+IV|\s+PO|$)/i);
         const name = nameMatch && nameMatch[1].trim().length > 1 ? nameMatch[1].trim() : cleanLine;
         const nameLow = name.toLowerCase().trim();
 
-        if (!existingNames.has(nameLow)) {
-          existingNames.add(nameLow);
+        if (!existingMedNames.has(nameLow)) {
+          existingMedNames.add(nameLow);
           const doseMatch = line.match(/\b(?:\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)|half\s+tablet|\d+\s+puffs?)\b/i);
-          const freqMatch = line.match(/\b(?:every\s+\d+\s*hours?|every\s+\d+\s*h|1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|every four hours|at bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
+          const freqMatch = line.match(/\b(?:every\s+\d+\s*(?:hours?|hrs?|h)|q\d+h?|1\s*-\s*0\s*-\s*1|1\s*-\s*1\s*-\s*1|1\s*-\s*0\s*-\s*0|0\s*-\s*0\s*-\s*1|0\s*-\s*1\s*-\s*0|once\s+daily|twice\s+daily|thrice\s+daily|three\s+times\s+daily|four\s+times\s+daily|once\s+a\s+day|twice\s+a\s+day|three\s+times\s+a\s+day|four\s+times\s+a\s+day|\d+\s+times?\s+(?:daily|a\s+day)|every\s+four\s+hours|at\s+bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
           const durationMatch = line.match(/\b(?:for\s+\d+\s*days?|for\s+\d+\s*weeks?|\d+\s*days?|\d+\s*weeks?)\b/i);
-          const routeMatch = line.match(/\b(?:IV|PO|oral|inhalation|via inhalation|subcutaneous|SC|IM|topical|intravenous)\b/i);
-          const timingMatch = line.match(/\b(?:after meals?|before meals?|before breakfast|after breakfast|after lunch|after dinner|every morning|nightly|at bedtime|PRN\s+[a-z]+|with food|after food)\b/i);
+          const routeMatch = line.match(/\b(?:IV|PO|oral|inhalation|via inhalation|nebulization|nebulised|subcutaneous|SC|IM|topical|intravenous)\b/i);
+          const timingMatch = line.match(/\b(?:after\s+food|before\s+food|after\s+meals?|before\s+meals?|with\s+food|with\s+meals?|empty\s+stomach|on\s+empty\s+stomach|before\s+breakfast|after\s+breakfast|after\s+lunch|after\s+dinner|before\s+dinner|every\s+morning|in\s+the\s+morning|in\s+the\s+evening|at\s+night|nightly|at\s+bedtime|PRN\s+[a-z]+|AC|PC|HS)\b/i);
 
           meds.push({
             name: name || cleanLine,
@@ -375,19 +498,22 @@ export const ReviewQueuePage = () => {
       }
     }
 
-    if (meds.length === 0) {
-      const knownDrugs = [
-        'ceftriaxone', 'azithromycin', 'paracetamol', 'amoxicillin', 'ciprofloxacin',
-        'metformin', 'amlodipine', 'lisinopril', 'losartan', 'atorvastatin',
-        'furosemide', 'pantoprazole', 'omeprazole', 'albuterol', 'salbutamol', 'prednisone',
-        'dexamethasone', 'augmentin', 'doxycycline', 'metronidazole', 'aspirin',
-        'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin', 'vitamin d3',
-        'glucophage', 'ecosprin', 'norvasc', 'lipitor', 'diclofenac', 'ibuprofen', 'pcm', 'ventolin'
-      ];
-      const rLow = raw.toLowerCase();
-      for (const d of knownDrugs) {
-        if (rLow.includes(d)) {
-          const name = d.charAt(0).toUpperCase() + d.slice(1);
+    const knownDrugs = [
+      'ceftriaxone', 'azithromycin', 'paracetamol', 'amoxicillin', 'ciprofloxacin',
+      'metformin', 'amlodipine', 'lisinopril', 'losartan', 'atorvastatin',
+      'furosemide', 'pantoprazole', 'omeprazole', 'albuterol', 'salbutamol', 'prednisone',
+      'dexamethasone', 'augmentin', 'doxycycline', 'metronidazole', 'aspirin',
+      'clopidogrel', 'heparin', 'enoxaparin', 'apixaban', 'rivaroxaban', 'insulin', 'vitamin d3',
+      'glucophage', 'ecosprin', 'norvasc', 'lipitor', 'diclofenac', 'ibuprofen', 'pcm', 'ventolin',
+      'budesonide', 'formoterol', 'ipratropium', 'tiotropium', 'fluticasone'
+    ];
+    const rLow = raw.toLowerCase();
+    for (const d of knownDrugs) {
+      if (rLow.includes(d)) {
+        const name = d.charAt(0).toUpperCase() + d.slice(1);
+        const nameLow = name.toLowerCase();
+        if (!existingMedNames.has(nameLow)) {
+          existingMedNames.add(nameLow);
           let mDose: string | undefined = undefined;
           let mFreq: string | undefined = undefined;
           let mDuration: string | undefined = undefined;
@@ -396,25 +522,27 @@ export const ReviewQueuePage = () => {
 
           const dIdx = rLow.indexOf(d);
           if (dIdx !== -1) {
-            const lastNl = raw.lastIndexOf('\n', dIdx);
-            const nextNl = raw.indexOf('\n', dIdx);
-            const lStart = lastNl === -1 ? Math.max(0, dIdx - 30) : lastNl + 1;
-            const lEnd = nextNl === -1 ? Math.min(raw.length, dIdx + d.length + 150) : nextNl;
+            const lineStart = Math.max(raw.lastIndexOf('\n', dIdx), raw.lastIndexOf('. ', dIdx));
+            const lStart = lineStart === -1 ? 0 : lineStart + (raw[lineStart] === '.' ? 2 : 1);
+            const lineEnd = raw.indexOf('\n', dIdx);
+            const sentEnd = raw.indexOf('. ', dIdx);
+            const ends = [lineEnd, sentEnd].filter(p => p !== -1);
+            const lEnd = ends.length > 0 ? Math.min(...ends) : raw.length;
             const line = raw.slice(lStart, lEnd);
 
             const doseMatch = line.match(/\b(?:\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml|IU|units?|tablets?|tabs?|capsules?|puffs?)|half\s+tablet|\d+\s+puffs?)\b/i);
             if (doseMatch) mDose = doseMatch[0];
 
-            const freqMatch = line.match(/\b(?:every\s+\d+\s*hours?|every\s+\d+\s*h|1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|every four hours|at bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
+            const freqMatch = line.match(/\b(?:every\s+\d+\s*(?:hours?|hrs?|h)|q\d+h?|1\s*-\s*0\s*-\s*1|1\s*-\s*1\s*-\s*1|1\s*-\s*0\s*-\s*0|0\s*-\s*0\s*-\s*1|0\s*-\s*1\s*-\s*0|once\s+daily|twice\s+daily|thrice\s+daily|three\s+times\s+daily|four\s+times\s+daily|once\s+a\s+day|twice\s+a\s+day|three\s+times\s+a\s+day|four\s+times\s+a\s+day|\d+\s+times?\s+(?:daily|a\s+day)|every\s+four\s+hours|at\s+bedtime|nightly|morning|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b/i);
             if (freqMatch) mFreq = freqMatch[0].toUpperCase();
 
             const durationMatch = line.match(/\b(?:for\s+\d+\s*days?|for\s+\d+\s*weeks?|\d+\s*days?|\d+\s*weeks?)\b/i);
             if (durationMatch) mDuration = durationMatch[0];
 
-            const routeMatch = line.match(/\b(?:IV|PO|oral|inhalation|via inhalation|subcutaneous|SC|IM|topical|intravenous)\b/i);
+            const routeMatch = line.match(/\b(?:IV|PO|oral|inhalation|via inhalation|nebulization|nebulised|subcutaneous|SC|IM|topical|intravenous)\b/i);
             if (routeMatch) mRoute = routeMatch[0].toUpperCase();
 
-            const timingMatch = line.match(/\b(?:after meals?|before meals?|before breakfast|after breakfast|after lunch|after dinner|every morning|nightly|at bedtime|PRN\s+[a-z]+|with food|after food)\b/i);
+            const timingMatch = line.match(/\b(?:after\s+food|before\s+food|after\s+meals?|before\s+meals?|with\s+food|with\s+meals?|empty\s+stomach|on\s+empty\s+stomach|before\s+breakfast|after\s+breakfast|after\s+lunch|after\s+dinner|before\s+dinner|every\s+morning|in\s+the\s+morning|in\s+the\s+evening|at\s+night|nightly|at\s+bedtime|PRN\s+[a-z]+|AC|PC|HS)\b/i);
             if (timingMatch) mTiming = timingMatch[0];
           }
 
@@ -433,11 +561,21 @@ export const ReviewQueuePage = () => {
   }
 
   const parseAllergies = (rawText: string): string[] => {
+    const fromPipeline: string[] = Array.isArray((det as any)?.allergies)
+      ? (det as any).allergies
+      : ((det as any)?.patient_summary && typeof (det as any).patient_summary === 'object' && Array.isArray((det as any).patient_summary.allergies) ? (det as any).patient_summary.allergies : []);
+    
+    if (fromPipeline.length > 0) {
+      const hasNkda = fromPipeline.some(a => /nkda|no known|none|nil/i.test(a));
+      if (hasNkda) return ['NKDA — No Known Drug Allergies'];
+      return fromPipeline;
+    }
+
     if (!rawText) return [];
     const rLow = rawText.toLowerCase();
 
     // 1. Check NKDA
-    if (rLow.includes('nkda') || rLow.includes('no known drug allergy') || rLow.includes('no known drug allergies')) {
+    if (rLow.includes('nkda') || rLow.includes('no known drug allergy') || rLow.includes('no known drug allergies') || rLow.includes('no known allergies')) {
       return ['NKDA — No Known Drug Allergies'];
     }
 
@@ -487,8 +625,90 @@ export const ReviewQueuePage = () => {
   const vitals = parseVitals(raw);
   const labs = structuredLabs.length > 0 ? structuredLabs : parseLabs(raw);
   const allergies = parseAllergies(raw);
-  const histMatch = raw.match(/(?:history of|known case of)\s+([^,.]+)/i);
-  const history = histMatch ? [histMatch[1].trim()] : [];
+
+  // Comprehensive Medical History extraction (pipeline + regex with condition splitting & overlap filtering)
+  const pipelineHistory: string[] = [];
+  if (Array.isArray((det as any)?.past_history)) pipelineHistory.push(...(det as any).past_history);
+  if (Array.isArray((det as any)?.history)) pipelineHistory.push(...(det as any).history);
+  if (Array.isArray((det as any)?.family_history)) pipelineHistory.push(...(det as any).family_history);
+  if (det?.patient_summary && typeof det.patient_summary === 'object') {
+    const pObj = det.patient_summary as Record<string, any>;
+    if (Array.isArray(pObj.past_history)) pipelineHistory.push(...pObj.past_history);
+    if (Array.isArray(pObj.history)) pipelineHistory.push(...pObj.history);
+  }
+
+  const knownConditions = [
+    'Type 2 Diabetes Mellitus', 'Type 1 Diabetes Mellitus', 'Diabetes Mellitus', 'Diabetes', 'T2DM', 'DM2',
+    'Essential Hypertension', 'Hypertension', 'HTN',
+    'Hyperlipidemia', 'Dyslipidemia',
+    'Chronic Kidney Disease Stage III', 'Chronic Kidney Disease Stage 3', 'Chronic Kidney Disease', 'CKD Stage III', 'CKD Stage 3', 'CKD',
+    'Coronary Artery Disease', 'CAD', 'Heart Failure', 'CHF',
+    'Congestive Heart Failure', 'Atrial Fibrillation', 'AFib',
+    'Asthma', 'COPD', 'Stroke', 'CVA', 'Hypothyroidism', 'GERD'
+  ];
+
+  const rawHistory: string[] = [];
+  if (raw) {
+    const matches = raw.matchAll(/(?:history of|past medical history|past history|h\/o|known case of|k\/c\/o|pmh:?)\s*:?\s*([^\n\r.]+)/gi);
+    for (const m of matches) {
+      if (m[1] && m[1].trim().length > 2) {
+        const span = m[1].trim();
+        const found: string[] = [];
+        for (const cond of knownConditions) {
+          const reg = new RegExp(`\\b${cond.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+          if (reg.test(span)) {
+            found.push(cond);
+          }
+        }
+        if (found.length > 0) {
+          rawHistory.push(...found);
+        } else {
+          const parts = span.split(/[,;\n•\-]|(?:\s+and\s+)/i).map(s => s.trim()).filter(s => s.length > 2);
+          rawHistory.push(...parts);
+        }
+      }
+    }
+  }
+
+  const expandedPipelineHistory: string[] = [];
+  for (const item of pipelineHistory) {
+    if (!item) continue;
+    const found: string[] = [];
+    for (const cond of knownConditions) {
+      const reg = new RegExp(`\\b${cond.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+      if (reg.test(item)) {
+        found.push(cond);
+      }
+    }
+    if (found.length > 0) {
+      expandedPipelineHistory.push(...found);
+    } else {
+      expandedPipelineHistory.push(item);
+    }
+  }
+
+  const allHistory: string[] = deduplicateCaseInsensitive([...expandedPipelineHistory, ...rawHistory]);
+
+  if (raw) {
+    const pmhMatch = raw.match(/(?:Past Medical History|PMH|Past History|History of|H\/O)\s*:?\s*([^\n\r]+)/i);
+    if (pmhMatch && pmhMatch[1]) {
+      const pmhText = pmhMatch[1];
+      for (const cond of knownConditions) {
+        const reg = new RegExp(`\\b${cond.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+        if (reg.test(pmhText) && !allHistory.some(h => h.toLowerCase() === cond.toLowerCase())) {
+          allHistory.push(cond);
+        }
+      }
+    }
+  }
+
+  const sortedConds = deduplicateCaseInsensitive(allHistory).sort((a, b) => b.length - a.length);
+  const history: string[] = [];
+  for (const c of sortedConds) {
+    if (!history.some(existing => existing.toLowerCase().includes(c.toLowerCase()))) {
+      history.push(c);
+    }
+  }
   const imaging = raw.toLowerCase().includes('ecg')
     ? [{ type: 'ECG', finding: 'ST elevation — anterolateral leads', status: 'ABNORMAL' }]
     : raw.toLowerCase().includes('chest x') ? [{ type: 'CXR', finding: 'Right lower lobe consolidation', status: 'ABNORMAL' }] : [];
@@ -602,9 +822,18 @@ export const ReviewQueuePage = () => {
                       {parseGender(raw) && <span className="text-xs text-[var(--text-muted)]">Sex: <b className="text-[var(--text-primary)]">{parseGender(raw)}</b></span>}
                       <span className={`badge ${statusStyle(cur.status)}`}>{cur.status}</span>
                       {allergies.length > 0 && (
-                        <span className="badge badge-danger text-xs font-bold flex items-center gap-1" style={{ background: 'var(--danger-dim)', color: '#FF8CA0', border: '1px solid rgba(255,69,96,0.3)' }}>
-                          <Shield className="w-3 h-3 text-[var(--danger)]" /> ALLERGY: {allergies.join(', ')}
-                        </span>
+                        (() => {
+                          const isNkda = allergies.some(a => /nkda|no known|none|nil/i.test(a));
+                          return isNkda ? (
+                            <span className="badge badge-success text-xs font-bold flex items-center gap-1" style={{ background: 'var(--success-dim)', color: '#6EFFD4', border: '1px solid rgba(0,227,150,0.3)' }}>
+                              <CheckCircle2 className="w-3 h-3 text-[var(--success)]" /> ALLERGY: {allergies.join(', ')}
+                            </span>
+                          ) : (
+                            <span className="badge badge-danger text-xs font-bold flex items-center gap-1" style={{ background: 'var(--danger-dim)', color: '#FF8CA0', border: '1px solid rgba(255,69,96,0.3)' }}>
+                              <Shield className="w-3 h-3 text-[var(--danger)]" /> ALLERGY: {allergies.join(', ')}
+                            </span>
+                          );
+                        })()
                       )}
                     </div>
                   </div>
@@ -676,9 +905,9 @@ export const ReviewQueuePage = () => {
                           </div>
                           <div className="text-xs text-[var(--text-muted)] flex flex-wrap gap-x-3 gap-y-1 ml-6">
                             <span>Dose: <b className="text-[var(--text-primary)]">{m.dosage ?? 'N/A'}</b></span>
-                            <span>Freq: <b className="text-[var(--text-primary)]">{m.frequency ?? 'N/A'}</b></span>
+                            <span>Freq: <b className="text-[var(--text-primary)]">{formatFrequencyDetail(m.frequency) ?? 'N/A'}</b></span>
                             {m.duration && <span>Duration: <b className="text-[var(--teal)]">{m.duration}</b></span>}
-                            {m.timing && <span>Timing: <b className="text-[#FFD060]">{m.timing}</b></span>}
+                            {m.timing && <span>Timing: <b className="text-[#FFD060]">{formatTimingDetail(m.timing)}</b></span>}
                             {m.reason && <span>For: <b className="text-[var(--text-primary)]">{m.reason}</b></span>}
                           </div>
                         </div>
@@ -728,12 +957,24 @@ export const ReviewQueuePage = () => {
                   )}
 
                   {activeTab === 'Allergies' && (allergies.length > 0
-                    ? allergies.map((a, i) => (
-                        <div key={i} className="flex gap-3 rounded-xl px-4 py-3" style={{ background: 'rgba(255,69,96,0.06)', border: '1px solid rgba(255,69,96,0.15)' }}>
-                          <Shield className="w-4 h-4 flex-shrink-0" style={{ color: '#FF8CA0' }} />
-                          <span className="text-sm font-medium" style={{ color: '#FF8CA0' }}>{a}</span>
-                        </div>
-                      ))
+                    ? allergies.map((a, i) => {
+                        const isNkda = /nkda|no known|none|nil/i.test(a);
+                        return (
+                          <div key={i} className="flex items-center gap-3 rounded-xl px-4 py-3"
+                            style={{
+                              background: isNkda ? 'rgba(0,227,150,0.08)' : 'rgba(255,69,96,0.06)',
+                              border: isNkda ? '1px solid rgba(0,227,150,0.25)' : '1px solid rgba(255,69,96,0.15)'
+                            }}>
+                            {isNkda ? (
+                              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--success)]" />
+                            ) : (
+                              <Shield className="w-4 h-4 flex-shrink-0" style={{ color: '#FF8CA0' }} />
+                            )}
+                            <span className="text-sm font-medium" style={{ color: isNkda ? '#6EFFD4' : '#FF8CA0' }}>{a}</span>
+                            {isNkda && <span className="ml-auto badge badge-success text-[8px]">VERIFIED NKDA</span>}
+                          </div>
+                        );
+                      })
                     : <p className="text-sm text-[var(--text-dim)] text-center py-4">No allergy data</p>
                   )}
 

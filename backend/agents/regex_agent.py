@@ -98,10 +98,16 @@ class RegexAgent:
 
             # ── Critical Disease Extractions ─────────────────────────────
             "DISEASE": [
+                r'(?i)\b(?:community\s+acquired\s+pneumonia|pneumonia|cap)\b',
+                r'(?i)\b(?:copd\s+exacerbation|copd|chronic\s+obstructive\s+pulmonary\s+disease)\b',
                 r'(?i)\b(?:acute\s+myocardial\s+infarction|acute\s+mi|stemi|myocardial\s+infarction)\b',
                 r'(?i)\b(?:congestive\s+heart\s+failure|heart\s+failure|chf)\b',
-                r'(?i)\b(?:hyperkalemia|hyperlipidaemia|hyperlipidemia)\b',
-                r'(?i)\b(?:pulmonary\s+edema|pulmonary\s+oedema)\b'
+                r'(?i)\b(?:hyperkalemia|hyperlipidaemia|hyperlipidemia|dyslipidemia)\b',
+                r'(?i)\b(?:pulmonary\s+edema|pulmonary\s+oedema)\b',
+                r'(?i)\b(?:type\s+2\s+diabetes\s+mellitus|type\s+1\s+diabetes\s+mellitus|diabetes\s+mellitus|t2dm|dm2)\b',
+                r'(?i)\b(?:essential\s+hypertension|hypertension|htn)\b',
+                r'(?i)\b(?:chronic\s+kidney\s+disease(?:\s+stage\s+(?:iii|iv|v|3|4|5))?|ckd)\b',
+                r'(?i)\b(?:bronchial\s+asthma|asthma)\b'
             ]
         }
 

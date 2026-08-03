@@ -36,8 +36,9 @@ _ROUTE_MAP: Dict[str, str] = {
     "nasal spray": "Nasal",
     "inhalation": "Inhalation",
     "inhaled": "Inhalation",
-    "nebulization": "Inhalation",
-    "nebulised": "Inhalation",
+    "nebulization": "Nebulization",
+    "nebulised": "Nebulization",
+    "nebulized": "Nebulization",
     "puff": "Inhalation",
     "puffs": "Inhalation",
     "suppository": "Rectal",
@@ -50,20 +51,32 @@ _FREQ_MAP: Dict[str, Tuple[str, str]] = {
     # Abbreviation -> (Code, Human Readable)
     "od": ("OD", "Once Daily"),
     "once daily": ("OD", "Once Daily"),
+    "once a day": ("OD", "Once Daily"),
+    "1 time daily": ("OD", "Once Daily"),
+    "1 time a day": ("OD", "Once Daily"),
     "daily": ("OD", "Once Daily"),
     "every day": ("OD", "Once Daily"),
     "qd": ("OD", "Once Daily"),
     "bd": ("BID", "Twice Daily"),
     "bid": ("BID", "Twice Daily"),
     "twice daily": ("BID", "Twice Daily"),
+    "twice a day": ("BID", "Twice Daily"),
+    "2 times daily": ("BID", "Twice Daily"),
+    "2 times a day": ("BID", "Twice Daily"),
     "morning and evening": ("BID", "Twice Daily"),
     "tds": ("TDS", "Three Times Daily"),
     "tid": ("TID", "Three Times Daily"),
     "thrice daily": ("TDS", "Three Times Daily"),
     "three times daily": ("TDS", "Three Times Daily"),
+    "three times a day": ("TDS", "Three Times Daily"),
+    "3 times daily": ("TDS", "Three Times Daily"),
+    "3 times a day": ("TDS", "Three Times Daily"),
     "qid": ("QID", "Four Times Daily"),
     "qds": ("QDS", "Four Times Daily"),
     "four times daily": ("QID", "Four Times Daily"),
+    "four times a day": ("QID", "Four Times Daily"),
+    "4 times daily": ("QID", "Four Times Daily"),
+    "4 times a day": ("QID", "Four Times Daily"),
     "qod": ("QOD", "Every Other Day"),
     "alternate day": ("QOD", "Every Other Day"),
     "every other day": ("QOD", "Every Other Day"),
@@ -75,6 +88,8 @@ _FREQ_MAP: Dict[str, Tuple[str, str]] = {
     "at bedtime": ("HS", "At Bedtime"),
     "bedtime": ("HS", "At Bedtime"),
     "night": ("HS", "At Bedtime"),
+    "at night": ("HS", "At Bedtime"),
+    "nightly": ("HS", "At Bedtime"),
     "stat": ("STAT", "Immediately"),
     "prn": ("PRN", "As Needed"),
     "sos": ("SOS", "As Needed"),
@@ -89,12 +104,18 @@ _TIMING_MAP: Dict[str, str] = {
     "ac": "Before meals (AC)",
     "before meals": "Before meals (AC)",
     "before meal": "Before meals (AC)",
+    "before food": "Before meals (AC)",
+    "pre meal": "Before meals (AC)",
+    "pre-meal": "Before meals (AC)",
     "before breakfast": "Before breakfast",
     "before lunch": "Before lunch",
     "before dinner": "Before dinner",
     "pc": "After meals (PC)",
     "after meals": "After meals (PC)",
     "after meal": "After meals (PC)",
+    "after food": "After meals (PC)",
+    "post meal": "After meals (PC)",
+    "post-meal": "After meals (PC)",
     "after breakfast": "After breakfast",
     "after lunch": "After lunch",
     "after dinner": "After dinner",
@@ -102,15 +123,18 @@ _TIMING_MAP: Dict[str, str] = {
     "with meal": "With meals",
     "with food": "With food",
     "empty stomach": "Empty stomach",
+    "on empty stomach": "Empty stomach",
+    "on an empty stomach": "Empty stomach",
     "morning": "Morning",
     "in the morning": "Morning",
     "evening": "Evening",
     "in the evening": "Evening",
     "night": "Night",
     "in the night": "Night",
-    "bedtime": "Bedtime",
-    "at bedtime": "Bedtime",
-    "hs": "Bedtime",
+    "at night": "Night",
+    "bedtime": "Bedtime (HS)",
+    "at bedtime": "Bedtime (HS)",
+    "hs": "Bedtime (HS)",
 }
 
 class MedicationNormalizer:
@@ -124,7 +148,7 @@ class MedicationNormalizer:
         Parses numeric schedules like 1-0-1, 1-1-1, 1-0-0, 0-0-1, 2-2-2.
         Returns {"original": pattern, "normalized": code, "description": human_readable}
         """
-        clean = pattern.strip()
+        clean = re.sub(r'\s*-\s*', '-', pattern.strip())
         parts = clean.split("-")
         if len(parts) >= 3:
             try:
@@ -166,9 +190,10 @@ class MedicationNormalizer:
         if not raw_freq:
             return {"code": "OD", "description": "Once Daily"}
 
-        f_low = raw_freq.strip().lower()
+        clean = re.sub(r'\s*-\s*', '-', raw_freq.strip())
+        f_low = clean.lower()
 
-        # Check numeric schedule first (e.g., 1-0-1)
+        # Check numeric schedule first (e.g., 1-0-1, 1 - 0 - 1)
         if re.match(r'^[0-9/\.]+(?:-[0-9/\.]+){2,3}$', f_low):
             num_res = cls.parse_numeric_schedule(f_low)
             return {"code": num_res["normalized"], "description": num_res["description"]}
@@ -188,8 +213,8 @@ class MedicationNormalizer:
             code, desc = _FREQ_MAP[f_low]
             return {"code": code, "description": desc}
 
-        # Check hourly patterns (e.g., q6h, q8h, q6h PRN, every 6 hours)
-        m = re.search(r'(?:every\s+(?P<num>\d+)\s*hours?|q(?P<qnum>\d+)h)', f_low)
+        # Check hourly patterns (e.g., q6h, q8h, q6h PRN, every 6 hours, every 8 hrs)
+        m = re.search(r'(?:every\s+(?P<num>\d+)\s*(?:hours?|hrs?|h)|q(?P<qnum>\d+)(?:h|hrs?))', f_low)
         if m:
             n = m.group("num") or m.group("qnum")
             code = f"q{n}h"

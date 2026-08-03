@@ -104,6 +104,25 @@ def calculate_symptom_breakdown(structured_summary: List[Dict[str, Any]]) -> Dic
     }
 
 
+def deduplicate_case_insensitive(items: List[str]) -> List[str]:
+    """Deduplicate string items case-insensitively while preserving clean capitalization."""
+    seen = {}
+    for item in items:
+        if not item or not isinstance(item, str):
+            continue
+        clean = item.strip()
+        if not clean:
+            continue
+        key = clean.lower()
+        if key not in seen:
+            seen[key] = clean
+        else:
+            existing = seen[key]
+            if clean != clean.lower() and existing == existing.lower():
+                seen[key] = clean
+    return list(seen.values())
+
+
 class FormattingAgent:
     def __init__(self, config: Dict[str, Any] = None):
         self.config = config or {}
@@ -114,25 +133,84 @@ class FormattingAgent:
         from backend.clinical.clinical_context_classifier import ClinicalContextClassifier
         from backend.engines.unit_normalization_engine import UnitNormalizationEngine
 
+        def deduplicate_overlapping_conditions(conditions: List[str]) -> List[str]:
+            sorted_conds = sorted(list(dict.fromkeys(conditions)), key=len, reverse=True)
+            final_list = []
+            for c in sorted_conds:
+                if not any(c.lower() in existing.lower() for existing in final_list):
+                    final_list.append(c)
+            return final_list
+
+        def extract_history_from_text(raw_text: str) -> List[str]:
+            if not raw_text:
+                return []
+            results = []
+            matches = re.finditer(r'(?:history of|past medical history|past history|h/o|known case of|k/c/o|pmh:?)\s*:?\s*([^\n\r.]+)', raw_text, re.IGNORECASE)
+            known_conditions = [
+                'Type 2 Diabetes Mellitus', 'Type 1 Diabetes Mellitus', 'Diabetes Mellitus', 'Diabetes', 'T2DM', 'DM2',
+                'Essential Hypertension', 'Hypertension', 'HTN',
+                'Hyperlipidemia', 'Dyslipidemia',
+                'Chronic Kidney Disease Stage III', 'Chronic Kidney Disease Stage 3', 'Chronic Kidney Disease', 'CKD Stage III', 'CKD Stage 3', 'CKD',
+                'Coronary Artery Disease', 'CAD', 'Heart Failure', 'CHF',
+                'Congestive Heart Failure', 'Atrial Fibrillation', 'AFib',
+                'Asthma', 'COPD', 'Stroke', 'CVA', 'Hypothyroidism', 'GERD'
+            ]
+            for m in matches:
+                span = m.group(1).strip()
+                found = []
+                for cond in known_conditions:
+                    if re.search(r'\b' + re.escape(cond) + r'\b', span, re.IGNORECASE):
+                        found.append(cond)
+                if found:
+                    results.extend(found)
+                else:
+                    parts = [p.strip() for p in re.split(r'[,;\n•\-]|(?:\s+and\s+)', span) if len(p.strip()) > 2]
+                    results.extend(parts)
+            return results
+
         context_results = ClinicalContextClassifier.filter_active_entities(state.text or "", state.final_entities)
         active_entities = context_results["active"]
         negated_entities = [e.text if hasattr(e, "text") else str(e) for e in context_results["negated"]]
-        past_history_entities = [e.text if hasattr(e, "text") else str(e) for e in context_results["past_history"]]
-        family_history_entities = [e.text if hasattr(e, "text") else str(e) for e in context_results["family_history"]]
+        raw_past_entities = [e.text if hasattr(e, "text") else str(e) for e in context_results["past_history"]]
+        raw_text_history = extract_history_from_text(state.text or "")
+        past_history_entities = deduplicate_overlapping_conditions(deduplicate_case_insensitive(raw_past_entities + raw_text_history))
+        family_history_entities = deduplicate_case_insensitive([e.text if hasattr(e, "text") else str(e) for e in context_results["family_history"]])
+        history_entities = deduplicate_case_insensitive(past_history_entities + family_history_entities)
         parsed_allergies = context_results["allergies"]
+
+        def extract_symptoms_from_text(raw_text: str) -> List[str]:
+            if not raw_text:
+                return []
+            results = []
+            matches = re.finditer(r'(?:Chief Complaints?|Presenting Complaints?|Symptoms?|Complaints?)\s*:?\s*(.*?)(?=\s*(?:Past Medical History|PMH|Vital Signs|Laboratory|Diagnosis|Medications|Advice|Labs|Impression|Allergies|History)|$)', raw_text, re.IGNORECASE)
+            for m in matches:
+                span = m.group(1).strip()
+                parts = [
+                    re.sub(r'^(?:presenting with|complaining of|history of)\s+', '', p, flags=re.IGNORECASE).strip()
+                    for p in re.split(r'[,;\n•]|(?:\s+and\s+)|\bfor\s+\d+', span)
+                ]
+                valid_parts = [
+                    p.strip('. ') for p in parts 
+                    if len(p.strip('. ')) > 2 and not re.search(r'^(?:\d+\s*)?(?:days?|weeks?|months?)\.?$', p.strip('. '), re.IGNORECASE)
+                ]
+                results.extend(valid_parts)
+            return results
 
         raw_diseases = [e.text for e in active_entities if e.type == "DISEASE"]
         diseases = DifferentialDiagnosisEngine.merge_duplicate_diagnoses(raw_diseases)
-        symptoms = sorted(list(set([e.text for e in active_entities if e.type == "SYMPTOM"])))
-        medications = sorted(list(set([e.text for e in active_entities if e.type == "DRUG"])))
-        dosages = sorted(list(set([e.text for e in active_entities if e.type == "DOSAGE"])))
-        frequencies = sorted(list(set([e.text for e in active_entities if e.type == "FREQUENCY"])))
-        durations = sorted(list(set([e.text for e in active_entities if e.type == "DURATION"])))
-        laboratory_tests = sorted(list(set([e.text for e in active_entities if e.type == "LAB_VALUE"])))
-        vital_signs = sorted(list(set([e.text for e in active_entities if e.type == "VITAL_SIGN"])))
-        procedures = sorted(list(set([e.text for e in active_entities if e.type == "PROCEDURE"])))
-        body_parts = sorted(list(set([e.text for e in active_entities if e.type == "ANATOMY"])))
-        clinical_findings = sorted(list(set([e.text for e in active_entities if e.type == "CLINICAL_FINDING"])))
+        diseases = deduplicate_case_insensitive(diseases)
+        raw_symptom_entities = [e.text for e in active_entities if e.type == "SYMPTOM"]
+        raw_text_symptoms = extract_symptoms_from_text(state.text or "")
+        symptoms = deduplicate_case_insensitive(raw_symptom_entities + raw_text_symptoms)
+        medications = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "DRUG"]))))
+        dosages = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "DOSAGE"]))))
+        frequencies = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "FREQUENCY"]))))
+        durations = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "DURATION"]))))
+        laboratory_tests = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "LAB_VALUE"]))))
+        vital_signs = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "VITAL_SIGN"]))))
+        procedures = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "PROCEDURE"]))))
+        body_parts = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "ANATOMY"]))))
+        clinical_findings = deduplicate_case_insensitive(sorted(list(set([e.text for e in active_entities if e.type == "CLINICAL_FINDING"]))))
 
         # 1. RAG Grounding Evidence
         rag_agent = RAGAgent()
@@ -220,10 +298,25 @@ class FormattingAgent:
                     line_end = state.text.find('\n', drug_idx)
                     line_end = len(state.text) if line_end == -1 else line_end
                     line_text = state.text[line_start:line_end]
-                    m = re.search(r'\b(?:1-0-1|1-1-1|1-0-0|0-0-1|0-1-0|once daily|twice daily|thrice daily|three times daily|four times daily|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos)\b', line_text, re.IGNORECASE)
+                    m = re.search(r'\b(?:1\s*-\s*0\s*-\s*1|1\s*-\s*1\s*-\s*1|1\s*-\s*0\s*-\s*0|0\s*-\s*0\s*-\s*1|0\s*-\s*1\s*-\s*0|once\s+daily|twice\s+daily|thrice\s+daily|three\s+times\s+daily|four\s+times\s+daily|once\s+a\s+day|twice\s+a\s+day|every\s+\d+\s*h(?:ours?)?|daily|qd|bid|bd|tid|tds|qid|qds|hs|stat|prn|sos|od|ac)\b', line_text, re.IGNORECASE)
                     if m:
                         best_freq = m.group(0).strip()
             return best_freq
+
+        def resolve_med_timing_span(drug_name: str) -> str:
+            if not state.text:
+                return "Unspecified"
+            drug_idx = state.text.lower().find(drug_name.lower())
+            if drug_idx != -1:
+                line_start = state.text.rfind('\n', 0, drug_idx)
+                line_start = 0 if line_start == -1 else line_start + 1
+                line_end = state.text.find('\n', drug_idx)
+                line_end = len(state.text) if line_end == -1 else line_end
+                line_text = state.text[line_start:line_end]
+                m = re.search(r'\b(?:before\s+meals?|after\s+meals?|before\s+food|after\s+food|before\s+breakfast|after\s+breakfast|before\s+lunch|after\s+lunch|before\s+dinner|after\s+dinner|with\s+meals?|with\s+food|empty\s+stomach|on\s+empty\s+stomach|at\s+bedtime|bedtime|nightly|at\s+night|in\s+the\s+morning|in\s+the\s+evening|ac|pc|hs)\b', line_text, re.IGNORECASE)
+                if m:
+                    return m.group(0).strip().title()
+            return "Unspecified"
 
         def resolve_med_route(drug_name: str) -> str:
             note = (state.text or "").lower()
@@ -248,13 +341,15 @@ class FormattingAgent:
                     rel_freq = resolve_med_frequency_span(m_name)
                 rel_dur = (matched_p.get("duration") if matched_p and matched_p.get("duration") != "Not Specified" else None) or getattr(mr, "duration", "Not Specified")
                 rel_route = (matched_p.get("route") if matched_p else None) or resolve_med_route(m_name)
+                rel_timing = (matched_p.get("timing") if matched_p and matched_p.get("timing") != "Unspecified" else None) or resolve_med_timing_span(m_name)
                 raw_med_dicts.append({
                     "name": m_name,
                     "disease_name": getattr(mr, "disease_name", None),
                     "dosage": rel_dos,
                     "frequency": rel_freq,
                     "duration": rel_dur,
-                    "route": rel_route
+                    "route": rel_route,
+                    "timing": rel_timing
                 })
         elif parsed_prescriptions:
             for p in parsed_prescriptions:
@@ -264,7 +359,8 @@ class FormattingAgent:
                     "dosage": p.get("dose", "As prescribed"),
                     "frequency": p.get("normalized_frequency") or p.get("frequency", "Once Daily"),
                     "duration": p.get("duration", "Not Specified"),
-                    "route": p.get("route", "PO")
+                    "route": p.get("route", "PO"),
+                    "timing": p.get("timing", "Unspecified")
                 })
         else:
             for drug_name in medications:
@@ -274,7 +370,8 @@ class FormattingAgent:
                     "dosage": resolve_med_dosage_span(drug_name),
                     "frequency": resolve_med_frequency_span(drug_name),
                     "duration": "Not Specified",
-                    "route": resolve_med_route(drug_name)
+                    "route": resolve_med_route(drug_name),
+                    "timing": resolve_med_timing_span(drug_name)
                 })
 
         knowledge_graph = ClinicalKnowledgeGraph.build_graph(
@@ -713,6 +810,9 @@ class FormattingAgent:
             "procedures": procedures,
             "body_parts": body_parts,
             "clinical_findings": clinical_findings,
+            "history": history_entities,
+            "past_history": past_history_entities,
+            "family_history": family_history_entities,
             "allergies": allergies,
             "drug_interactions": drug_interactions,
             "contraindications": local_contras,
